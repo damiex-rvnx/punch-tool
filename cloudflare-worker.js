@@ -1,4 +1,4 @@
-// QR Clock-Bot — Cloudflare Worker
+// QR Clock-Bot - Cloudflare Worker
 // Schedules and cancels OneSignal push notifications on behalf of each device.
 //
 // Environment variable required (set as a Secret in Cloudflare dashboard):
