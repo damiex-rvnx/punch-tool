@@ -77,3 +77,4 @@ function json(data, status = 200) {
     headers: { ...cors, 'Content-Type': 'application/json' },
   })
 }
+
