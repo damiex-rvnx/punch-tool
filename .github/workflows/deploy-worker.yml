@@ -24,7 +24,7 @@ jobs:
         run: npm install -g wrangler@latest
 
       - name: Deploy Worker script
-        run: wrangler deploy --verbose
+        run: wrangler deploy
 
       - name: Upload OneSignal secret
         run: printf '%s' "$ONESIGNAL_REST_KEY" | wrangler secret put ONESIGNAL_REST_KEY
