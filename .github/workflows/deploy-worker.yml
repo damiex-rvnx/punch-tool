@@ -2,7 +2,7 @@ name: Deploy Cloudflare Worker
 
 on:
   push:
-    branches: [claude/crew-clock-app-SDfGg, main, gh-pages]
+    branches: [claude/crew-clock-app-SDfGg, main]
     paths: [cloudflare-worker.js, wrangler.toml]
   workflow_dispatch:
 
@@ -12,10 +12,19 @@ jobs:
     name: Deploy Worker
     steps:
       - uses: actions/checkout@v4
-      - uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          secrets: |
-            ONESIGNAL_REST_KEY
+
+      - name: Install Wrangler
+        run: npm install -g wrangler
+
+      - name: Deploy Worker script
+        run: wrangler deploy
         env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 770447eb9a0fc2475bd1d61eeb6d2021
+
+      - name: Upload ONESIGNAL_REST_KEY secret
+        run: echo "$ONESIGNAL_REST_KEY" | wrangler secret put ONESIGNAL_REST_KEY
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 770447eb9a0fc2475bd1d61eeb6d2021
           ONESIGNAL_REST_KEY: ${{ secrets.ONESIGNAL_REST_KEY }}
