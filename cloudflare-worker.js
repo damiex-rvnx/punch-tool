@@ -2,7 +2,7 @@
 // Schedules and cancels OneSignal push notifications on behalf of each device.
 //
 // Environment variable required (set as a Secret in Cloudflare dashboard):
-//   ONESIGNAL_REST_KEY  — found in OneSignal dashboard → Settings → Keys & IDs
+//   ONESIGNAL_REST_KEY  - found in OneSignal dashboard > Settings > Keys & IDs
 
 const APP_ID   = 'a075be77-5334-4e47-b8a4-ff6de2836198'
 const OS_API   = 'https://onesignal.com/api/v1/notifications'
@@ -26,7 +26,7 @@ export default {
 
     const { action } = body
 
-    // ── Schedule ─────────────────────────────────────────────────────────────
+    // -- Schedule ---------------------------------------------------------
     if (action === 'schedule') {
       const { playerId, items } = body
       if (!playerId || !items?.length) return json({ error: 'Missing playerId or items' }, 400)
@@ -53,7 +53,7 @@ export default {
       return json({ ok: true, ids })
     }
 
-    // ── Cancel ────────────────────────────────────────────────────────────────
+    // -- Cancel -----------------------------------------------------------
     if (action === 'cancel') {
       const { notifIds } = body
       if (!notifIds?.length) return json({ ok: true })
