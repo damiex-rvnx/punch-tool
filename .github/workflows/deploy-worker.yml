@@ -21,7 +21,7 @@ jobs:
           node-version: '22'
 
       - name: Install Wrangler
-        run: npm install -g wrangler@4.91.0
+        run: npm install -g wrangler@latest
 
       - name: Deploy Worker script
         run: wrangler deploy --verbose
