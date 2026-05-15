@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 
 // ─── ONESIGNAL ───────────────────────────────────────────────────────────────
 // Replace with your App ID from onesignal.com after creating your account
-const ONESIGNAL_APP_ID = 'YOUR_ONESIGNAL_APP_ID'
+const ONESIGNAL_APP_ID = 'a075be77-5334-4e47-b8a4-ff6de2836198'
 
 
 function ClockIcon({ size = 96 }) {
