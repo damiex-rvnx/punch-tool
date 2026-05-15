@@ -2,3 +2,4 @@ name = "qr-clock-bot"
 main = "cloudflare-worker.js"
 compatibility_date = "2024-01-01"
 account_id = "770447eb9a0fc2475bd1d61eeb6d2021"
+# deploy
