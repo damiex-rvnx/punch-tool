@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 // ─── ONESIGNAL + CLOUDFLARE WORKER ───────────────────────────────────────────
 const ONESIGNAL_APP_ID = 'a075be77-5334-4e47-b8a4-ff6de2836198'
 // Fill this in after deploying the Cloudflare Worker
-const WORKER_URL = 'YOUR_CLOUDFLARE_WORKER_URL'
+const WORKER_URL = 'https://qr-clock-bot.lbrito1126.workers.dev'
 
 function ClockIcon({ size = 96 }) {
   const ticks = Array.from({ length: 12 }, (_, i) => i * 30)
