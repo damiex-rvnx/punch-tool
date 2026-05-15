@@ -15,6 +15,7 @@ const DEFAULT = {
   dinnerHour: 10.00,
   dinnerWarning: 5,
   dinnerDuration: 30,
+  dinnerEnabled: true,
 }
 
 const LUNCH_OPTS = [
@@ -94,9 +95,11 @@ export default function App() {
       { id: 'lw',   emoji: '🔔', label: `Lunch in ${s.lunchWarning} min — heads up!`,        fireAt: lunchOut - s.lunchWarning },
       { id: 'lo',   emoji: '🍽️', label: 'Clock Out — Lunch Break',                            fireAt: lunchOut },
       { id: 'li',   emoji: '✅', label: `Clock Back In — Lunch (${s.lunchDuration} min)`,    fireAt: lunchIn },
-      { id: 'dw',   emoji: '🔔', label: `Dinner in ${s.dinnerWarning} min — heads up!`,       fireAt: dinnerOut - s.dinnerWarning },
-      { id: 'dout', emoji: '🌙', label: 'Clock Out — Dinner Break',                           fireAt: dinnerOut },
-      { id: 'din',  emoji: '🔁', label: `Clock Back In — Dinner (${s.dinnerDuration} min)`,  fireAt: dinnerIn },
+      ...(s.dinnerEnabled ? [
+        { id: 'dw',   emoji: '🔔', label: `Dinner in ${s.dinnerWarning} min — heads up!`,       fireAt: dinnerOut - s.dinnerWarning },
+        { id: 'dout', emoji: '🌙', label: 'Clock Out — Dinner Break',                           fireAt: dinnerOut },
+        { id: 'din',  emoji: '🔁', label: `Clock Back In — Dinner (${s.dinnerDuration} min)`,  fireAt: dinnerIn },
+      ] : []),
     ]
   })()
 
@@ -464,6 +467,33 @@ function DinnerCard({ css, s, update }) {
           <span>1 min early</span>
           <span>15 min early</span>
         </div>
+      </div>
+
+      <div style={css.divider} />
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{ fontSize: 13, color: '#f2f2f7', fontWeight: 600 }}>Dinner reminders</div>
+          <div style={{ fontSize: 11, color: '#636366', marginTop: 2 }}>
+            {s.dinnerEnabled ? 'On — working a long day' : 'Off — no dinner break today'}
+          </div>
+        </div>
+        <button
+          onClick={() => update({ dinnerEnabled: !s.dinnerEnabled })}
+          style={{
+            width: 51, height: 31, borderRadius: 15.5, border: 'none', cursor: 'pointer',
+            background: s.dinnerEnabled ? '#32d74b' : '#3a3a3c',
+            position: 'relative', transition: 'background .25s', flexShrink: 0,
+          }}
+          aria-label="Toggle dinner reminders"
+        >
+          <span style={{
+            position: 'absolute', top: 2,
+            left: s.dinnerEnabled ? 22 : 2,
+            width: 27, height: 27, borderRadius: '50%',
+            background: '#fff', transition: 'left .25s',
+          }} />
+        </button>
       </div>
     </>
   )
