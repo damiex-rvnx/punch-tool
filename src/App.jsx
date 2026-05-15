@@ -54,6 +54,9 @@ function fmtTime(totalMins) {
 
 function pad2(n) { return String(n).padStart(2, '0') }
 
+const notifSupported = typeof Notification !== 'undefined'
+const notifPermission = () => notifSupported ? Notification.permission : 'unsupported'
+
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
@@ -110,7 +113,7 @@ export default function App() {
 
   // ─── Set reminders ──────────────────────────────────────────────────────────
   async function handleSet() {
-    if (Notification.permission === 'default') {
+    if (notifSupported && notifPermission() === 'default') {
       await Notification.requestPermission()
     }
 
@@ -124,7 +127,7 @@ export default function App() {
       if (ms < 0) ms += 86400000
 
       const id = setTimeout(() => {
-        if (Notification.permission === 'granted') {
+        if (notifSupported && notifPermission() === 'granted') {
           new Notification('QwikResponse Crew Clock', { body: item.label, tag: item.id })
         }
         setAlert({ emoji: item.emoji, label: item.label })
@@ -135,9 +138,9 @@ export default function App() {
 
     setIsSet(true)
 
-    if (Notification.permission === 'granted') {
+    if (notifPermission() === 'granted') {
       showToast('Reminders set ✓', '#15803d')
-    } else if (Notification.permission === 'denied') {
+    } else if (notifPermission() === 'denied') {
       showToast('Notifications blocked — enable in browser settings', '#d97706')
     } else {
       showToast('Saved — enable notifications to get alerts', '#d97706')
@@ -346,7 +349,7 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
         {isSet && (
           <button style={css.btnCancel} onClick={handleCancel}>Cancel Reminders</button>
         )}
-        {Notification.permission === 'denied' && (
+        {notifPermission() === 'denied' && (
           <div style={{ background: '#2a1a1a', border: '1px solid #e5342a', borderRadius: 10, padding: '12px 16px', marginTop: 14, fontSize: 13, color: '#f2f2f7' }}>
             ⚠️ Notifications are blocked. To enable: open browser settings → Site Settings → Notifications → allow this site.
           </div>
