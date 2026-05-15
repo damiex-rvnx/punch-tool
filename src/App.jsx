@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 
-// ─── CLOCK ICON ──────────────────────────────────────────────────────────────
+// ─── ONESIGNAL ───────────────────────────────────────────────────────────────
+// Replace with your App ID from onesignal.com after creating your account
+const ONESIGNAL_APP_ID = 'YOUR_ONESIGNAL_APP_ID'
+
+
 function ClockIcon({ size = 96 }) {
   const ticks = Array.from({ length: 12 }, (_, i) => i * 30)
   return (
@@ -109,6 +113,30 @@ export default function App() {
   const [alert, setAlert] = useState(null)
   const timerIds = useRef([])
   const toastTimer = useRef(null)
+  const swReg = useRef(null)
+
+  // Register service worker and init OneSignal on mount
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker
+        .register('/qwik-crew-clock/OneSignalSDKWorker.js', { scope: '/qwik-crew-clock/' })
+        .then(reg => { swReg.current = reg })
+        .catch(() => {})
+    }
+
+    if (ONESIGNAL_APP_ID !== 'YOUR_ONESIGNAL_APP_ID') {
+      window.OneSignalDeferred = window.OneSignalDeferred || []
+      window.OneSignalDeferred.push(async OneSignal => {
+        await OneSignal.init({
+          appId: ONESIGNAL_APP_ID,
+          serviceWorkerPath: '/qwik-crew-clock/OneSignalSDKWorker.js',
+          serviceWorkerParam: { scope: '/qwik-crew-clock/' },
+          notifyButton: { enable: false },
+        })
+        await OneSignal.Notifications.requestPermission()
+      })
+    }
+  }, [])
 
   // Persist on every state change
   useEffect(() => {
@@ -148,6 +176,7 @@ export default function App() {
   function clearTimers() {
     timerIds.current.forEach(id => clearTimeout(id))
     timerIds.current = []
+    swReg.current?.active?.postMessage({ type: 'QR_CANCEL' })
   }
 
   // ─── Set reminders ──────────────────────────────────────────────────────────
@@ -161,19 +190,32 @@ export default function App() {
     const now = new Date()
     const nowMins = now.getHours() * 60 + now.getMinutes()
 
+    const swItems = []
+
     schedule.forEach(item => {
       let ms = (item.fireAt - nowMins) * 60000 - now.getSeconds() * 1000
       if (ms < 0) ms += 86400000
 
+      // Main-thread timer: fires in-app alert when app is open
       const id = setTimeout(() => {
-        if (notifSupported && notifPermission() === 'granted') {
-          new Notification('QR Clock-Bot', { body: item.label, tag: item.id })
-        }
         setAlert({ emoji: item.emoji, label: item.label })
       }, ms)
-
       timerIds.current.push(id)
+
+      // Service-worker timer: fires notification even when app is backgrounded
+      swItems.push({ id: item.id, ms, label: item.label, emoji: item.emoji })
     })
+
+    // Send schedule to SW (works in background on Android; iOS needs OneSignal backend)
+    const sw = swReg.current
+    if (sw?.active) {
+      sw.active.postMessage({ type: 'QR_SCHEDULE', items: swItems })
+    } else if (sw) {
+      // SW registered but not yet active — wait for it
+      navigator.serviceWorker.ready.then(reg => {
+        reg.active?.postMessage({ type: 'QR_SCHEDULE', items: swItems })
+      })
+    }
 
     setIsSet(true)
 
