@@ -13,6 +13,7 @@ const DEFAULT = {
   lunchWarning: 5,
   lunchDuration: 30,
   dinnerHour: 10.00,
+  dinnerWarning: 5,
   dinnerDuration: 30,
 }
 
@@ -93,6 +94,7 @@ export default function App() {
       { id: 'lw',   emoji: '🔔', label: `Lunch in ${s.lunchWarning} min — heads up!`,        fireAt: lunchOut - s.lunchWarning },
       { id: 'lo',   emoji: '🍽️', label: 'Clock Out — Lunch Break',                            fireAt: lunchOut },
       { id: 'li',   emoji: '✅', label: `Clock Back In — Lunch (${s.lunchDuration} min)`,    fireAt: lunchIn },
+      { id: 'dw',   emoji: '🔔', label: `Dinner in ${s.dinnerWarning} min — heads up!`,       fireAt: dinnerOut - s.dinnerWarning },
       { id: 'dout', emoji: '🌙', label: 'Clock Out — Dinner Break',                           fireAt: dinnerOut },
       { id: 'din',  emoji: '🔁', label: `Clock Back In — Dinner (${s.dinnerDuration} min)`,  fireAt: dinnerIn },
     ]
@@ -443,6 +445,25 @@ function DinnerCard({ css, s, update }) {
             {o.l}
           </button>
         ))}
+      </div>
+
+      <div style={css.divider} />
+
+      <div style={css.lbl}>
+        🔔 HEADS-UP BEFORE DINNER
+        <span style={css.val}>{s.dinnerWarning} min</span>
+      </div>
+      <div style={css.sliderWrap}>
+        <input
+          type="range"
+          min={1} max={15} step={1}
+          value={s.dinnerWarning}
+          onChange={e => update({ dinnerWarning: Number(e.target.value) })}
+        />
+        <div style={css.sliderLabels}>
+          <span>1 min early</span>
+          <span>15 min early</span>
+        </div>
       </div>
     </>
   )
