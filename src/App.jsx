@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 
-// ─── ONESIGNAL ───────────────────────────────────────────────────────────────
-// Replace with your App ID from onesignal.com after creating your account
+// ─── ONESIGNAL + CLOUDFLARE WORKER ───────────────────────────────────────────
 const ONESIGNAL_APP_ID = 'a075be77-5334-4e47-b8a4-ff6de2836198'
-
+// Fill this in after deploying the Cloudflare Worker
+const WORKER_URL = 'YOUR_CLOUDFLARE_WORKER_URL'
 
 function ClockIcon({ size = 96 }) {
   const ticks = Array.from({ length: 12 }, (_, i) => i * 30)
@@ -172,11 +172,27 @@ export default function App() {
     toastTimer.current = setTimeout(() => setToast(null), 3800)
   }
 
+  // ─── Cancel via Cloudflare Worker ───────────────────────────────────────────
+  async function cancelWorkerNotifs() {
+    if (WORKER_URL === 'YOUR_CLOUDFLARE_WORKER_URL') return
+    const ids = JSON.parse(localStorage.getItem('qr_notif_ids') || '[]')
+    if (!ids.length) return
+    try {
+      await fetch(WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'cancel', notifIds: ids }),
+      })
+    } catch {}
+    localStorage.removeItem('qr_notif_ids')
+  }
+
   // ─── Clear timers ───────────────────────────────────────────────────────────
   function clearTimers() {
     timerIds.current.forEach(id => clearTimeout(id))
     timerIds.current = []
     swReg.current?.active?.postMessage({ type: 'QR_CANCEL' })
+    cancelWorkerNotifs()
   }
 
   // ─── Set reminders ──────────────────────────────────────────────────────────
@@ -191,27 +207,49 @@ export default function App() {
     const nowMins = now.getHours() * 60 + now.getMinutes()
 
     const swItems = []
+    const workerItems = []
 
     schedule.forEach(item => {
       let ms = (item.fireAt - nowMins) * 60000 - now.getSeconds() * 1000
       if (ms < 0) ms += 86400000
 
-      // Main-thread timer: fires in-app alert when app is open
-      const id = setTimeout(() => {
+      // Main-thread timer — fires in-app alert overlay when app is open
+      timerIds.current.push(setTimeout(() => {
         setAlert({ emoji: item.emoji, label: item.label })
-      }, ms)
-      timerIds.current.push(id)
+      }, ms))
 
-      // Service-worker timer: fires notification even when app is backgrounded
+      // SW timer — fires background notification (reliable on Android)
       swItems.push({ id: item.id, ms, label: item.label, emoji: item.emoji })
+
+      // Cloudflare Worker item — fires via OneSignal even when iOS is closed
+      workerItems.push({
+        id: item.id,
+        fireAtISO: new Date(Date.now() + ms).toISOString(),
+        label: item.label,
+        emoji: item.emoji,
+      })
     })
 
-    // Send schedule to SW (works in background on Android; iOS needs OneSignal backend)
+    // ── Cloudflare Worker → OneSignal (iOS background push) ──────────────────
+    if (WORKER_URL !== 'YOUR_CLOUDFLARE_WORKER_URL') {
+      const playerId = window.OneSignal?.User?.PushSubscription?.id
+      if (playerId) {
+        fetch(WORKER_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'schedule', playerId, items: workerItems }),
+        })
+          .then(r => r.json())
+          .then(d => { if (d.ids) localStorage.setItem('qr_notif_ids', JSON.stringify(d.ids)) })
+          .catch(() => {})
+      }
+    }
+
+    // ── Service Worker (Android background / fallback) ────────────────────────
     const sw = swReg.current
     if (sw?.active) {
       sw.active.postMessage({ type: 'QR_SCHEDULE', items: swItems })
     } else if (sw) {
-      // SW registered but not yet active — wait for it
       navigator.serviceWorker.ready.then(reg => {
         reg.active?.postMessage({ type: 'QR_SCHEDULE', items: swItems })
       })
