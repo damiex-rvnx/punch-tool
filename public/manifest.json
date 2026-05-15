@@ -1,0 +1,23 @@
+{
+  "name": "QR Clock-Bot",
+  "short_name": "Clock-Bot",
+  "description": "QwikResponse Crew Clock Reminder",
+  "start_url": "/qwik-crew-clock/",
+  "scope": "/qwik-crew-clock/",
+  "display": "standalone",
+  "background_color": "#1c1c1e",
+  "theme_color": "#1c1c1e",
+  "icons": [
+    {
+      "src": "/qwik-crew-clock/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/qwik-crew-clock/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
