@@ -26,6 +26,16 @@ jobs:
       - name: Install Wrangler
         run: npm install -g wrangler@latest
 
+      - name: Sanity-check secrets for non-ASCII chars
+        run: |
+          python3 -c "
+          import os
+          for name in ['CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID']:
+              v = os.environ.get(name, '')
+              bad = [(i, ord(c)) for i, c in enumerate(v) if ord(c) > 127]
+              print(f'{name}: len={len(v)}, non_ascii_count={len(bad)}, bad_positions={bad[:5]}')
+          "
+
       - name: Deploy Worker
         run: wrangler deploy
 
