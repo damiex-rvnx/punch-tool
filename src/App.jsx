@@ -420,14 +420,29 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
       <div style={css.card}><DinnerCard css={css} s={s} update={update} /></div>
 
       <div className="card-full" style={css.card}>
-        <div style={css.lbl}>&#x1F4CB; TODAY'S SCHEDULE PREVIEW</div>
+        <div style={css.lbl}>&#x1F4CB; SCHEDULE PREVIEW</div>
         <div style={css.previewGrid}>
-          {schedule.map(item => (
-            <React.Fragment key={item.id}>
-              <div style={css.previewLabel}>{item.emoji} {item.label}</div>
-              <div style={css.previewTime}>{fmtTime(item.fireAt)}</div>
-            </React.Fragment>
-          ))}
+          {(() => {
+            const nowMins = new Date().getHours() * 60 + new Date().getMinutes()
+            return [...schedule]
+              .sort((a, b) => {
+                const ae = a.fireAt < nowMins ? a.fireAt + 1440 : a.fireAt
+                const be = b.fireAt < nowMins ? b.fireAt + 1440 : b.fireAt
+                return ae - be
+              })
+              .map(item => {
+                const tmrw = item.fireAt < nowMins
+                return (
+                  <React.Fragment key={item.id}>
+                    <div style={css.previewLabel}>{item.emoji} {item.label}</div>
+                    <div style={css.previewTime}>
+                      {fmtTime(item.fireAt)}
+                      {tmrw && <span style={{ color: '#636366', fontSize: 10, fontWeight: 400, marginLeft: 5 }}>tmrw</span>}
+                    </div>
+                  </React.Fragment>
+                )
+              })
+          })()}
         </div>
       </div>
 
