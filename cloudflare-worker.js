@@ -121,7 +121,7 @@ export default {
   },
 }
 
-// ─── Web Push send ─────────────────────────────────────────────────────────────
+// --- Web Push send -------------------------------------------------------------
 
 async function sendPush(subscription, data, env) {
   const privKey    = await getVapidPrivKey(env)
@@ -148,7 +148,7 @@ async function sendPush(subscription, data, env) {
   }
 }
 
-// ─── VAPID JWT (RFC 8292) ──────────────────────────────────────────────────────
+// --- VAPID JWT (RFC 8292) ------------------------------------------------------
 
 async function buildVapidAuth(endpoint, privKey) {
   const origin = new URL(endpoint).origin
@@ -168,7 +168,7 @@ async function buildVapidAuth(endpoint, privKey) {
   return `vapid t=${hdr}.${claims}.${b64url_bytes(sig)},k=${VAPID_PUBLIC_KEY}`
 }
 
-// ─── aes128gcm payload encryption (RFC 8291) ──────────────────────────────────
+// --- aes128gcm payload encryption (RFC 8291) ----------------------------------
 
 async function encryptPayload(plaintext, keys) {
   const ua_public   = b64url_decode(keys.p256dh)  // 65-byte uncompressed EC point
@@ -217,14 +217,14 @@ async function encryptPayload(plaintext, keys) {
   return cat(header, ciphertext).buffer
 }
 
-// ─── Crypto helpers ────────────────────────────────────────────────────────────
+// --- Crypto helpers ------------------------------------------------------------
 
 async function hmac_sha256(key_bytes, data) {
   const key = await crypto.subtle.importKey('raw', key_bytes, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
   return new Uint8Array(await crypto.subtle.sign('HMAC', key, data))
 }
 
-// ─── Encoding helpers ──────────────────────────────────────────────────────────
+// --- Encoding helpers ----------------------------------------------------------
 
 function enc(str) { return new TextEncoder().encode(str) }
 
