@@ -157,16 +157,18 @@ export default function App() {
         }
       })
 
-      // First try direct fetch with detailed error capture
-      fetch('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js', { mode: 'no-cors' })
-        .then(r => setDebug(d => ({ ...d, err: `fetch OK status=${r.status} type=${r.type}` })))
-        .catch(e => setDebug(d => ({ ...d, err: `fetch ERR: ${e.message}` })))
+      // Probe whether Cloudflare Worker is reachable from this PWA
+      fetch(`${WORKER_URL}/ping`)
+        .then(r => r.text())
+        .then(t => setDebug(d => ({ ...d, err: `worker ping=${t}` })))
+        .catch(e => setDebug(d => ({ ...d, err: `worker UNREACHABLE: ${e.message}` })))
 
+      // Load OneSignal SDK through Cloudflare Worker proxy (cdn.onesignal.com is blocked in iOS PWA)
       const s = document.createElement('script')
-      s.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js'
+      s.src = `${WORKER_URL}/sdk.js`
       s.async = true
-      s.onload  = () => setDebug(d => ({ ...d, err: (d.err || '') + ' | script onload' }))
-      s.onerror = (ev) => setDebug(d => ({ ...d, err: (d.err || '') + ` | script ERR` }))
+      s.onload  = () => setDebug(d => ({ ...d, err: (d.err || '') + ' | sdk onload' }))
+      s.onerror = () => setDebug(d => ({ ...d, err: (d.err || '') + ' | sdk ERR' }))
       document.head.appendChild(s)
     }
   }, [])

@@ -1,5 +1,5 @@
-// OneSignal service worker — import their SDK then add our own scheduler
-importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
+// OneSignal service worker — import their SDK via Cloudflare proxy (iOS PWA blocks cdn.onesignal.com directly)
+importScripts("https://qr-clock-bot.lbrito1126.workers.dev/sw-sdk.js");
 
 // Map of pending setTimeout IDs keyed by reminder id
 const _pending = new Map();

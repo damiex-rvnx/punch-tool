@@ -16,6 +16,37 @@ const cors = {
 
 export default {
   async fetch(request, env) {
+    const url = new URL(request.url)
+
+    // Proxy OneSignal SDK files (iOS PWA can't reach cdn.onesignal.com directly)
+    if (request.method === 'GET') {
+      if (url.pathname === '/sdk.js') {
+        const upstream = await fetch('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js')
+        return new Response(upstream.body, {
+          status: upstream.status,
+          headers: {
+            'Content-Type': 'application/javascript',
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'public, max-age=3600',
+          },
+        })
+      }
+      if (url.pathname === '/sw-sdk.js') {
+        const upstream = await fetch('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js')
+        return new Response(upstream.body, {
+          status: upstream.status,
+          headers: {
+            'Content-Type': 'application/javascript',
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'public, max-age=3600',
+          },
+        })
+      }
+      if (url.pathname === '/ping') {
+        return new Response('pong', { headers: { 'Access-Control-Allow-Origin': '*' } })
+      }
+    }
+
     if (request.method === 'OPTIONS') return new Response(null, { headers: cors })
     if (request.method !== 'POST')   return new Response('Method Not Allowed', { status: 405 })
 
