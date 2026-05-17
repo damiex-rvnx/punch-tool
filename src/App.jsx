@@ -432,7 +432,7 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
 
       <div className="card-full">
         <button style={css.btnSet} onClick={handleSet}>
-          {isSet ? '&#x2713; UPDATE REMINDERS' : 'SET REMINDERS'}
+          {isSet ? '✓ UPDATE REMINDERS' : 'SET REMINDERS'}
         </button>
         {isSet && (
           <button style={css.btnCancel} onClick={handleCancel}>Cancel Reminders</button>
