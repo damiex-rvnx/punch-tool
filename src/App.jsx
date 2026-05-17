@@ -565,6 +565,29 @@ function DebugPanel({ deviceId }) {
     <div style={{ marginTop: 16, borderTop: '1px solid #3a3a3c', paddingTop: 16 }}>
       <div style={{ fontSize: 11, color: '#32d74b', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>🔓 Debug</div>
 
+      {(() => {
+        const standalone   = window.navigator.standalone === true
+        const permission   = notifPermission()
+        const swOk         = 'serviceWorker' in navigator
+        const pushOk       = 'PushManager' in window
+        const rows = [
+          ['Installed PWA',    standalone ? '✅ Yes' : '❌ No — add to home screen',    standalone],
+          ['Notifications',    permission === 'granted' ? '✅ Granted' : `❌ ${permission}`, permission === 'granted'],
+          ['Service Worker',   swOk ? '✅ Supported' : '❌ Not supported',               swOk],
+          ['Push API',         pushOk ? '✅ Supported' : '❌ Not supported',             pushOk],
+        ]
+        return (
+          <div style={{ ...box, marginTop: 0, marginBottom: 14 }}>
+            {rows.map(([label, val, ok]) => (
+              <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: '1px solid #1c1c1e' }}>
+                <span style={{ fontSize: 10, color: '#636366', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</span>
+                <span style={{ fontSize: 10, fontFamily: 'monospace', color: ok ? '#32d74b' : '#e5342a' }}>{val}</span>
+              </div>
+            ))}
+          </div>
+        )
+      })()}
+
       <div style={{ fontSize: 10, color: '#636366', marginBottom: 3, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Device ID</div>
       <div style={{ ...box, marginTop: 0, marginBottom: 10 }}>
         <pre style={{ ...mono, color: '#8e8e93' }}>{deviceId}</pre>
