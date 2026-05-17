@@ -111,7 +111,7 @@ export default function App() {
   const [isSet, setIsSet] = useState(false)
   const [toast, setToast] = useState(null)
   const [alert, setAlert] = useState(null)
-  const [debug, setDebug] = useState({ sdk: '?', perm: '?', subId: '?', worker: '?' })
+  const [debug, setDebug] = useState({ sdk: '?', deferred: '?', perm: '?', subId: '?', worker: '?', err: '' })
   const timerIds = useRef([])
   const toastTimer = useRef(null)
   const swReg = useRef(null)
@@ -122,6 +122,7 @@ export default function App() {
       setDebug(d => ({
         ...d,
         sdk:  window.OneSignal ? 'loaded' : 'NOT LOADED',
+        deferred: Array.isArray(window.OneSignalDeferred) ? `queue(${window.OneSignalDeferred.length})` : 'NOT FOUND',
         perm: window.OneSignal?.Notifications?.permission ? 'granted' : (notifPermission() || 'unknown'),
         subId: window.OneSignal?.User?.PushSubscription?.id || 'null',
       }))
@@ -143,14 +144,27 @@ export default function App() {
     if (ONESIGNAL_APP_ID !== 'YOUR_ONESIGNAL_APP_ID') {
       window.OneSignalDeferred = window.OneSignalDeferred || []
       window.OneSignalDeferred.push(async OneSignal => {
-        await OneSignal.init({
-          appId: ONESIGNAL_APP_ID,
-          serviceWorkerPath: '/qwik-crew-clock/OneSignalSDKWorker.js',
-          serviceWorkerParam: { scope: '/qwik-crew-clock/' },
-          notifyButton: { enable: false },
-        })
-        // Permission is requested on user gesture in handleSet, not here
+        try {
+          await OneSignal.init({
+            appId: ONESIGNAL_APP_ID,
+            serviceWorkerPath: '/qwik-crew-clock/OneSignalSDKWorker.js',
+            serviceWorkerParam: { scope: '/qwik-crew-clock/' },
+            notifyButton: { enable: false },
+          })
+          setDebug(d => ({ ...d, err: 'init OK' }))
+        } catch (e) {
+          setDebug(d => ({ ...d, err: `init ERR: ${e.message}` }))
+        }
       })
+
+      // Fallback: also load SDK script programmatically (in case <script defer> failed in PWA mode)
+      if (!document.querySelector('script[src*="OneSignalSDK.page.js"]')) {
+        const s = document.createElement('script')
+        s.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js'
+        s.async = true
+        s.onerror = () => setDebug(d => ({ ...d, err: 'SDK script load FAILED' }))
+        document.head.appendChild(s)
+      }
     }
   }, [])
 
@@ -391,9 +405,11 @@ export default function App() {
         <div style={{ background: '#000', border: '1px solid #e5342a', borderRadius: 8, padding: 10, marginTop: 20, fontFamily: 'monospace', fontSize: 11, color: '#32d74b', wordBreak: 'break-all' }}>
           <div style={{ color: '#e5342a', fontWeight: 700, marginBottom: 6 }}>DEBUG</div>
           <div>SDK: {debug.sdk}</div>
+          <div>deferred: {debug.deferred}</div>
           <div>perm: {debug.perm}</div>
           <div>subId: {debug.subId}</div>
           <div>worker: {debug.worker}</div>
+          <div>err: {debug.err || '(none)'}</div>
         </div>
 
         <div style={css.footer}>QwikResponse Restoration &amp; Construction</div>
