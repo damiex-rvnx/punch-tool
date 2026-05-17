@@ -253,8 +253,15 @@ export default function App() {
           body: JSON.stringify({ action: 'schedule', playerId, items: workerItems }),
         })
           .then(r => r.json())
-          .then(d => { if (d.ids) localStorage.setItem('qr_notif_ids', JSON.stringify(d.ids)) })
-          .catch(() => {})
+          .then(d => {
+            if (d.ids?.length) {
+              localStorage.setItem('qr_notif_ids', JSON.stringify(d.ids))
+              showToast(`Push scheduled: ${d.ids.length} notifications`, '#15803d')
+            } else {
+              showToast(`Push failed: ${JSON.stringify(d)}`, '#dc2626')
+            }
+          })
+          .catch(e => showToast(`Worker error: ${e.message}`, '#dc2626'))
       }
     }
 
