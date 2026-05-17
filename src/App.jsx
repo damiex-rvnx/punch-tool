@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 
-// ─── VAPID + CLOUDFLARE WORKER ────────────────────────────────────────────────
 const WORKER_URL       = 'https://qr-clock-bot.lbrito1126.workers.dev'
 const VAPID_PUBLIC_KEY = 'BC_wlEOLqTvLMDJK0ZntTkZQtKGVMNXIDmofUr-MlcPPN25lrlhzrFDpDTUYoftr2kXngLqSSxdIsbcTtJfBIv4'
 
@@ -14,10 +13,6 @@ function getDeviceId() {
   let id = localStorage.getItem('qr_device_id')
   if (!id) { id = crypto.randomUUID(); localStorage.setItem('qr_device_id', id) }
   return id
-}
-
-function getNtfyTopic(deviceId) {
-  return 'qr-' + deviceId.replace(/-/g, '').substring(0, 16)
 }
 
 function ClockIcon({ size = 96 }) {
@@ -50,7 +45,6 @@ function ClockIcon({ size = 96 }) {
   )
 }
 
-// ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const STORAGE_KEY = 'qwik_crew_v11'
 
 const DEFAULT = {
@@ -87,7 +81,6 @@ const DUR_OPTS = [
   { l: '60 min', v: 60 },
 ]
 
-// ─── HELPERS ──────────────────────────────────────────────────────────────────
 function h2m(h) {
   return Math.floor(h) * 60 + Math.round((h - Math.floor(h)) * 60)
 }
@@ -114,54 +107,34 @@ function loadState() {
   return { ...DEFAULT }
 }
 
-// ─── MAIN APP ─────────────────────────────────────────────────────────────────
 export default function App() {
-  const [s, setS]       = useState(loadState)
+  const [s, setS]         = useState(loadState)
   const [isSet, setIsSet] = useState(false)
   const [toast, setToast] = useState(null)
   const [alert, setAlert] = useState(null)
-  const [debug, setDebug] = useState({ perm: '?', sub: '?', worker: '?', err: '', deviceId: getDeviceId() })
   const timerIds   = useRef([])
   const toastTimer = useRef(null)
   const swReg      = useRef(null)
-  const pushSub    = useRef(null)   // current PushSubscription
+  const pushSub    = useRef(null)
 
-  // Refresh debug box every second
-  useEffect(() => {
-    const tick = () => setDebug(d => ({
-      ...d,
-      perm: notifPermission(),
-      sub:  pushSub.current ? 'subscribed' : 'none',
-    }))
-    tick()
-    const id = setInterval(tick, 1000)
-    return () => clearInterval(id)
-  }, [])
-
-  // Register service worker on mount
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return
     navigator.serviceWorker
       .register('/qwik-crew-clock/OneSignalSDKWorker.js', { scope: '/qwik-crew-clock/' })
       .then(reg => {
         swReg.current = reg
-        // Restore existing push subscription (if any)
         return reg.pushManager.getSubscription()
       })
-      .then(sub => {
-        if (sub) pushSub.current = sub
-      })
+      .then(sub => { if (sub) pushSub.current = sub })
       .catch(() => {})
   }, [])
 
-  // Persist on every state change
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(s))
   }, [s])
 
   const update = useCallback(patch => setS(prev => ({ ...prev, ...patch })), [])
 
-  // ─── Schedule calc ─────────────────────────────────────────────────────────
   const schedule = (() => {
     const start     = s.startHour * 60 + s.startMin
     const lunchOut  = start + h2m(s.lunchHour)
@@ -181,21 +154,18 @@ export default function App() {
     ]
   })()
 
-  // ─── Toast ─────────────────────────────────────────────────────────────────
   function showToast(msg, color) {
     clearTimeout(toastTimer.current)
     setToast({ msg, color })
     toastTimer.current = setTimeout(() => setToast(null), 3800)
   }
 
-  // ─── Subscribe to push (VAPID) ──────────────────────────────────────────────
   async function subscribePush() {
     const reg = swReg.current || await navigator.serviceWorker.ready
-    // Reuse existing valid subscription
     let sub = await reg.pushManager.getSubscription()
     if (!sub) {
       sub = await reg.pushManager.subscribe({
-        userVisibleOnly:     true,
+        userVisibleOnly:      true,
         applicationServerKey: b64url_to_uint8(VAPID_PUBLIC_KEY),
       })
     }
@@ -203,19 +173,16 @@ export default function App() {
     return sub
   }
 
-  // ─── Cancel via Worker ──────────────────────────────────────────────────────
   async function cancelWorkerNotifs() {
-    const deviceId = getDeviceId()
     try {
       await fetch(WORKER_URL, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ action: 'cancel', deviceId }),
+        body:    JSON.stringify({ action: 'cancel', deviceId: getDeviceId() }),
       })
     } catch {}
   }
 
-  // ─── Clear timers ───────────────────────────────────────────────────────────
   function clearTimers() {
     timerIds.current.forEach(id => clearTimeout(id))
     timerIds.current = []
@@ -223,9 +190,7 @@ export default function App() {
     cancelWorkerNotifs()
   }
 
-  // ─── Set reminders ──────────────────────────────────────────────────────────
   async function handleSet() {
-    // 1. Request notification permission (must be inside user gesture)
     if (notifSupported && notifPermission() === 'default') {
       await Notification.requestPermission()
     }
@@ -234,14 +199,12 @@ export default function App() {
       return
     }
 
-    // 2. Get push subscription (inside user gesture)
     let sub = null
     if ('serviceWorker' in navigator && 'PushManager' in window) {
       try {
         sub = await subscribePush()
-        setDebug(d => ({ ...d, sub: 'subscribed', err: '' }))
-      } catch (e) {
-        setDebug(d => ({ ...d, err: `push subscribe ERR: ${e.message}` }))
+      } catch {
+        showToast('Could not enable push — reminders set for this session only', '#d97706')
       }
     }
 
@@ -256,35 +219,24 @@ export default function App() {
       let ms = (item.fireAt - nowMins) * 60000 - now.getSeconds() * 1000
       if (ms < 0) ms += 86400000
 
-      // Main-thread timer: shows full-screen alert when app is open
       timerIds.current.push(setTimeout(() => setAlert({ emoji: item.emoji, label: item.label }), ms))
-
       swItems.push({ id: item.id, ms, label: item.label, emoji: item.emoji })
       workerItems.push({ id: item.id, fireAtISO: new Date(Date.now() + ms).toISOString(), label: item.label, emoji: item.emoji })
     })
 
-    // 3. Push subscription to Cloudflare Worker for server-side scheduling (iOS background)
     if (sub) {
-      const deviceId = getDeviceId()
       fetch(WORKER_URL, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
           action:       'subscribe',
-          deviceId,
+          deviceId:     getDeviceId(),
           subscription: sub.toJSON(),
           schedule:     workerItems,
-          ntfyTopic:    getNtfyTopic(deviceId),
         }),
-      })
-        .then(r => r.json())
-        .then(d => setDebug(prev => ({ ...prev, worker: d.ok ? 'scheduled' : JSON.stringify(d) })))
-        .catch(e => setDebug(prev => ({ ...prev, worker: `ERR: ${e.message}` })))
-    } else {
-      setDebug(prev => ({ ...prev, worker: 'no push sub' }))
+      }).catch(() => {})
     }
 
-    // 4. Service Worker setTimeout (Android background fallback)
     const sw = swReg.current
     if (sw?.active) {
       sw.active.postMessage({ type: 'QR_SCHEDULE', items: swItems })
@@ -296,21 +248,18 @@ export default function App() {
     showToast('Reminders set ✓', '#15803d')
   }
 
-  // ─── Cancel ─────────────────────────────────────────────────────────────────
   function handleCancel() {
     clearTimers()
     setIsSet(false)
     showToast('Reminders cancelled', '#374151')
   }
 
-  // ─── Time input ─────────────────────────────────────────────────────────────
   const timeVal = `${pad2(s.startHour)}:${pad2(s.startMin)}`
   function handleTimeChange(e) {
     const [h, m] = e.target.value.split(':').map(Number)
     if (!isNaN(h) && !isNaN(m)) update({ startHour: h, startMin: m })
   }
 
-  // ─── Styles ──────────────────────────────────────────────────────────────────
   const css = {
     page:        { background: '#1c1c1e', minHeight: '100vh', overflowX: 'hidden', padding: '28px 0 40px', fontFamily: "'Barlow', sans-serif", color: '#f2f2f7' },
     inner:       { maxWidth: 920, margin: '0 auto', padding: '0 16px' },
@@ -372,29 +321,6 @@ export default function App() {
           handleSet={handleSet} handleCancel={handleCancel}
         />
 
-        <div style={{ background: '#000', border: '1px solid #e5342a', borderRadius: 8, padding: 10, marginTop: 20, fontFamily: 'monospace', fontSize: 11, color: '#32d74b', wordBreak: 'break-all' }}>
-          <div style={{ color: '#e5342a', fontWeight: 700, marginBottom: 6 }}>DEBUG</div>
-          <div>perm: {debug.perm}</div>
-          <div>sub: {debug.sub}</div>
-          <div>worker: {debug.worker}</div>
-          <div>err: {debug.err || '(none)'}</div>
-          <div style={{ marginTop: 6, fontSize: 9 }}>device: {debug.deviceId}</div>
-          <div style={{ fontSize: 9, marginTop: 2, color: '#ffcc00' }}>ntfy topic: {getNtfyTopic(debug.deviceId)}</div>
-          <div style={{ fontSize: 9, color: '#636366' }}>Install ntfy app → tap + → subscribe to topic above</div>
-          <button
-            onClick={() => {
-              const deviceId = getDeviceId()
-              fetch(`${WORKER_URL}/schedule-test?deviceId=${deviceId}&min=2`)
-                .then(r => r.json())
-                .then(d => setDebug(prev => ({ ...prev, worker: d.ok ? `test queued → ${d.fires_at}` : JSON.stringify(d) })))
-                .catch(e => setDebug(prev => ({ ...prev, err: e.message })))
-            }}
-            style={{ marginTop: 8, padding: '4px 10px', background: '#1a2e1c', border: '1px solid #32d74b', borderRadius: 6, color: '#32d74b', fontFamily: 'monospace', fontSize: 11, cursor: 'pointer' }}
-          >
-            send test in 2 min (via cron)
-          </button>
-        </div>
-
         <div style={css.footer}>QwikResponse Restoration &amp; Construction</div>
       </div>
 
@@ -423,7 +349,6 @@ export default function App() {
   )
 }
 
-// ─── RESPONSIVE LAYOUT ────────────────────────────────────────────────────────
 function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule, isSet, handleSet, handleCancel }) {
   return (
     <div className="responsive-grid" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -482,7 +407,6 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
   )
 }
 
-// ─── LUNCH CARD ───────────────────────────────────────────────────────────────
 function LunchCard({ css, s, update }) {
   const lunchLabel = LUNCH_OPTS.find(o => o.v === s.lunchHour)?.l ?? `${s.lunchHour}h`
   return (
@@ -524,7 +448,6 @@ function LunchCard({ css, s, update }) {
   )
 }
 
-// ─── DINNER CARD ─────────────────────────────────────────────────────────────
 function DinnerCard({ css, s, update }) {
   const dinnerLabel = DINNER_OPTS.find(o => o.v === s.dinnerHour)?.l ?? `${s.dinnerHour}h`
   return (

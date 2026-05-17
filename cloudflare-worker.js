@@ -1,15 +1,11 @@
 // QR Clock-Bot - Cloudflare Worker
-// Schedules iOS background push notifications via VAPID Web Push (RFC 8291 / 8292)
+// Schedules push notifications via VAPID Web Push (RFC 8291 / 8292)
 //
-// Secrets required (set in Cloudflare dashboard or via CI):
-//   VAPID_PRIVATE_KEY  - base64url PKCS8 EC private key
-//
-// KV binding:
-//   KV  - namespace for storing pending notification schedules
+// Secrets (Cloudflare dashboard):  VAPID_PRIVATE_KEY  - base64url PKCS8 EC private key
+// KV binding:                       KV                 - stores pending notification schedules
 
-const ALLOWED      = 'https://lbrito1126.github.io'
-const VAPID_SUBJECT = 'mailto:qr-clock-bot@example.com'
-// Public key is not secret - safe to inline
+const ALLOWED          = 'https://lbrito1126.github.io'
+const VAPID_SUBJECT    = 'mailto:qr-clock-bot@example.com'
 const VAPID_PUBLIC_KEY = 'BC_wlEOLqTvLMDJK0ZntTkZQtKGVMNXIDmofUr-MlcPPN25lrlhzrFDpDTUYoftr2kXngLqSSxdIsbcTtJfBIv4'
 
 const cors = {
@@ -18,7 +14,6 @@ const cors = {
   'Access-Control-Allow-Headers': 'Content-Type',
 }
 
-// Lazy-loaded CryptoKey for VAPID signing (cached per isolate lifetime)
 let _vapidPrivKey = null
 async function getVapidPrivKey(env) {
   if (!_vapidPrivKey) {
@@ -39,50 +34,48 @@ export default {
     if (request.method === 'GET') {
       if (url.pathname === '/ping')
         return new Response('pong', { headers: { 'Access-Control-Allow-Origin': '*' } })
+
       if (url.pathname === '/vapid-public-key')
         return new Response(VAPID_PUBLIC_KEY, { headers: { ...cors, 'Content-Type': 'text/plain' } })
 
-      // Debug: return KV record for a device
       if (url.pathname === '/status') {
         const deviceId = url.searchParams.get('deviceId')
         if (!deviceId) return respond({ error: 'missing deviceId' }, 400)
         const raw = await env.KV.get(`sched_${deviceId}`)
         if (!raw) return respond({ exists: false })
-        const rec = JSON.parse(raw)
+        const rec    = JSON.parse(raw)
         const sorted = [...rec.schedule].sort((a, b) =>
-          new Date(a.fireAtISO).getTime() - new Date(b.fireAtISO).getTime()
+          new Date(a.fireAtISO) - new Date(b.fireAtISO)
         )
-        const now = Date.now()
+        const now  = Date.now()
         const next = sorted.find(s => new Date(s.fireAtISO).getTime() > now)
         return respond({
-          exists: true,
-          endpoint_host: new URL(rec.subscription.endpoint).host,
-          schedule_count: rec.schedule.length,
-          next_fire_iso: next?.fireAtISO ?? null,
-          next_fire_in_sec: next ? Math.round((new Date(next.fireAtISO).getTime() - now) / 1000) : null,
-          schedule_preview: sorted.map(s => ({ id: s.id, fireAtISO: s.fireAtISO })),
-          now_iso: new Date().toISOString(),
+          exists:            true,
+          endpoint_host:     new URL(rec.subscription.endpoint).host,
+          schedule_count:    rec.schedule.length,
+          next_fire_iso:     next?.fireAtISO ?? null,
+          next_fire_in_sec:  next ? Math.round((new Date(next.fireAtISO) - now) / 1000) : null,
+          schedule_preview:  sorted.map(s => ({ id: s.id, fireAtISO: s.fireAtISO })),
+          now_iso:           new Date().toISOString(),
         })
       }
 
-      // Debug: dump recent cron runs to verify scheduler is firing
       if (url.pathname === '/cron-log') {
         const raw = await env.KV.get('cron_log')
         return respond(raw ? JSON.parse(raw) : [])
       }
 
-      // Debug: schedule a test push N minutes from now via the cron path
       if (url.pathname === '/schedule-test') {
         const deviceId = url.searchParams.get('deviceId')
         const min = Math.max(1, Math.min(60, parseInt(url.searchParams.get('min') || '2')))
         if (!deviceId) return respond({ error: 'missing deviceId' }, 400)
         const raw = await env.KV.get(`sched_${deviceId}`)
         if (!raw) return respond({ error: 'no subscription stored' }, 404)
-        const rec = JSON.parse(raw)
+        const rec      = JSON.parse(raw)
         const testItem = {
           id:        'test',
           emoji:     '🧪',
-          label:     'Test — cron push delivery works!',
+          label:     'Test — push delivery works!',
           fireAtISO: new Date(Date.now() + min * 60000).toISOString(),
         }
         const schedule = [...rec.schedule.filter(s => s.id !== 'test'), testItem]
@@ -93,7 +86,6 @@ export default {
         return respond({ ok: true, fires_at: testItem.fireAtISO, in_min: min })
       }
 
-      // Debug: immediately send a test push to this device
       if (url.pathname === '/test-push') {
         const deviceId = url.searchParams.get('deviceId')
         if (!deviceId) return respond({ error: 'missing deviceId' }, 400)
@@ -124,11 +116,11 @@ export default {
     const { action } = body
 
     if (action === 'subscribe') {
-      const { deviceId, subscription, schedule, ntfyTopic } = body
+      const { deviceId, subscription, schedule } = body
       if (!deviceId || !subscription || !schedule?.length)
         return respond({ error: 'Missing deviceId, subscription, or schedule' }, 400)
       await env.KV.put(`sched_${deviceId}`,
-        JSON.stringify({ subscription, schedule, ntfyTopic }),
+        JSON.stringify({ subscription, schedule }),
         { expirationTtl: 172800 }
       )
       return respond({ ok: true })
@@ -143,10 +135,9 @@ export default {
     return respond({ error: 'Unknown action' }, 400)
   },
 
-  // Cron trigger: runs every minute, sends push for due notifications
   async scheduled(_event, env) {
-    const now = Date.now()
-    const window_ms = 90_000  // 90-second window around cron fire time
+    const now       = Date.now()
+    const window_ms = 90_000
     const log = { ran_at: new Date(now).toISOString(), devices: 0, sent: [], dropped: [], errors: [], future: 0 }
 
     const { keys } = await env.KV.list({ prefix: 'sched_' })
@@ -163,8 +154,8 @@ export default {
 
       for (const item of schedule) {
         const fireAt = new Date(item.fireAtISO).getTime()
-        const due     = fireAt <= now + window_ms && fireAt > now - window_ms
-        const future  = fireAt > now + window_ms
+        const due    = fireAt <= now + window_ms && fireAt > now - window_ms
+        const future = fireAt > now + window_ms
 
         if (due) {
           try {
@@ -178,9 +169,6 @@ export default {
           } catch (e) {
             log.errors.push({ id: item.id, err: e.message })
             if (!e.message?.includes('GONE')) remaining.push(item)
-          }
-          if (record.ntfyTopic) {
-            try { await sendNtfy(record.ntfyTopic, item) } catch {}
           }
         } else if (future) {
           remaining.push(item)
@@ -197,7 +185,6 @@ export default {
       }
     }
 
-    // Persist last 20 cron runs for debugging
     try {
       const prev = await env.KV.get('cron_log')
       const arr  = prev ? JSON.parse(prev) : []
@@ -207,42 +194,30 @@ export default {
   },
 }
 
-// --- ntfy send (native APNs bridge for reliable iOS delivery) -----------------
-
-async function sendNtfy(topic, item) {
-  await fetch(`https://ntfy.sh/${topic}`, {
-    method:  'POST',
-    headers: {
-      'Title':    'QR Clock-Bot',
-      'Priority': 'high',
-      'Tags':     'clock2',
-    },
-    body: `${item.emoji} ${item.label}`,
-  })
-}
-
-// --- Web Push send -------------------------------------------------------------
+// --- Web Push (RFC 8030 + RFC 8291 + RFC 8292) ---------------------------------
 
 async function sendPush(subscription, data, env) {
   const privKey    = await getVapidPrivKey(env)
   const authHeader = await buildVapidAuth(subscription.endpoint, privKey)
   const body       = await encryptPayload(JSON.stringify(data), subscription.keys)
 
-  const res = await fetch(subscription.endpoint, {
-    method:  'POST',
-    headers: {
-      'Authorization':    authHeader,
-      'Content-Type':     'application/octet-stream',
-      'Content-Encoding': 'aes128gcm',
-      'TTL':              '600',       // 10 min - keep trying if device offline briefly
-      'Urgency':          'high',      // APNs priority 10 - deliver immediately, don't batch
-    },
-    body,
-  })
-
-  if (res.status === 410 || res.status === 404) {
-    throw new Error('GONE: subscription expired')
+  const headers = {
+    'Authorization':    authHeader,
+    'Content-Type':     'application/octet-stream',
+    'Content-Encoding': 'aes128gcm',
+    'TTL':              '600',
+    'Urgency':          'high',
   }
+
+  // Apple's web push gateway: hint that this is a visible alert, not a silent push
+  if (subscription.endpoint.includes('web.push.apple.com')) {
+    headers['apns-push-type'] = 'alert'
+    headers['apns-priority']  = '10'
+  }
+
+  const res = await fetch(subscription.endpoint, { method: 'POST', headers, body })
+
+  if (res.status === 410 || res.status === 404) throw new Error('GONE: subscription expired')
   if (!res.ok && res.status !== 201) {
     const txt = await res.text().catch(() => '')
     throw new Error(`push HTTP ${res.status}: ${txt}`)
@@ -253,17 +228,13 @@ async function sendPush(subscription, data, env) {
 
 async function buildVapidAuth(endpoint, privKey) {
   const origin = new URL(endpoint).origin
-  const exp    = Math.floor(Date.now() / 1000) + 43200  // 12 h
+  const exp    = Math.floor(Date.now() / 1000) + 43200
 
   const hdr    = b64url_json({ typ: 'JWT', alg: 'ES256' })
   const claims = b64url_json({ aud: origin, exp, sub: VAPID_SUBJECT })
 
   const sig = new Uint8Array(
-    await crypto.subtle.sign(
-      { name: 'ECDSA', hash: 'SHA-256' },
-      privKey,
-      enc(`${hdr}.${claims}`)
-    )
+    await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, privKey, enc(`${hdr}.${claims}`))
   )
 
   return `vapid t=${hdr}.${claims}.${b64url_bytes(sig)},k=${VAPID_PUBLIC_KEY}`
@@ -272,43 +243,36 @@ async function buildVapidAuth(endpoint, privKey) {
 // --- aes128gcm payload encryption (RFC 8291) ----------------------------------
 
 async function encryptPayload(plaintext, keys) {
-  const ua_public   = b64url_decode(keys.p256dh)  // 65-byte uncompressed EC point
-  const auth_secret = b64url_decode(keys.auth)    // 16-byte auth secret
+  const ua_public   = b64url_decode(keys.p256dh)
+  const auth_secret = b64url_decode(keys.auth)
 
-  // Ephemeral sender key pair
   const senderPair = await crypto.subtle.generateKey(
     { name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveBits']
   )
   const as_public = new Uint8Array(await crypto.subtle.exportKey('raw', senderPair.publicKey))
 
-  // Import subscriber's public key
   const ua_key = await crypto.subtle.importKey(
     'raw', ua_public, { name: 'ECDH', namedCurve: 'P-256' }, false, []
   )
 
-  // ECDH shared secret (32 bytes)
   const ecdh_secret = new Uint8Array(
     await crypto.subtle.deriveBits({ name: 'ECDH', public: ua_key }, senderPair.privateKey, 256)
   )
 
-  // Phase 1: derive IKM from auth secret + ECDH secret
   const auth_info = cat(enc('WebPush: info\x00'), ua_public, as_public)
   const prk_key   = await hmac_sha256(auth_secret, ecdh_secret)
   const ikm       = (await hmac_sha256(prk_key, cat(auth_info, new Uint8Array([1])))).slice(0, 32)
 
-  // Phase 2: derive CEK (16 bytes) and nonce (12 bytes) from random salt
-  const salt      = crypto.getRandomValues(new Uint8Array(16))
-  const prk       = await hmac_sha256(salt, ikm)
-  const cek       = (await hmac_sha256(prk, cat(enc('Content-Encoding: aes128gcm\x00'), new Uint8Array([1])))).slice(0, 16)
-  const nonce     = (await hmac_sha256(prk, cat(enc('Content-Encoding: nonce\x00'),      new Uint8Array([1])))).slice(0, 12)
+  const salt  = crypto.getRandomValues(new Uint8Array(16))
+  const prk   = await hmac_sha256(salt, ikm)
+  const cek   = (await hmac_sha256(prk, cat(enc('Content-Encoding: aes128gcm\x00'), new Uint8Array([1])))).slice(0, 16)
+  const nonce = (await hmac_sha256(prk, cat(enc('Content-Encoding: nonce\x00'),      new Uint8Array([1])))).slice(0, 12)
 
-  // Encrypt: AES-128-GCM with \x02 padding delimiter for final record
   const aes_key    = await crypto.subtle.importKey('raw', cek, 'AES-GCM', false, ['encrypt'])
   const ciphertext = new Uint8Array(
     await crypto.subtle.encrypt({ name: 'AES-GCM', iv: nonce }, aes_key, cat(enc(plaintext), new Uint8Array([2])))
   )
 
-  // aes128gcm header: salt(16) + rs_uint32_be(4) + idlen(1) + sender_pub(65)
   const header = new Uint8Array(21 + as_public.length)
   header.set(salt)
   new DataView(header.buffer).setUint32(16, 4096, false)
@@ -318,14 +282,14 @@ async function encryptPayload(plaintext, keys) {
   return cat(header, ciphertext).buffer
 }
 
-// --- Crypto helpers ------------------------------------------------------------
+// --- Crypto helpers -----------------------------------------------------------
 
 async function hmac_sha256(key_bytes, data) {
   const key = await crypto.subtle.importKey('raw', key_bytes, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
   return new Uint8Array(await crypto.subtle.sign('HMAC', key, data))
 }
 
-// --- Encoding helpers ----------------------------------------------------------
+// --- Encoding helpers ---------------------------------------------------------
 
 function enc(str) { return new TextEncoder().encode(str) }
 
