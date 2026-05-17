@@ -328,6 +328,7 @@ export default function App() {
             </div>
             <div style={{ padding: 20, flex: 1 }}>
               <NtfySetupCard css={css} deviceId={getDeviceId()} />
+              <DeviceIdCard css={css} />
             </div>
           </div>
         </>
@@ -499,6 +500,33 @@ function NtfySetupCard({ css, deviceId }) {
         <br />
         <span style={{ color: '#8e8e93' }}>4 &nbsp;·&nbsp;</span>
         Come back here and press <span style={{ color: '#aeaeb2', fontWeight: 700 }}>Set Reminders</span>
+      </div>
+    </div>
+  )
+}
+
+function DeviceIdCard({ css }) {
+  const deviceId = getDeviceId()
+  const [copied, setCopied] = useState(false)
+
+  function copyId() {
+    navigator.clipboard?.writeText(deviceId).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  return (
+    <div style={{ marginTop: 16, borderTop: '1px solid #3a3a3c', paddingTop: 16 }}>
+      <div style={{ fontSize: 11, color: '#636366', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>Device ID</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#1c1c1e', border: '1px solid #3a3a3c', borderRadius: 8, padding: '10px 14px' }}>
+        <span style={{ flex: 1, fontFamily: 'monospace', fontSize: 11, color: '#636366', wordBreak: 'break-all' }}>{deviceId}</span>
+        <button
+          onClick={copyId}
+          style={{ background: 'none', border: '1px solid #3a3a3c', borderRadius: 6, padding: '5px 12px', color: copied ? '#32d74b' : '#636366', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 700, cursor: 'pointer', transition: 'color .15s', whiteSpace: 'nowrap', flexShrink: 0 }}
+        >
+          {copied ? 'Copied ✓' : 'Copy'}
+        </button>
       </div>
     </div>
   )
