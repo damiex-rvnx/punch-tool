@@ -2,4 +2,10 @@ name = "qr-clock-bot"
 main = "cloudflare-worker.js"
 compatibility_date = "2024-01-01"
 account_id = "770447eb9a0fc2475bd1d61eeb6d2021"
-# redeploy-2
+
+[[kv_namespaces]]
+binding = "KV"
+id = "KV_NAMESPACE_ID_PLACEHOLDER"
+
+[triggers]
+crons = ["*/1 * * * *"]

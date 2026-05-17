@@ -3,7 +3,10 @@ name: Deploy Cloudflare Worker
 on:
   push:
     branches: [claude/crew-clock-app-SDfGg, main]
-    paths: [cloudflare-worker.js, wrangler.toml]
+    paths:
+      - cloudflare-worker.js
+      - wrangler.toml
+      - .github/workflows/deploy-worker.yml
   workflow_dispatch:
 
 env:
@@ -23,10 +26,46 @@ jobs:
       - name: Install Wrangler
         run: npm install -g wrangler@latest
 
-      - name: Deploy Worker script
+      - name: Provision KV namespace (create if missing, reuse if exists)
+        run: |
+          ACCOUNT_ID="770447eb9a0fc2475bd1d61eeb6d2021"
+
+          # Try to create; if it already exists the API returns success=false
+          CREATE=$(curl -s -X POST \
+            "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/storage/kv/namespaces" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data '{"title":"QR_SCHEDULE"}')
+
+          KV_ID=$(echo "$CREATE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['result']['id'])" 2>/dev/null || echo "")
+
+          if [ -z "$KV_ID" ]; then
+            # Namespace already exists — list and find it
+            LIST=$(curl -s \
+              "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/storage/kv/namespaces?per_page=100" \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN")
+            KV_ID=$(echo "$LIST" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+for ns in d.get('result', []):
+    if ns.get('title') == 'QR_SCHEDULE':
+        print(ns['id'])
+        break
+" 2>/dev/null || echo "")
+          fi
+
+          if [ -z "$KV_ID" ]; then
+            echo "ERROR: failed to get KV namespace ID"
+            exit 1
+          fi
+
+          echo "KV_ID=$KV_ID"
+          sed -i "s/KV_NAMESPACE_ID_PLACEHOLDER/$KV_ID/" wrangler.toml
+
+      - name: Deploy Worker
         run: wrangler deploy
 
-      - name: Upload OneSignal secret
-        run: printf '%s' "$ONESIGNAL_REST_KEY" | wrangler secret put ONESIGNAL_REST_KEY
+      - name: Upload VAPID private key secret
+        run: printf '%s' "$VAPID_PRIVATE_KEY" | wrangler secret put VAPID_PRIVATE_KEY
         env:
-          ONESIGNAL_REST_KEY: ${{ secrets.ONESIGNAL_REST_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
