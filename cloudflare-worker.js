@@ -49,12 +49,18 @@ export default {
         const raw = await env.KV.get(`sched_${deviceId}`)
         if (!raw) return respond({ exists: false })
         const rec = JSON.parse(raw)
+        const sorted = [...rec.schedule].sort((a, b) =>
+          new Date(a.fireAtISO).getTime() - new Date(b.fireAtISO).getTime()
+        )
+        const now = Date.now()
+        const next = sorted.find(s => new Date(s.fireAtISO).getTime() > now)
         return respond({
           exists: true,
           endpoint_host: new URL(rec.subscription.endpoint).host,
           schedule_count: rec.schedule.length,
-          next_fire_iso: rec.schedule[0]?.fireAtISO,
-          schedule_preview: rec.schedule.map(s => ({ id: s.id, fireAtISO: s.fireAtISO })),
+          next_fire_iso: next?.fireAtISO ?? null,
+          next_fire_in_sec: next ? Math.round((new Date(next.fireAtISO).getTime() - now) / 1000) : null,
+          schedule_preview: sorted.map(s => ({ id: s.id, fireAtISO: s.fireAtISO })),
           now_iso: new Date().toISOString(),
         })
       }
