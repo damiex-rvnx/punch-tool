@@ -19,6 +19,9 @@ function getNtfyTopic(deviceId) {
   return 'qr-' + deviceId.replace(/-/g, '').substring(0, 16)
 }
 
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+              (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+
 function ClockIcon({ size = 96 }) {
   const ticks = Array.from({ length: 12 }, (_, i) => i * 30)
   return (
@@ -237,7 +240,7 @@ export default function App() {
           deviceId:     getDeviceId(),
           subscription: sub.toJSON(),
           schedule:     workerItems,
-          ntfyTopic:    getNtfyTopic(getDeviceId()),
+          ntfyTopic:    isIOS ? getNtfyTopic(getDeviceId()) : undefined,
         }),
       }).catch(() => {})
     }
@@ -395,9 +398,11 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
         </div>
       </div>
 
-      <div className="card-full">
-        <NtfySetupCard css={css} deviceId={getDeviceId()} />
-      </div>
+      {isIOS && (
+        <div className="card-full">
+          <NtfySetupCard css={css} deviceId={getDeviceId()} />
+        </div>
+      )}
 
       <div className="card-full">
         <button style={css.btnSet} onClick={handleSet}>
