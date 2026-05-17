@@ -88,20 +88,24 @@ export default {
       }
 
       if (url.pathname === '/test-ntfy') {
-        const deviceId = url.searchParams.get('deviceId')
-        if (!deviceId) return respond({ error: 'missing deviceId' }, 400)
-        const raw = await env.KV.get(`sched_${deviceId}`)
-        if (!raw) return respond({ error: 'no subscription stored' }, 404)
-        const rec = JSON.parse(raw)
-        if (!rec.ntfyTopic) return respond({ error: 'no ntfyTopic in KV — press Set Reminders on iPhone first' }, 400)
+        let topic = url.searchParams.get('topic')
+        if (!topic) {
+          const deviceId = url.searchParams.get('deviceId')
+          if (!deviceId) return respond({ error: 'provide ?topic=qr-... or ?deviceId=...' }, 400)
+          const raw = await env.KV.get(`sched_${deviceId}`)
+          if (!raw) return respond({ error: 'no subscription stored for that deviceId' }, 404)
+          const rec = JSON.parse(raw)
+          if (!rec.ntfyTopic) return respond({ error: 'no ntfyTopic in KV — press Set Reminders on iPhone first' }, 400)
+          topic = rec.ntfyTopic
+        }
         try {
-          const r = await fetch(`https://ntfy.sh/${rec.ntfyTopic}`, {
+          const r = await fetch(`https://ntfy.sh/${topic}`, {
             method:  'POST',
             headers: { 'Title': 'QR Clock-Bot TEST', 'Priority': 'high', 'Tags': 'bell' },
             body:    '🧪  ntfy test — background notifications are working!',
           })
           const respText = await r.text().catch(() => '')
-          return respond({ ok: r.ok, http_status: r.status, ntfyTopic: rec.ntfyTopic, ntfy_response: respText })
+          return respond({ ok: r.ok, http_status: r.status, ntfyTopic: topic, ntfy_response: respText })
         } catch (e) {
           return respond({ ok: false, error: e.message }, 500)
         }
