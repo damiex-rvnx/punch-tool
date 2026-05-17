@@ -333,7 +333,7 @@ export default function App() {
             </div>
             <div style={{ padding: 20, flex: 1 }}>
               <NtfySetupCard css={css} deviceId={getDeviceId()} />
-              <DeviceIdCard css={css} />
+              <DebugPanel deviceId={getDeviceId()} />
             </div>
           </div>
         </>
@@ -510,28 +510,86 @@ function NtfySetupCard({ css, deviceId }) {
   )
 }
 
-function DeviceIdCard({ css }) {
-  const deviceId = getDeviceId()
-  const [copied, setCopied] = useState(false)
+function DebugPanel({ deviceId }) {
+  const [pw, setPw]           = useState('')
+  const [unlocked, setUnlocked] = useState(false)
+  const [pwError, setPwError] = useState(false)
+  const [status, setStatus]   = useState(null)
+  const [ntfyRes, setNtfyRes] = useState(null)
+  const [pushRes, setPushRes] = useState(null)
+  const [loading, setLoading] = useState('')
 
-  function copyId() {
-    navigator.clipboard?.writeText(deviceId).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
+  function tryUnlock() {
+    if (pw === '25896211') { setUnlocked(true); setPwError(false) }
+    else setPwError(true)
+  }
+
+  async function hit(path, setter, key) {
+    setLoading(key)
+    try {
+      const r = await fetch(`${WORKER_URL}${path}`)
+      setter(await r.json())
+    } catch (e) {
+      setter({ error: e.message })
+    }
+    setLoading('')
+  }
+
+  const mono = { fontFamily: 'monospace', fontSize: 10, whiteSpace: 'pre-wrap', wordBreak: 'break-all', margin: 0 }
+  const box  = { background: '#0a0a0b', border: '1px solid #3a3a3c', borderRadius: 8, padding: '10px 12px', marginTop: 8 }
+  const btn  = { background: '#1c1c1e', border: '1px solid #3a3a3c', borderRadius: 8, padding: '10px 14px', color: '#f2f2f7', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700, cursor: 'pointer', textAlign: 'left', width: '100%' }
+
+  if (!unlocked) {
+    return (
+      <div style={{ marginTop: 16, borderTop: '1px solid #3a3a3c', paddingTop: 16 }}>
+        <div style={{ fontSize: 11, color: '#636366', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>🔒 Debug</div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input
+            type="password"
+            value={pw}
+            placeholder="Password"
+            onChange={e => { setPw(e.target.value); setPwError(false) }}
+            onKeyDown={e => e.key === 'Enter' && tryUnlock()}
+            style={{ flex: 1, background: '#1c1c1e', border: `1.5px solid ${pwError ? '#e5342a' : '#3a3a3c'}`, borderRadius: 8, padding: '9px 12px', color: '#f2f2f7', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, outline: 'none' }}
+          />
+          <button onClick={tryUnlock} style={{ background: '#3a3a3c', border: 'none', borderRadius: 8, padding: '9px 16px', color: '#f2f2f7', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+            Unlock
+          </button>
+        </div>
+        {pwError && <div style={{ fontSize: 11, color: '#e5342a', marginTop: 6 }}>Wrong password</div>}
+      </div>
+    )
   }
 
   return (
     <div style={{ marginTop: 16, borderTop: '1px solid #3a3a3c', paddingTop: 16 }}>
-      <div style={{ fontSize: 11, color: '#636366', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>Device ID</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#1c1c1e', border: '1px solid #3a3a3c', borderRadius: 8, padding: '10px 14px' }}>
-        <span style={{ flex: 1, fontFamily: 'monospace', fontSize: 11, color: '#636366', wordBreak: 'break-all' }}>{deviceId}</span>
-        <button
-          onClick={copyId}
-          style={{ background: 'none', border: '1px solid #3a3a3c', borderRadius: 6, padding: '5px 12px', color: copied ? '#32d74b' : '#636366', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 700, cursor: 'pointer', transition: 'color .15s', whiteSpace: 'nowrap', flexShrink: 0 }}
-        >
-          {copied ? 'Copied ✓' : 'Copy'}
+      <div style={{ fontSize: 11, color: '#32d74b', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>🔓 Debug</div>
+
+      <div style={{ fontSize: 10, color: '#636366', marginBottom: 3, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Device ID</div>
+      <div style={{ ...box, marginTop: 0, marginBottom: 10 }}>
+        <pre style={{ ...mono, color: '#8e8e93' }}>{deviceId}</pre>
+      </div>
+
+      <div style={{ fontSize: 10, color: '#636366', marginBottom: 3, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>ntfy Topic</div>
+      <div style={{ ...box, marginTop: 0, marginBottom: 14 }}>
+        <pre style={{ ...mono, color: '#32d74b' }}>{getNtfyTopic(deviceId)}</pre>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <button style={btn} disabled={loading === 'status'} onClick={() => hit(`/status?deviceId=${deviceId}`, setStatus, 'status')}>
+          {loading === 'status' ? '⏳ Checking...' : '📡 Check Server Status'}
         </button>
+        {status && <div style={box}><pre style={{ ...mono, color: status.exists === false || status.error ? '#e5342a' : '#aeaeb2' }}>{JSON.stringify(status, null, 2)}</pre></div>}
+
+        <button style={btn} disabled={loading === 'ntfy'} onClick={() => hit(`/test-ntfy?topic=${getNtfyTopic(deviceId)}`, setNtfyRes, 'ntfy')}>
+          {loading === 'ntfy' ? '⏳ Sending...' : '🔔 Test ntfy Notification'}
+        </button>
+        {ntfyRes && <div style={box}><pre style={{ ...mono, color: ntfyRes.ok ? '#32d74b' : '#e5342a' }}>{JSON.stringify(ntfyRes, null, 2)}</pre></div>}
+
+        <button style={btn} disabled={loading === 'push'} onClick={() => hit(`/test-push?deviceId=${deviceId}`, setPushRes, 'push')}>
+          {loading === 'push' ? '⏳ Sending...' : '📲 Test Web Push'}
+        </button>
+        {pushRes && <div style={box}><pre style={{ ...mono, color: pushRes.ok ? '#32d74b' : '#e5342a' }}>{JSON.stringify(pushRes, null, 2)}</pre></div>}
       </div>
     </div>
   )
