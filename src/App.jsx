@@ -197,14 +197,18 @@ export default function App() {
 
   // ─── Set reminders ──────────────────────────────────────────────────────────
   async function handleSet() {
-    // Request via OneSignal (inside user gesture so iOS allows it)
     if (window.OneSignal) {
       try {
         if (!window.OneSignal.Notifications.permission) {
           await window.OneSignal.Notifications.requestPermission()
-          // Give OneSignal time to create the push subscription + Player ID
-          await new Promise(r => setTimeout(r, 2000))
         }
+        // Poll up to 8 seconds for OneSignal to assign a subscription ID
+        for (let i = 0; i < 16; i++) {
+          if (window.OneSignal.User?.PushSubscription?.id) break
+          await new Promise(r => setTimeout(r, 500))
+        }
+        const sid = window.OneSignal.User?.PushSubscription?.id
+        if (!sid) showToast('OneSignal not ready — try again', '#d97706')
       } catch {}
     } else if (notifSupported && notifPermission() === 'default') {
       await Notification.requestPermission()
