@@ -209,12 +209,6 @@ async function sendPush(subscription, data, env) {
     'Urgency':          'high',
   }
 
-  // Apple's web push gateway: hint that this is a visible alert, not a silent push
-  if (subscription.endpoint.includes('web.push.apple.com')) {
-    headers['apns-push-type'] = 'alert'
-    headers['apns-priority']  = '10'
-  }
-
   const res = await fetch(subscription.endpoint, { method: 'POST', headers, body })
 
   if (res.status === 410 || res.status === 404) throw new Error('GONE: subscription expired')
