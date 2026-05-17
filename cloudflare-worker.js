@@ -40,14 +40,15 @@ export default {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            app_id:              APP_ID,
-            include_player_ids:  [playerId],
-            headings:            { en: 'QR Clock-Bot' },
-            contents:            { en: `${item.emoji}  ${item.label}` },
-            send_after:          item.fireAtISO,   // ISO 8601 UTC
+            app_id:                   APP_ID,
+            include_subscription_ids: [playerId],
+            headings:                 { en: 'QR Clock-Bot' },
+            contents:                 { en: `${item.emoji}  ${item.label}` },
+            send_after:               item.fireAtISO,
           }),
         })
         const data = await res.json()
+        console.log('OneSignal response:', JSON.stringify(data))
         if (data.id) ids.push(data.id)
       }
       return json({ ok: true, ids })
