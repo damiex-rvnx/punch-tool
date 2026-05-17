@@ -65,6 +65,12 @@ export default {
         })
       }
 
+      // Debug: dump recent cron runs to verify scheduler is firing
+      if (url.pathname === '/cron-log') {
+        const raw = await env.KV.get('cron_log')
+        return respond(raw ? JSON.parse(raw) : [])
+      }
+
       // Debug: immediately send a test push to this device
       if (url.pathname === '/test-push') {
         const deviceId = url.searchParams.get('deviceId')
@@ -119,8 +125,10 @@ export default {
   async scheduled(_event, env) {
     const now = Date.now()
     const window_ms = 90_000  // 90-second window around cron fire time
+    const log = { ran_at: new Date(now).toISOString(), devices: 0, sent: [], dropped: [], errors: [], future: 0 }
 
     const { keys } = await env.KV.list({ prefix: 'sched_' })
+    log.devices = keys.length
 
     for (const { name } of keys) {
       const raw = await env.KV.get(name)
@@ -144,15 +152,17 @@ export default {
               icon:  '/qwik-crew-clock/icon-192.png',
               tag:   item.id,
             }, env)
+            log.sent.push({ id: item.id, fireAtISO: item.fireAtISO })
           } catch (e) {
-            console.error(`push failed for ${item.id}:`, e.message)
-            // Keep if it's a transient error; drop if subscription gone (handled in sendPush)
+            log.errors.push({ id: item.id, err: e.message })
             if (!e.message?.includes('GONE')) remaining.push(item)
           }
         } else if (future) {
           remaining.push(item)
+          log.future++
+        } else {
+          log.dropped.push({ id: item.id, fireAtISO: item.fireAtISO, late_by_sec: Math.round((now - fireAt) / 1000) })
         }
-        // Past items (missed window) are silently dropped
       }
 
       if (remaining.length === 0) {
@@ -161,6 +171,14 @@ export default {
         await env.KV.put(name, JSON.stringify({ subscription, schedule: remaining }), { expirationTtl: 172800 })
       }
     }
+
+    // Persist last 20 cron runs for debugging
+    try {
+      const prev = await env.KV.get('cron_log')
+      const arr  = prev ? JSON.parse(prev) : []
+      arr.unshift(log)
+      await env.KV.put('cron_log', JSON.stringify(arr.slice(0, 20)), { expirationTtl: 172800 })
+    } catch {}
   },
 }
 
@@ -174,10 +192,11 @@ async function sendPush(subscription, data, env) {
   const res = await fetch(subscription.endpoint, {
     method:  'POST',
     headers: {
-      'Authorization':   authHeader,
-      'Content-Type':    'application/octet-stream',
+      'Authorization':    authHeader,
+      'Content-Type':     'application/octet-stream',
       'Content-Encoding': 'aes128gcm',
-      'TTL':             '60',
+      'TTL':              '600',       // 10 min - keep trying if device offline briefly
+      'Urgency':          'high',      // APNs priority 10 - deliver immediately, don't batch
     },
     body,
   })
