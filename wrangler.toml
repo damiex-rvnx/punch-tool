@@ -9,3 +9,4 @@ id = "KV_NAMESPACE_ID_PLACEHOLDER"
 
 [triggers]
 crons = ["*/1 * * * *"]
+# re-deploy after VAPID secret added
