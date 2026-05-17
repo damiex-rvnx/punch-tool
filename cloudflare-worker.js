@@ -41,6 +41,43 @@ export default {
         return new Response('pong', { headers: { 'Access-Control-Allow-Origin': '*' } })
       if (url.pathname === '/vapid-public-key')
         return new Response(VAPID_PUBLIC_KEY, { headers: { ...cors, 'Content-Type': 'text/plain' } })
+
+      // Debug: return KV record for a device
+      if (url.pathname === '/status') {
+        const deviceId = url.searchParams.get('deviceId')
+        if (!deviceId) return respond({ error: 'missing deviceId' }, 400)
+        const raw = await env.KV.get(`sched_${deviceId}`)
+        if (!raw) return respond({ exists: false })
+        const rec = JSON.parse(raw)
+        return respond({
+          exists: true,
+          endpoint_host: new URL(rec.subscription.endpoint).host,
+          schedule_count: rec.schedule.length,
+          next_fire_iso: rec.schedule[0]?.fireAtISO,
+          schedule_preview: rec.schedule.map(s => ({ id: s.id, fireAtISO: s.fireAtISO })),
+          now_iso: new Date().toISOString(),
+        })
+      }
+
+      // Debug: immediately send a test push to this device
+      if (url.pathname === '/test-push') {
+        const deviceId = url.searchParams.get('deviceId')
+        if (!deviceId) return respond({ error: 'missing deviceId' }, 400)
+        const raw = await env.KV.get(`sched_${deviceId}`)
+        if (!raw) return respond({ error: 'no subscription stored' }, 404)
+        const rec = JSON.parse(raw)
+        try {
+          await sendPush(rec.subscription, {
+            title: 'QR Clock-Bot TEST',
+            body:  'If you see this, push delivery works ✓',
+            icon:  '/qwik-crew-clock/icon-192.png',
+            tag:   'test',
+          }, env)
+          return respond({ ok: true, sent_at: new Date().toISOString() })
+        } catch (e) {
+          return respond({ ok: false, error: e.message }, 500)
+        }
+      }
     }
 
     if (request.method !== 'POST') return new Response('Method Not Allowed', { status: 405 })

@@ -116,7 +116,7 @@ export default function App() {
   const [isSet, setIsSet] = useState(false)
   const [toast, setToast] = useState(null)
   const [alert, setAlert] = useState(null)
-  const [debug, setDebug] = useState({ perm: '?', sub: '?', worker: '?', err: '' })
+  const [debug, setDebug] = useState({ perm: '?', sub: '?', worker: '?', err: '', deviceId: getDeviceId() })
   const timerIds   = useRef([])
   const toastTimer = useRef(null)
   const swReg      = useRef(null)
@@ -373,6 +373,7 @@ export default function App() {
           <div>sub: {debug.sub}</div>
           <div>worker: {debug.worker}</div>
           <div>err: {debug.err || '(none)'}</div>
+          <div style={{ marginTop: 6, fontSize: 9 }}>device: {debug.deviceId}</div>
         </div>
 
         <div style={css.footer}>QwikResponse Restoration &amp; Construction</div>
