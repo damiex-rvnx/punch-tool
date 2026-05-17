@@ -133,7 +133,7 @@ export default function App() {
           serviceWorkerParam: { scope: '/qwik-crew-clock/' },
           notifyButton: { enable: false },
         })
-        await OneSignal.Notifications.requestPermission()
+        // Permission is requested on user gesture in handleSet, not here
       })
     }
   }, [])
@@ -197,7 +197,16 @@ export default function App() {
 
   // ─── Set reminders ──────────────────────────────────────────────────────────
   async function handleSet() {
-    if (notifSupported && notifPermission() === 'default') {
+    // Request via OneSignal (inside user gesture so iOS allows it)
+    if (window.OneSignal) {
+      try {
+        if (!window.OneSignal.Notifications.permission) {
+          await window.OneSignal.Notifications.requestPermission()
+          // Give OneSignal time to create the push subscription + Player ID
+          await new Promise(r => setTimeout(r, 2000))
+        }
+      } catch {}
+    } else if (notifSupported && notifPermission() === 'default') {
       await Notification.requestPermission()
     }
 
