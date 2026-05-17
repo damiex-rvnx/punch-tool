@@ -5,8 +5,7 @@ account_id = "770447eb9a0fc2475bd1d61eeb6d2021"
 
 [[kv_namespaces]]
 binding = "KV"
-id = "KV_NAMESPACE_ID_PLACEHOLDER"
+id = "65cfc977653d4178a44f700324e798e8"
 
 [triggers]
 crons = ["*/1 * * * *"]
-# re-deploy after VAPID secret added
