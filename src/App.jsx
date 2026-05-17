@@ -374,6 +374,18 @@ export default function App() {
           <div>worker: {debug.worker}</div>
           <div>err: {debug.err || '(none)'}</div>
           <div style={{ marginTop: 6, fontSize: 9 }}>device: {debug.deviceId}</div>
+          <button
+            onClick={() => {
+              const deviceId = getDeviceId()
+              fetch(`${WORKER_URL}/schedule-test?deviceId=${deviceId}&min=2`)
+                .then(r => r.json())
+                .then(d => setDebug(prev => ({ ...prev, worker: d.ok ? `test queued → ${d.fires_at}` : JSON.stringify(d) })))
+                .catch(e => setDebug(prev => ({ ...prev, err: e.message })))
+            }}
+            style={{ marginTop: 8, padding: '4px 10px', background: '#1a2e1c', border: '1px solid #32d74b', borderRadius: 6, color: '#32d74b', fontFamily: 'monospace', fontSize: 11, cursor: 'pointer' }}
+          >
+            send test in 2 min (via cron)
+          </button>
         </div>
 
         <div style={css.footer}>QwikResponse Restoration &amp; Construction</div>

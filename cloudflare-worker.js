@@ -71,6 +71,28 @@ export default {
         return respond(raw ? JSON.parse(raw) : [])
       }
 
+      // Debug: schedule a test push N minutes from now via the cron path
+      if (url.pathname === '/schedule-test') {
+        const deviceId = url.searchParams.get('deviceId')
+        const min = Math.max(1, Math.min(60, parseInt(url.searchParams.get('min') || '2')))
+        if (!deviceId) return respond({ error: 'missing deviceId' }, 400)
+        const raw = await env.KV.get(`sched_${deviceId}`)
+        if (!raw) return respond({ error: 'no subscription stored' }, 404)
+        const rec = JSON.parse(raw)
+        const testItem = {
+          id:        'test',
+          emoji:     '🧪',
+          label:     'Test — cron push delivery works!',
+          fireAtISO: new Date(Date.now() + min * 60000).toISOString(),
+        }
+        const schedule = [...rec.schedule.filter(s => s.id !== 'test'), testItem]
+        await env.KV.put(`sched_${deviceId}`,
+          JSON.stringify({ subscription: rec.subscription, schedule }),
+          { expirationTtl: 172800 }
+        )
+        return respond({ ok: true, fires_at: testItem.fireAtISO, in_min: min })
+      }
+
       // Debug: immediately send a test push to this device
       if (url.pathname === '/test-push') {
         const deviceId = url.searchParams.get('deviceId')
