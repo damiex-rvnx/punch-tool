@@ -56,6 +56,7 @@ export default {
           next_fire_iso:     next?.fireAtISO ?? null,
           next_fire_in_sec:  next ? Math.round((new Date(next.fireAtISO) - now) / 1000) : null,
           schedule_preview:  sorted.map(s => ({ id: s.id, fireAtISO: s.fireAtISO })),
+          ntfyTopic:         rec.ntfyTopic ?? null,
           now_iso:           new Date().toISOString(),
         })
       }
@@ -84,6 +85,26 @@ export default {
           { expirationTtl: 172800 }
         )
         return respond({ ok: true, fires_at: testItem.fireAtISO, in_min: min })
+      }
+
+      if (url.pathname === '/test-ntfy') {
+        const deviceId = url.searchParams.get('deviceId')
+        if (!deviceId) return respond({ error: 'missing deviceId' }, 400)
+        const raw = await env.KV.get(`sched_${deviceId}`)
+        if (!raw) return respond({ error: 'no subscription stored' }, 404)
+        const rec = JSON.parse(raw)
+        if (!rec.ntfyTopic) return respond({ error: 'no ntfyTopic in KV — press Set Reminders on iPhone first' }, 400)
+        try {
+          const r = await fetch(`https://ntfy.sh/${rec.ntfyTopic}`, {
+            method:  'POST',
+            headers: { 'Title': 'QR Clock-Bot TEST', 'Priority': 'high', 'Tags': 'bell' },
+            body:    '🧪  ntfy test — background notifications are working!',
+          })
+          const respText = await r.text().catch(() => '')
+          return respond({ ok: r.ok, http_status: r.status, ntfyTopic: rec.ntfyTopic, ntfy_response: respText })
+        } catch (e) {
+          return respond({ ok: false, error: e.message }, 500)
+        }
       }
 
       if (url.pathname === '/test-push') {
@@ -171,7 +192,12 @@ export default {
             if (!e.message?.includes('GONE')) remaining.push(item)
           }
           if (record.ntfyTopic) {
-            try { await sendNtfy(record.ntfyTopic, item) } catch {}
+            try {
+              await sendNtfy(record.ntfyTopic, item)
+              log.sent.push({ id: item.id + ':ntfy' })
+            } catch (e) {
+              log.errors.push({ id: item.id + ':ntfy', err: e.message })
+            }
           }
         } else if (future) {
           remaining.push(item)
