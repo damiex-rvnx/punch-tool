@@ -16,6 +16,10 @@ function getDeviceId() {
   return id
 }
 
+function getNtfyTopic(deviceId) {
+  return 'qr-' + deviceId.replace(/-/g, '').substring(0, 16)
+}
+
 function ClockIcon({ size = 96 }) {
   const ticks = Array.from({ length: 12 }, (_, i) => i * 30)
   return (
@@ -270,6 +274,7 @@ export default function App() {
           deviceId,
           subscription: sub.toJSON(),
           schedule:     workerItems,
+          ntfyTopic:    getNtfyTopic(deviceId),
         }),
       })
         .then(r => r.json())
@@ -374,6 +379,8 @@ export default function App() {
           <div>worker: {debug.worker}</div>
           <div>err: {debug.err || '(none)'}</div>
           <div style={{ marginTop: 6, fontSize: 9 }}>device: {debug.deviceId}</div>
+          <div style={{ fontSize: 9, marginTop: 2, color: '#ffcc00' }}>ntfy topic: {getNtfyTopic(debug.deviceId)}</div>
+          <div style={{ fontSize: 9, color: '#636366' }}>Install ntfy app → tap + → subscribe to topic above</div>
           <button
             onClick={() => {
               const deviceId = getDeviceId()
