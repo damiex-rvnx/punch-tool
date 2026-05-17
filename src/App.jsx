@@ -111,9 +111,25 @@ export default function App() {
   const [isSet, setIsSet] = useState(false)
   const [toast, setToast] = useState(null)
   const [alert, setAlert] = useState(null)
+  const [debug, setDebug] = useState({ sdk: '?', perm: '?', subId: '?', worker: '?' })
   const timerIds = useRef([])
   const toastTimer = useRef(null)
   const swReg = useRef(null)
+
+  // Refresh OneSignal state every second so debug box always shows current state
+  useEffect(() => {
+    const tick = () => {
+      setDebug(d => ({
+        ...d,
+        sdk:  window.OneSignal ? 'loaded' : 'NOT LOADED',
+        perm: window.OneSignal?.Notifications?.permission ? 'granted' : (notifPermission() || 'unknown'),
+        subId: window.OneSignal?.User?.PushSubscription?.id || 'null',
+      }))
+    }
+    tick()
+    const i = setInterval(tick, 1000)
+    return () => clearInterval(i)
+  }, [])
 
   // Register service worker and init OneSignal on mount
   useEffect(() => {
@@ -254,14 +270,12 @@ export default function App() {
         })
           .then(r => r.json())
           .then(d => {
-            if (d.ids?.length) {
-              localStorage.setItem('qr_notif_ids', JSON.stringify(d.ids))
-              showToast(`Push scheduled: ${d.ids.length} notifications`, '#15803d')
-            } else {
-              showToast(`Push failed: ${JSON.stringify(d)}`, '#dc2626')
-            }
+            setDebug(prev => ({ ...prev, worker: JSON.stringify(d).slice(0, 200) }))
+            if (d.ids?.length) localStorage.setItem('qr_notif_ids', JSON.stringify(d.ids))
           })
-          .catch(e => showToast(`Worker error: ${e.message}`, '#dc2626'))
+          .catch(e => setDebug(prev => ({ ...prev, worker: `ERR: ${e.message}` })))
+      } else {
+        setDebug(prev => ({ ...prev, worker: 'SKIPPED: no subscription ID' }))
       }
     }
 
@@ -373,6 +387,14 @@ export default function App() {
           handleSet={handleSet}
           handleCancel={handleCancel}
         />
+
+        <div style={{ background: '#000', border: '1px solid #e5342a', borderRadius: 8, padding: 10, marginTop: 20, fontFamily: 'monospace', fontSize: 11, color: '#32d74b', wordBreak: 'break-all' }}>
+          <div style={{ color: '#e5342a', fontWeight: 700, marginBottom: 6 }}>DEBUG</div>
+          <div>SDK: {debug.sdk}</div>
+          <div>perm: {debug.perm}</div>
+          <div>subId: {debug.subId}</div>
+          <div>worker: {debug.worker}</div>
+        </div>
 
         <div style={css.footer}>QwikResponse Restoration &amp; Construction</div>
       </div>
