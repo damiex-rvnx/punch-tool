@@ -233,17 +233,22 @@ export default function App() {
     })
 
     if (sub) {
-      fetch(WORKER_URL, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({
-          action:       'subscribe',
-          deviceId:     getDeviceId(),
-          subscription: sub.toJSON(),
-          schedule:     workerItems,
-          ntfyTopic:    isIOS ? getNtfyTopic(getDeviceId()) : undefined,
-        }),
-      }).catch(() => {})
+      try {
+        const res = await fetch(WORKER_URL, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({
+            action:       'subscribe',
+            deviceId:     getDeviceId(),
+            subscription: sub.toJSON(),
+            schedule:     workerItems,
+            ntfyTopic:    isIOS ? getNtfyTopic(getDeviceId()) : undefined,
+          }),
+        })
+        if (!res.ok) showToast('Server sync failed — try again', '#d97706')
+      } catch {
+        showToast('Could not reach server — check connection', '#d97706')
+      }
     }
 
     const sw = swReg.current
