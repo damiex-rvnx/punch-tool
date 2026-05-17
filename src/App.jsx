@@ -15,6 +15,10 @@ function getDeviceId() {
   return id
 }
 
+function getNtfyTopic(deviceId) {
+  return 'qr-' + deviceId.replace(/-/g, '').substring(0, 16)
+}
+
 function ClockIcon({ size = 96 }) {
   const ticks = Array.from({ length: 12 }, (_, i) => i * 30)
   return (
@@ -233,6 +237,7 @@ export default function App() {
           deviceId:     getDeviceId(),
           subscription: sub.toJSON(),
           schedule:     workerItems,
+          ntfyTopic:    getNtfyTopic(getDeviceId()),
         }),
       }).catch(() => {})
     }
@@ -391,6 +396,10 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
       </div>
 
       <div className="card-full">
+        <NtfySetupCard css={css} deviceId={getDeviceId()} />
+      </div>
+
+      <div className="card-full">
         <button style={css.btnSet} onClick={handleSet}>
           {isSet ? '✓ UPDATE REMINDERS' : 'SET REMINDERS'}
         </button>
@@ -402,6 +411,58 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
             &#x26A0;&#xFE0F; Notifications blocked. Open Settings &gt; [app] &gt; Notifications &gt; Allow.
           </div>
         )}
+      </div>
+    </div>
+  )
+}
+
+function NtfySetupCard({ css, deviceId }) {
+  const topic = getNtfyTopic(deviceId)
+  const [copied, setCopied] = useState(false)
+
+  function copyTopic() {
+    navigator.clipboard?.writeText(topic).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  return (
+    <div style={{ ...css.card, marginTop: 0 }}>
+      <div style={css.lbl}>&#x1F514; BACKGROUND NOTIFICATIONS</div>
+      <div style={{ fontSize: 13, color: '#aeaeb2', lineHeight: 1.6, marginBottom: 16 }}>
+        iPhone requires the free <span style={{ color: '#f2f2f7', fontWeight: 700 }}>ntfy</span> app
+        to deliver alerts when your screen is off.
+      </div>
+
+      <a
+        href="https://apps.apple.com/app/ntfy/id1625396347"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ display: 'block', background: 'transparent', border: '1.5px solid #e5342a', borderRadius: 10, padding: '12px 16px', textDecoration: 'none', textAlign: 'center', color: '#e5342a', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, fontWeight: 700, letterSpacing: '0.06em', marginBottom: 16 }}
+      >
+        1 &nbsp;·&nbsp; DOWNLOAD NTFY — FREE ON APP STORE ↗
+      </a>
+
+      <div style={{ fontSize: 11, color: '#8e8e93', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>
+        2 &nbsp;·&nbsp; Your notification code
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#1c1c1e', border: '1px solid #3a3a3c', borderRadius: 8, padding: '10px 14px', marginBottom: 14 }}>
+        <span style={{ flex: 1, fontFamily: 'monospace', fontSize: 14, color: '#32d74b', letterSpacing: '0.04em', wordBreak: 'break-all' }}>{topic}</span>
+        <button
+          onClick={copyTopic}
+          style={{ background: 'none', border: '1px solid #3a3a3c', borderRadius: 6, padding: '5px 12px', color: copied ? '#32d74b' : '#8e8e93', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 700, cursor: 'pointer', transition: 'color .15s', whiteSpace: 'nowrap', flexShrink: 0 }}
+        >
+          {copied ? 'Copied ✓' : 'Copy'}
+        </button>
+      </div>
+
+      <div style={{ fontSize: 13, color: '#636366', lineHeight: 1.6 }}>
+        <span style={{ color: '#8e8e93' }}>3 &nbsp;·&nbsp;</span>
+        Open ntfy &rarr; tap <span style={{ color: '#aeaeb2', fontWeight: 700 }}>+</span> &rarr; paste code &rarr; <span style={{ color: '#aeaeb2', fontWeight: 700 }}>Subscribe</span>
+        <br />
+        <span style={{ color: '#8e8e93' }}>4 &nbsp;·&nbsp;</span>
+        Come back here and press <span style={{ color: '#aeaeb2', fontWeight: 700 }}>Set Reminders</span>
       </div>
     </div>
   )

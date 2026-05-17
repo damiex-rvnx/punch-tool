@@ -116,11 +116,11 @@ export default {
     const { action } = body
 
     if (action === 'subscribe') {
-      const { deviceId, subscription, schedule } = body
+      const { deviceId, subscription, schedule, ntfyTopic } = body
       if (!deviceId || !subscription || !schedule?.length)
         return respond({ error: 'Missing deviceId, subscription, or schedule' }, 400)
       await env.KV.put(`sched_${deviceId}`,
-        JSON.stringify({ subscription, schedule }),
+        JSON.stringify({ subscription, schedule, ntfyTopic }),
         { expirationTtl: 172800 }
       )
       return respond({ ok: true })
@@ -170,6 +170,9 @@ export default {
             log.errors.push({ id: item.id, err: e.message })
             if (!e.message?.includes('GONE')) remaining.push(item)
           }
+          if (record.ntfyTopic) {
+            try { await sendNtfy(record.ntfyTopic, item) } catch {}
+          }
         } else if (future) {
           remaining.push(item)
           log.future++
@@ -192,6 +195,16 @@ export default {
       await env.KV.put('cron_log', JSON.stringify(arr.slice(0, 20)), { expirationTtl: 172800 })
     } catch {}
   },
+}
+
+// --- ntfy (native iOS push bridge) --------------------------------------------
+
+async function sendNtfy(topic, item) {
+  await fetch(`https://ntfy.sh/${topic}`, {
+    method:  'POST',
+    headers: { 'Title': 'QR Clock-Bot', 'Priority': 'high', 'Tags': 'clock2' },
+    body:    `${item.emoji}  ${item.label}`,
+  })
 }
 
 // --- Web Push (RFC 8030 + RFC 8291 + RFC 8292) ---------------------------------
