@@ -157,11 +157,16 @@ export default function App() {
         }
       })
 
+      // First try direct fetch with detailed error capture
+      fetch('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js', { mode: 'no-cors' })
+        .then(r => setDebug(d => ({ ...d, err: `fetch OK status=${r.status} type=${r.type}` })))
+        .catch(e => setDebug(d => ({ ...d, err: `fetch ERR: ${e.message}` })))
+
       const s = document.createElement('script')
       s.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js'
       s.async = true
       s.onload  = () => setDebug(d => ({ ...d, err: (d.err || '') + ' | script onload' }))
-      s.onerror = (ev) => setDebug(d => ({ ...d, err: `script onerror: ${ev?.message || 'failed'}` }))
+      s.onerror = (ev) => setDebug(d => ({ ...d, err: (d.err || '') + ` | script ERR` }))
       document.head.appendChild(s)
     }
   }, [])
