@@ -511,13 +511,40 @@ function NtfySetupCard({ css, deviceId }) {
 }
 
 function DebugPanel({ deviceId }) {
-  const [pw, setPw]           = useState('')
+  const [pw, setPw]             = useState('')
   const [unlocked, setUnlocked] = useState(false)
-  const [pwError, setPwError] = useState(false)
-  const [status, setStatus]   = useState(null)
-  const [ntfyRes, setNtfyRes] = useState(null)
-  const [pushRes, setPushRes] = useState(null)
-  const [loading, setLoading] = useState('')
+  const [pwError, setPwError]   = useState(false)
+  const [status, setStatus]     = useState(null)
+  const [ntfyRes, setNtfyRes]   = useState(null)
+  const [pushRes, setPushRes]   = useState(null)
+  const [loading, setLoading]   = useState('')
+  const [subInfo, setSubInfo]   = useState(null)
+
+  useEffect(() => {
+    if (!unlocked) return
+    ;(async () => {
+      if (!('serviceWorker' in navigator)) { setSubInfo({ error: 'No service worker support' }); return }
+      try {
+        const reg = await navigator.serviceWorker.ready
+        const sub = await reg.pushManager.getSubscription()
+        if (sub) {
+          setSubInfo({ exists: true, endpoint: new URL(sub.endpoint).host })
+        } else {
+          try {
+            const newSub = await reg.pushManager.subscribe({
+              userVisibleOnly:      true,
+              applicationServerKey: b64url_to_uint8(VAPID_PUBLIC_KEY),
+            })
+            setSubInfo({ exists: true, freshlyCreated: true, endpoint: new URL(newSub.endpoint).host })
+          } catch (e) {
+            setSubInfo({ exists: false, subscribeError: e.message || String(e) })
+          }
+        }
+      } catch (e) {
+        setSubInfo({ error: e.message || String(e) })
+      }
+    })()
+  }, [unlocked])
 
   function tryUnlock() {
     if (pw === '25896211') { setUnlocked(true); setPwError(false) }
@@ -575,6 +602,7 @@ function DebugPanel({ deviceId }) {
           ['Notifications',    permission === 'granted' ? '✅ Granted' : `❌ ${permission}`, permission === 'granted'],
           ['Service Worker',   swOk ? '✅ Supported' : '❌ Not supported',               swOk],
           ['Push API',         pushOk ? '✅ Supported' : '❌ Not supported',             pushOk],
+          ['Push Sub',         subInfo == null ? '⏳ Checking...' : subInfo.exists ? `✅ ${subInfo.endpoint}` : `❌ ${subInfo.subscribeError ?? subInfo.error ?? 'None'}`, subInfo?.exists ?? true],
         ]
         return (
           <div style={{ ...box, marginTop: 0, marginBottom: 14 }}>
