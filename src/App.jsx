@@ -120,6 +120,7 @@ export default function App() {
   const [toast, setToast]   = useState(null)
   const [alert, setAlert]   = useState(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [lastSetError, setLastSetError] = useState(null)
   const timerIds   = useRef([])
   const toastTimer = useRef(null)
   const swReg      = useRef(null)
@@ -208,11 +209,13 @@ export default function App() {
     }
 
     let sub = null
+    let subscribeErr = null
     if ('serviceWorker' in navigator && 'PushManager' in window) {
       try {
         sub = await subscribePush()
-      } catch {
-        showToast('Could not enable push — reminders set for this session only', '#d97706')
+      } catch (e) {
+        subscribeErr = e?.message || String(e)
+        setLastSetError('Subscribe: ' + subscribeErr)
       }
     }
 
@@ -232,6 +235,7 @@ export default function App() {
       workerItems.push({ id: item.id, fireAtISO: new Date(Date.now() + ms).toISOString(), label: item.label, emoji: item.emoji })
     })
 
+    let workerOk = false
     if (sub) {
       try {
         const res = await fetch(WORKER_URL, {
@@ -245,9 +249,15 @@ export default function App() {
             ntfyTopic:    isIOS ? getNtfyTopic(getDeviceId()) : undefined,
           }),
         })
-        if (!res.ok) showToast('Server sync failed — try again', '#d97706')
-      } catch {
-        showToast('Could not reach server — check connection', '#d97706')
+        workerOk = res.ok
+        if (!res.ok) {
+          const txt = await res.text().catch(() => '')
+          setLastSetError(`Worker ${res.status}: ${txt}`)
+        } else {
+          setLastSetError(null)
+        }
+      } catch (e) {
+        setLastSetError('Fetch: ' + (e?.message || String(e)))
       }
     }
 
@@ -259,7 +269,15 @@ export default function App() {
     }
 
     setIsSet(true)
-    showToast('Reminders set ✓', '#15803d')
+    if (subscribeErr) {
+      showToast('Push failed: ' + subscribeErr.substring(0, 35), '#d97706')
+    } else if (sub && !workerOk) {
+      showToast('Server sync failed — check connection', '#d97706')
+    } else if (!sub) {
+      showToast('Reminders set (no server sync)', '#d97706')
+    } else {
+      showToast('Reminders set ✓', '#15803d')
+    }
   }
 
   function handleCancel() {
@@ -333,7 +351,7 @@ export default function App() {
             </div>
             <div style={{ padding: 20, flex: 1 }}>
               <NtfySetupCard css={css} deviceId={getDeviceId()} />
-              <DebugPanel deviceId={getDeviceId()} />
+              <DebugPanel deviceId={getDeviceId()} lastSetError={lastSetError} />
             </div>
           </div>
         </>
@@ -510,7 +528,7 @@ function NtfySetupCard({ css, deviceId }) {
   )
 }
 
-function DebugPanel({ deviceId }) {
+function DebugPanel({ deviceId, lastSetError }) {
   const [pw, setPw]             = useState('')
   const [unlocked, setUnlocked] = useState(false)
   const [pwError, setPwError]   = useState(false)
@@ -591,6 +609,11 @@ function DebugPanel({ deviceId }) {
   return (
     <div style={{ marginTop: 16, borderTop: '1px solid #3a3a3c', paddingTop: 16 }}>
       <div style={{ fontSize: 11, color: '#32d74b', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>🔓 Debug</div>
+      {lastSetError && (
+        <div style={{ background: '#2a1010', border: '1px solid #e5342a', borderRadius: 8, padding: '8px 12px', marginBottom: 12, fontSize: 11, color: '#e5342a', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+          ⚠ Last Set Reminders error:{'\n'}{lastSetError}
+        </div>
+      )}
 
       {(() => {
         const standalone   = window.navigator.standalone === true
