@@ -157,14 +157,12 @@ export default function App() {
         }
       })
 
-      // Fallback: also load SDK script programmatically (in case <script defer> failed in PWA mode)
-      if (!document.querySelector('script[src*="OneSignalSDK.page.js"]')) {
-        const s = document.createElement('script')
-        s.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js'
-        s.async = true
-        s.onerror = () => setDebug(d => ({ ...d, err: 'SDK script load FAILED' }))
-        document.head.appendChild(s)
-      }
+      const s = document.createElement('script')
+      s.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js'
+      s.async = true
+      s.onload  = () => setDebug(d => ({ ...d, err: (d.err || '') + ' | script onload' }))
+      s.onerror = (ev) => setDebug(d => ({ ...d, err: `script onerror: ${ev?.message || 'failed'}` }))
+      document.head.appendChild(s)
     }
   }, [])
 
