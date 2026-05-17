@@ -80,7 +80,7 @@ export default {
         }
         const schedule = [...rec.schedule.filter(s => s.id !== 'test'), testItem]
         await env.KV.put(`sched_${deviceId}`,
-          JSON.stringify({ subscription: rec.subscription, schedule }),
+          JSON.stringify({ subscription: rec.subscription, schedule, ntfyTopic: rec.ntfyTopic }),
           { expirationTtl: 172800 }
         )
         return respond({ ok: true, fires_at: testItem.fireAtISO, in_min: min })
@@ -149,7 +149,7 @@ export default {
       let record
       try { record = JSON.parse(raw) } catch { continue }
 
-      const { subscription, schedule } = record
+      const { subscription, schedule, ntfyTopic } = record
       const remaining = []
 
       for (const item of schedule) {
@@ -184,7 +184,7 @@ export default {
       if (remaining.length === 0) {
         await env.KV.delete(name)
       } else {
-        await env.KV.put(name, JSON.stringify({ subscription, schedule: remaining }), { expirationTtl: 172800 })
+        await env.KV.put(name, JSON.stringify({ subscription, schedule: remaining, ntfyTopic }), { expirationTtl: 172800 })
       }
     }
 
