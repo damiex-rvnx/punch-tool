@@ -3,180 +3,138 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Clock-Bot — How It Works</title>
+<title>Clock-Bot — Overview &amp; Setup Guide</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', system-ui, sans-serif; background: #f5f5f7; color: #1d1d1f; line-height: 1.6; }
 
-  body {
-    font-family: 'Inter', system-ui, sans-serif;
-    background: #f5f5f7;
-    color: #1d1d1f;
-    line-height: 1.6;
-  }
+  /* ── Layout ── */
+  .page { max-width: 900px; margin: 0 auto; padding: 48px 24px 80px; }
 
-  .page { max-width: 860px; margin: 0 auto; padding: 48px 24px 80px; }
-
-  /* Header */
+  /* ── Hero ── */
   .hero {
     background: linear-gradient(135deg, #1c1c1e 0%, #2c2c2e 100%);
-    border-radius: 20px;
-    padding: 48px 40px;
-    color: #f2f2f7;
-    margin-bottom: 40px;
-    position: relative;
-    overflow: hidden;
+    border-radius: 20px; padding: 48px 40px; color: #f2f2f7; margin-bottom: 40px; position: relative; overflow: hidden;
   }
-  .hero::after {
-    content: '';
-    position: absolute;
-    top: -40px; right: -40px;
-    width: 200px; height: 200px;
-    background: #e5342a22;
-    border-radius: 50%;
-  }
-  .hero-tag {
-    font-size: 11px; font-weight: 700; letter-spacing: 0.2em;
-    text-transform: uppercase; color: #e5342a; margin-bottom: 12px;
-  }
-  .hero h1 {
-    font-size: 38px; font-weight: 800; line-height: 1.1; margin-bottom: 16px;
-  }
-  .hero h1 span { color: #e5342a; }
-  .hero p { font-size: 17px; color: #aeaeb2; max-width: 520px; line-height: 1.7; }
+  .hero::after { content:''; position:absolute; top:-40px; right:-40px; width:220px; height:220px; background:#e5342a1a; border-radius:50%; }
+  .hero-tag { font-size:11px; font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:#e5342a; margin-bottom:12px; }
+  .hero h1  { font-size:38px; font-weight:800; line-height:1.1; margin-bottom:16px; }
+  .hero h1 span { color:#e5342a; }
+  .hero p   { font-size:16px; color:#aeaeb2; max-width:540px; line-height:1.75; }
+  .hero-pills { display:flex; gap:10px; flex-wrap:wrap; margin-top:22px; }
+  .hero-pill  { background:#ffffff14; border:1px solid #ffffff22; border-radius:100px; padding:6px 14px; font-size:12px; font-weight:600; color:#aeaeb2; }
 
-  /* Section */
-  section { margin-bottom: 40px; }
-  .section-title {
-    font-size: 11px; font-weight: 700; letter-spacing: 0.18em;
-    text-transform: uppercase; color: #6e6e73; margin-bottom: 16px;
-    padding-bottom: 10px; border-bottom: 1px solid #d2d2d7;
-  }
+  /* ── Navigation tabs ── */
+  .tabs { display:flex; gap:4px; background:#e8e8ed; border-radius:12px; padding:4px; margin-bottom:36px; }
+  .tab  { flex:1; text-align:center; padding:10px 8px; border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; color:#6e6e73; border:none; background:transparent; transition:all .2s; }
+  .tab.active { background:#fff; color:#1d1d1f; box-shadow:0 1px 4px rgba(0,0,0,.12); }
 
-  /* Cards */
-  .card {
-    background: #fff;
-    border-radius: 16px;
-    padding: 28px;
-    box-shadow: 0 2px 12px rgba(0,0,0,.06);
-  }
-  .card + .card { margin-top: 12px; }
-  .card h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
-  .card p  { font-size: 15px; color: #3a3a3c; }
+  /* ── Sections ── */
+  .panel { display:none; }
+  .panel.active { display:block; }
+  section { margin-bottom:36px; }
+  .section-title { font-size:11px; font-weight:700; letter-spacing:.18em; text-transform:uppercase; color:#6e6e73; margin-bottom:16px; padding-bottom:10px; border-bottom:1px solid #d2d2d7; }
 
-  /* Steps */
-  .steps { display: flex; flex-direction: column; gap: 0; }
-  .step {
-    display: flex; gap: 20px; align-items: flex-start;
-    background: #fff; border-radius: 16px; padding: 24px 28px;
-    box-shadow: 0 2px 12px rgba(0,0,0,.06);
-    position: relative;
-  }
-  .step + .step { margin-top: 4px; border-radius: 16px; }
-  .step-num {
-    width: 36px; height: 36px; border-radius: 50%;
-    background: #e5342a; color: #fff;
-    font-size: 15px; font-weight: 800;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0; margin-top: 2px;
-  }
-  .step-body h3 { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
-  .step-body p  { font-size: 14px; color: #6e6e73; }
+  /* ── Cards ── */
+  .card { background:#fff; border-radius:16px; padding:24px 28px; box-shadow:0 2px 12px rgba(0,0,0,.06); }
+  .card + .card { margin-top:12px; }
+  .card h3 { font-size:16px; font-weight:700; margin-bottom:6px; }
+  .card p  { font-size:14px; color:#3a3a3c; line-height:1.7; }
 
-  /* Diagram */
-  .diagram {
-    background: #fff; border-radius: 16px; padding: 36px 28px;
-    box-shadow: 0 2px 12px rgba(0,0,0,.06);
-  }
-  .flow {
-    display: flex; align-items: center; justify-content: center;
-    flex-wrap: wrap; gap: 0;
-  }
-  .node {
-    display: flex; flex-direction: column; align-items: center;
-    text-align: center; width: 130px;
-  }
-  .node-icon {
-    width: 64px; height: 64px; border-radius: 16px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 28px; margin-bottom: 10px;
-  }
-  .node-label { font-size: 13px; font-weight: 700; color: #1d1d1f; line-height: 1.3; }
-  .node-sub   { font-size: 11px; color: #6e6e73; margin-top: 3px; }
+  /* ── Grid ── */
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+  @media(max-width:580px) { .grid-2,.grid-3 { grid-template-columns:1fr; } }
 
-  .arrow {
-    font-size: 22px; color: #d2d2d7; margin: 0 4px;
-    padding-bottom: 28px; /* align with node centers */
-    flex-shrink: 0;
-  }
+  /* ── Steps ── */
+  .step { display:flex; gap:18px; align-items:flex-start; background:#fff; border-radius:16px; padding:22px 24px; box-shadow:0 2px 12px rgba(0,0,0,.06); }
+  .step + .step { margin-top:8px; }
+  .step-num { width:34px; height:34px; border-radius:50%; background:#e5342a; color:#fff; font-size:14px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px; }
+  .step-body h3 { font-size:15px; font-weight:700; margin-bottom:4px; }
+  .step-body p  { font-size:13px; color:#6e6e73; line-height:1.65; }
+  .step-body .note { margin-top:8px; background:#f5f5f7; border-radius:8px; padding:8px 12px; font-size:12px; color:#6e6e73; }
 
-  .node-icon.dark   { background: #1c1c1e; }
-  .node-icon.red    { background: #fff0f0; }
-  .node-icon.blue   { background: #f0f6ff; }
-  .node-icon.green  { background: #f0fff4; }
-  .node-icon.orange { background: #fff8f0; }
+  /* ── Architecture diagram ── */
+  .arch { background:#fff; border-radius:20px; padding:36px; box-shadow:0 2px 12px rgba(0,0,0,.06); }
+  .arch-title { text-align:center; font-size:16px; font-weight:700; margin-bottom:6px; }
+  .arch-sub   { text-align:center; font-size:13px; color:#6e6e73; margin-bottom:32px; }
 
-  .split {
-    display: flex; flex-direction: column; align-items: center; gap: 12px;
-    margin: 0 4px;
-  }
-  .split-row { display: flex; align-items: center; gap: 4px; }
+  /* Main flow row */
+  .flow-row { display:flex; align-items:center; justify-content:center; gap:0; flex-wrap:nowrap; overflow-x:auto; margin-bottom:28px; }
+  .flow-node { display:flex; flex-direction:column; align-items:center; text-align:center; width:120px; flex-shrink:0; }
+  .flow-icon { width:60px; height:60px; border-radius:16px; display:flex; align-items:center; justify-content:center; font-size:26px; margin-bottom:10px; }
+  .fi-dark   { background:#1c1c1e; }
+  .fi-red    { background:#fff0f0; }
+  .fi-blue   { background:#f0f5ff; }
+  .fi-green  { background:#f0fff6; }
+  .fi-yellow { background:#fffbf0; }
+  .fi-purple { background:#f8f0ff; }
+  .flow-lbl  { font-size:12px; font-weight:700; color:#1d1d1f; line-height:1.3; }
+  .flow-sub  { font-size:10px; color:#6e6e73; margin-top:3px; line-height:1.4; }
+  .flow-arr  { font-size:20px; color:#c7c7cc; flex-shrink:0; padding-bottom:24px; margin:0 2px; }
 
-  /* Platform pills */
-  .platforms { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; justify-content: center; }
-  .pill {
-    display: flex; align-items: center; gap: 8px;
-    background: #f5f5f7; border-radius: 100px;
-    padding: 8px 16px; font-size: 13px; font-weight: 600;
-  }
+  /* Split arrow (iOS / Android branch) */
+  .split-wrap { display:flex; flex-direction:column; gap:8px; align-items:center; margin:0 2px; }
+  .split-label { font-size:9px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#aeaeb2; }
 
-  /* Costs */
-  .cost-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  @media (max-width: 500px) { .cost-grid { grid-template-columns: 1fr; } }
+  /* Connection detail table */
+  .conn-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .conn-table th { text-align:left; font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:#6e6e73; padding:8px 12px; border-bottom:2px solid #f0f0f5; }
+  .conn-table td { padding:12px 12px; border-bottom:1px solid #f0f0f5; vertical-align:top; }
+  .conn-table tr:last-child td { border-bottom:none; }
+  .conn-table td:first-child { font-weight:700; white-space:nowrap; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:100px; font-size:10px; font-weight:700; }
+  .badge-red    { background:#fff0f0; color:#c0392b; }
+  .badge-blue   { background:#f0f5ff; color:#2563eb; }
+  .badge-green  { background:#f0fff6; color:#16a34a; }
+  .badge-gray   { background:#f5f5f7; color:#6e6e73; }
 
-  .cost-card {
-    background: #fff; border-radius: 16px; padding: 24px;
-    box-shadow: 0 2px 12px rgba(0,0,0,.06);
-  }
-  .cost-card .cost-icon { font-size: 28px; margin-bottom: 10px; }
-  .cost-card h4 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
-  .cost-card .cost-amt {
-    font-size: 26px; font-weight: 800; color: #e5342a; margin: 8px 0 6px;
-  }
-  .cost-card p { font-size: 13px; color: #6e6e73; }
-  .cost-total {
-    background: #1c1c1e; color: #f2f2f7;
-    border-radius: 16px; padding: 20px 28px;
-    display: flex; justify-content: space-between; align-items: center;
-    margin-top: 12px;
-    box-shadow: 0 2px 12px rgba(0,0,0,.12);
-  }
-  .cost-total .label { font-size: 14px; font-weight: 600; color: #aeaeb2; }
-  .cost-total .amount { font-size: 26px; font-weight: 800; color: #e5342a; }
+  /* Device setup panels */
+  .device-tabs { display:flex; gap:8px; margin-bottom:24px; flex-wrap:wrap; }
+  .dev-tab { padding:10px 20px; border-radius:100px; font-size:13px; font-weight:700; cursor:pointer; border:2px solid #e5342a; background:transparent; color:#e5342a; transition:all .2s; }
+  .dev-tab.active { background:#e5342a; color:#fff; }
+  .dev-panel { display:none; }
+  .dev-panel.active { display:block; }
+
+  /* Screenshot placeholder */
+  .screen-hint { background:#f5f5f7; border:1.5px dashed #c7c7cc; border-radius:12px; padding:18px 20px; font-size:13px; color:#6e6e73; text-align:center; margin-top:10px; }
+
+  /* Callout */
+  .callout { border-radius:12px; padding:16px 20px; font-size:14px; line-height:1.7; display:flex; gap:12px; align-items:flex-start; }
+  .callout.green  { background:#f0fff6; border:1.5px solid #34c75933; }
+  .callout.yellow { background:#fffbf0; border:1.5px solid #f59e0b33; }
+  .callout.blue   { background:#f0f5ff; border:1.5px solid #3b82f633; }
+  .callout .ci { font-size:20px; flex-shrink:0; margin-top:1px; }
+  .callout strong { color:#1d1d1f; }
+
+  /* Cost */
+  .cost-card { background:#fff; border-radius:16px; padding:24px; box-shadow:0 2px 12px rgba(0,0,0,.06); }
+  .cost-card .amt { font-size:28px; font-weight:800; color:#e5342a; margin:8px 0 4px; }
+  .cost-total { background:#1c1c1e; color:#f2f2f7; border-radius:16px; padding:20px 28px; display:flex; justify-content:space-between; align-items:center; margin-top:12px; }
+  .cost-total .lbl { font-size:13px; color:#aeaeb2; }
+  .cost-total .ttl { font-size:28px; font-weight:800; color:#e5342a; }
 
   /* FAQ */
-  .faq-item { background: #fff; border-radius: 16px; padding: 24px 28px; box-shadow: 0 2px 12px rgba(0,0,0,.06); }
-  .faq-item + .faq-item { margin-top: 10px; }
-  .faq-item .q { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
-  .faq-item .a { font-size: 14px; color: #3a3a3c; line-height: 1.7; }
+  .faq { background:#fff; border-radius:16px; padding:22px 26px; box-shadow:0 2px 12px rgba(0,0,0,.06); }
+  .faq + .faq { margin-top:10px; }
+  .faq .q { font-size:15px; font-weight:700; margin-bottom:6px; }
+  .faq .a { font-size:14px; color:#3a3a3c; line-height:1.7; }
 
-  /* Privacy */
-  .privacy {
-    background: #f0fff4; border: 1.5px solid #34c75933;
-    border-radius: 16px; padding: 24px 28px;
-    display: flex; gap: 16px; align-items: flex-start;
-  }
-  .privacy .icon { font-size: 28px; flex-shrink: 0; }
-  .privacy h4 { font-size: 15px; font-weight: 700; margin-bottom: 6px; color: #1d6b3a; }
-  .privacy p  { font-size: 14px; color: #3a3a3c; line-height: 1.7; }
+  /* Notification preview */
+  .notif-preview { background:#2c2c2e; border-radius:16px; padding:14px 16px; display:flex; gap:12px; align-items:center; }
+  .notif-icon { width:40px; height:40px; border-radius:10px; background:#e5342a; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+  .notif-title { font-size:13px; font-weight:700; color:#f2f2f7; }
+  .notif-body  { font-size:12px; color:#aeaeb2; margin-top:2px; }
+  .notif-time  { font-size:11px; color:#636366; margin-left:auto; flex-shrink:0; }
+  .notif-ts    { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#e5342a; margin-bottom:2px; }
 
-  /* Print */
   @media print {
-    body { background: #fff; }
-    .hero { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .node-icon { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .cost-total { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .tabs, .device-tabs { display:none !important; }
+    .panel, .dev-panel  { display:block !important; }
+    body { background:#fff; }
+    .hero, .cost-total, .fi-dark { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   }
 </style>
 </head>
@@ -185,246 +143,560 @@
 
   <!-- Hero -->
   <div class="hero">
-    <div class="hero-tag">Internal Tool Overview</div>
+    <div class="hero-tag">Internal Tool &mdash; Field Operations</div>
     <h1><span>Clock-Bot</span><br>Crew Clock Reminder</h1>
-    <p>An automatic notification system that reminds field crews exactly when to clock in and out for lunch and dinner — even when their phone is locked and in their pocket.</p>
+    <p>An automatic push notification system that reminds field crews exactly when to clock in and out for lunch and dinner &mdash; even with their phone locked and in their pocket.</p>
+    <div class="hero-pills">
+      <span class="hero-pill">📱 iPhone &amp; Android</span>
+      <span class="hero-pill">🔔 Background notifications</span>
+      <span class="hero-pill">⚡ No app to download (Android)</span>
+      <span class="hero-pill">💰 $10/month total</span>
+    </div>
   </div>
 
-  <!-- The Problem -->
-  <section>
-    <div class="section-title">The Problem It Solves</div>
-    <div class="card">
-      <h3>Missed clock-ins cost money — on both sides</h3>
-      <p>Field crews are busy. When it's time to clock out for lunch, they're often mid-task, and the reminder slips their mind. Late or missed punches mean payroll corrections, supervisor follow-ups, and potential labor compliance issues. Clock-Bot eliminates that by sending automatic, time-sensitive notifications directly to each crew member's phone — no apps to open, no timers to set.</p>
-    </div>
-  </section>
+  <!-- Tab nav -->
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('overview')">📋 Overview</button>
+    <button class="tab" onclick="showTab('connections')">🔗 How It Connects</button>
+    <button class="tab" onclick="showTab('setup')">🛠 Setup Guide</button>
+    <button class="tab" onclick="showTab('faq')">❓ FAQ &amp; Cost</button>
+  </div>
 
-  <!-- How Crew Uses It -->
-  <section>
-    <div class="section-title">How Crew Members Use It — 2 Minutes, Once a Day</div>
-    <div class="steps">
+  <!-- ══════════════════ OVERVIEW ══════════════════ -->
+  <div class="panel active" id="panel-overview">
+
+    <section>
+      <div class="section-title">The Problem It Solves</div>
+      <div class="card">
+        <h3>Missed clock-ins cost money — on both sides</h3>
+        <p>Field crews are busy. When it's time to clock out for lunch they're often mid-task, and the reminder slips their mind. Late or missed punches mean payroll corrections, supervisor follow-ups, and potential labor compliance issues. Clock-Bot eliminates that by sending automatic, time-sensitive notifications directly to each crew member's phone &mdash; no apps to open, no timers to set manually.</p>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">What the Crew Does Each Morning — Under 2 Minutes</div>
       <div class="step">
         <div class="step-num">1</div>
         <div class="step-body">
           <h3>Open Clock-Bot on their phone</h3>
-          <p>It's a website saved to the home screen — looks and feels like an app, no App Store download required.</p>
+          <p>Saved to their home screen — looks and feels like an app. No App Store download required (Android). No login needed.</p>
         </div>
       </div>
       <div class="step">
         <div class="step-num">2</div>
         <div class="step-body">
           <h3>Enter their start time</h3>
-          <p>Type in what time they clocked in (or will clock in) — e.g. 7:30 AM.</p>
+          <p>Type in the time they clocked in &mdash; e.g. 7:30 AM. Can be set the night before if the schedule is known.</p>
         </div>
       </div>
       <div class="step">
         <div class="step-num">3</div>
         <div class="step-body">
-          <h3>Pick their lunch hour mark</h3>
-          <p>Choose when lunch should be — e.g. "4h 30m" means clock out 4.5 hours after start. The app shows the exact time automatically.</p>
+          <h3>Pick their lunch and dinner hour marks</h3>
+          <p>Choose "4h 30m" for lunch = clock out 4.5 hours after start. The exact time is shown instantly. Toggle dinner off for short days.</p>
         </div>
       </div>
       <div class="step">
         <div class="step-num">4</div>
         <div class="step-body">
-          <h3>Tap "Set Reminders" — done</h3>
-          <p>They can put their phone away. Clock-Bot handles the rest. Notifications arrive even if the phone is locked, the app is closed, or they have no signal at the time of setup.</p>
+          <h3>Tap "Set Reminders" — done for the day</h3>
+          <p>Phone goes in their pocket. The server handles everything else. No need to keep the app open.</p>
         </div>
       </div>
       <div class="step">
         <div class="step-num">5</div>
         <div class="step-body">
-          <h3>Notification arrives on time</h3>
-          <p>A heads-up pops up a few minutes before, followed by the actual clock-out reminder. They tap it, open ADP, and punch in/out.</p>
+          <h3>Notifications arrive automatically</h3>
+          <p>A heads-up fires a few minutes before each break, followed by the clock-out alert, then a clock-back-in reminder after the break ends.</p>
+          <div class="note">Works on a locked, sleeping phone &mdash; even in a pocket with no screen interaction.</div>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- Notifications They Receive -->
-  <section>
-    <div class="section-title">Notifications the Crew Receives</div>
-    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-      <div class="card">
-        <div style="font-size:24px; margin-bottom:8px;">🔔</div>
-        <h3>Heads-Up</h3>
-        <p>Arrives a few minutes before lunch — "Lunch in 5 min — heads up!" — so they can wrap up what they're doing.</p>
-      </div>
-      <div class="card">
-        <div style="font-size:24px; margin-bottom:8px;">🍽️</div>
-        <h3>Clock Out</h3>
-        <p>"Clock Out — Lunch Break" fires at the exact mark so they open ADP and punch out immediately.</p>
-      </div>
-      <div class="card">
-        <div style="font-size:24px; margin-bottom:8px;">✅</div>
-        <h3>Clock Back In</h3>
-        <p>After their break (30, 45, or 60 min), a reminder fires to clock back in before they forget.</p>
-      </div>
-      <div class="card">
-        <div style="font-size:24px; margin-bottom:8px;">🌙</div>
-        <h3>Dinner (Long Days)</h3>
-        <p>Same three notifications repeat for dinner break on long days. Can be turned off for short days.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- How It Works Technically (simple) -->
-  <section>
-    <div class="section-title">How It Works — Under the Hood</div>
-    <div class="diagram">
-      <div style="text-align:center; margin-bottom:28px;">
-        <div style="font-size:16px; font-weight:700; color:#1d1d1f; margin-bottom:6px;">From "Set Reminders" to notification on a locked phone</div>
-        <div style="font-size:13px; color:#6e6e73;">Everything happens automatically once the crew member taps the button</div>
-      </div>
-
-      <div class="flow" style="justify-content:center; align-items:flex-start; gap:0; flex-wrap:nowrap; overflow-x:auto;">
-
-        <div class="node">
-          <div class="node-icon dark" style="font-size:22px; width:64px; height:64px;">📱</div>
-          <div class="node-label">Crew Member's Phone</div>
-          <div class="node-sub">Taps "Set Reminders"</div>
+    <section>
+      <div class="section-title">Notifications the Crew Receives</div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div class="notif-preview">
+          <div class="notif-icon">🔔</div>
+          <div style="flex:1;">
+            <div class="notif-ts">Time Sensitive</div>
+            <div class="notif-title">Clock-Bot</div>
+            <div class="notif-body">🔔 &nbsp;Lunch in 5 min — heads up!</div>
+          </div>
+          <div class="notif-time">11:55 AM</div>
         </div>
-
-        <div class="arrow">→</div>
-
-        <div class="node">
-          <div class="node-icon red">☁️</div>
-          <div class="node-label">Schedule Server</div>
-          <div class="node-sub">Stores the schedule securely</div>
+        <div class="notif-preview">
+          <div class="notif-icon">🍽️</div>
+          <div style="flex:1;">
+            <div class="notif-ts">Time Sensitive</div>
+            <div class="notif-title">Clock-Bot</div>
+            <div class="notif-body">🍽️ &nbsp;Clock Out — Lunch Break</div>
+          </div>
+          <div class="notif-time">12:00 PM</div>
         </div>
-
-        <div class="arrow">→</div>
-
-        <div class="node">
-          <div class="node-icon blue">⏱️</div>
-          <div class="node-label">Automatic Timer</div>
-          <div class="node-sub">Checks every minute, fires when it's time</div>
+        <div class="notif-preview">
+          <div class="notif-icon">✅</div>
+          <div style="flex:1;">
+            <div class="notif-ts">Time Sensitive</div>
+            <div class="notif-title">Clock-Bot</div>
+            <div class="notif-body">✅ &nbsp;Clock Back In — Lunch (30 min)</div>
+          </div>
+          <div class="notif-time">12:30 PM</div>
         </div>
-
-        <div class="arrow">→</div>
-
-        <div class="node">
-          <div class="node-icon green">🔔</div>
-          <div class="node-label">Notification Arrives</div>
-          <div class="node-sub">Even on a locked, sleeping phone</div>
-        </div>
-
+        <div style="text-align:center; font-size:12px; color:#aeaeb2; padding:4px;">· · · same pattern repeats for dinner on long days · · ·</div>
       </div>
+    </section>
 
-      <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #f0f0f5;">
-        <div style="text-align:center; font-size:12px; font-weight:700; color:#6e6e73; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:16px;">Delivery method by device</div>
-        <div class="platforms">
-          <div class="pill">
-            <span style="font-size:20px;">🍎</span>
-            <div>
-              <div style="font-size:13px; font-weight:700;">iPhone</div>
-              <div style="font-size:11px; color:#6e6e73; font-weight:500;">Via ntfy app (free install)</div>
+    <section>
+      <div class="section-title">Privacy &amp; Data</div>
+      <div class="callout green">
+        <div class="ci">🔒</div>
+        <div>
+          <strong>Minimal data, nothing personal.</strong> Clock-Bot stores only a random device ID and the scheduled notification times. No names, no location, no personal information of any kind. Schedules auto-delete after 48 hours. No data is sold or shared with any third party. The tool is entirely internal.
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /overview -->
+
+
+  <!-- ══════════════════ CONNECTIONS ══════════════════ -->
+  <div class="panel" id="panel-connections">
+
+    <section>
+      <div class="section-title">System Architecture — Plain English</div>
+      <div class="arch">
+        <div class="arch-title">From "Set Reminders" to notification on a locked phone</div>
+        <div class="arch-sub">Four pieces work together automatically. Crew members only ever touch the first one.</div>
+
+        <!-- Flow diagram -->
+        <div class="flow-row">
+
+          <div class="flow-node">
+            <div class="flow-icon fi-dark">📱</div>
+            <div class="flow-lbl">Clock-Bot App</div>
+            <div class="flow-sub">Website saved to home screen</div>
+          </div>
+          <div class="flow-arr">→</div>
+
+          <div class="flow-node">
+            <div class="flow-icon fi-red">☁️</div>
+            <div class="flow-lbl">Cloudflare<br>Schedule Server</div>
+            <div class="flow-sub">Stores schedule &amp; subscription</div>
+          </div>
+          <div class="flow-arr">→</div>
+
+          <div class="flow-node">
+            <div class="flow-icon fi-blue">⏱️</div>
+            <div class="flow-lbl">Cron Timer</div>
+            <div class="flow-sub">Checks every 60 seconds</div>
+          </div>
+          <div class="flow-arr">→</div>
+
+          <!-- Split iOS / Android -->
+          <div class="split-wrap">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <div class="flow-node" style="width:110px;">
+                <div class="flow-icon fi-purple">🍎</div>
+                <div class="flow-lbl">ntfy.sh</div>
+                <div class="flow-sub">iPhone bridge via APNs</div>
+              </div>
+            </div>
+            <div style="font-size:11px; color:#aeaeb2; font-weight:600;">or</div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <div class="flow-node" style="width:110px;">
+                <div class="flow-icon fi-green">🤖</div>
+                <div class="flow-lbl">Web Push</div>
+                <div class="flow-sub">Android direct delivery</div>
+              </div>
             </div>
           </div>
-          <div class="pill">
-            <span style="font-size:20px;">🤖</span>
-            <div>
-              <div style="font-size:13px; font-weight:700;">Android</div>
-              <div style="font-size:11px; color:#6e6e73; font-weight:500;">Direct browser push — no extra app</div>
-            </div>
+          <div class="flow-arr">→</div>
+
+          <div class="flow-node">
+            <div class="flow-icon fi-yellow">🔔</div>
+            <div class="flow-lbl">Locked Phone<br>Notification</div>
+            <div class="flow-sub">Arrives on time, every time</div>
+          </div>
+
+        </div><!-- /flow-row -->
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">Each Component Explained</div>
+      <div class="card">
+        <table class="conn-table">
+          <tr>
+            <th>Component</th>
+            <th>What It Is</th>
+            <th>What It Does</th>
+            <th>Who Pays</th>
+          </tr>
+          <tr>
+            <td>📱 Clock-Bot App<br><span style="font-weight:400; color:#6e6e73; font-size:12px;">GitHub Pages</span></td>
+            <td><span class="badge badge-gray">Free hosting</span></td>
+            <td>The screen crew members interact with. Runs entirely in the phone's browser — no app store, no installation. Saved to home screen like a regular app. Hosted for free on GitHub.</td>
+            <td style="color:#16a34a; font-weight:700;">Free</td>
+          </tr>
+          <tr>
+            <td>☁️ Schedule Server<br><span style="font-weight:400; color:#6e6e73; font-size:12px;">Cloudflare Workers + KV</span></td>
+            <td><span class="badge badge-red">Backend</span></td>
+            <td>Receives the crew member's schedule when they tap "Set Reminders." Stores it securely. Every 60 seconds it checks whether any notifications are due and fires them. This is why notifications arrive even when the app is fully closed.</td>
+            <td style="color:#e5342a; font-weight:700;">$5/mo</td>
+          </tr>
+          <tr>
+            <td>🍎 ntfy.sh<br><span style="font-weight:400; color:#6e6e73; font-size:12px;">iOS notification bridge</span></td>
+            <td><span class="badge badge-blue">iOS only</span></td>
+            <td>Apple does not allow websites to send background notifications to iPhones without going through a native app. ntfy bridges this gap: our server posts a message to ntfy.sh, which relays it through Apple's official notification system (APNs) to the ntfy app on the crew member's iPhone. One paid account covers the entire crew — no per-person cost.</td>
+            <td style="color:#e5342a; font-weight:700;">$5/mo</td>
+          </tr>
+          <tr>
+            <td>🤖 Web Push<br><span style="font-weight:400; color:#6e6e73; font-size:12px;">Android direct</span></td>
+            <td><span class="badge badge-green">Android only</span></td>
+            <td>Android allows websites to send push notifications directly through the browser — no extra app needed. Our server sends an encrypted push message directly to the crew member's Android device using industry-standard Web Push (RFC 8030). Zero extra setup for Android users.</td>
+            <td style="color:#16a34a; font-weight:700;">Included</td>
+          </tr>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">Data Flow — Step by Step</div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <div class="step">
+          <div class="step-num" style="background:#3b82f6;">A</div>
+          <div class="step-body">
+            <h3>Crew member taps "Set Reminders"</h3>
+            <p>The app on their phone calculates the exact times for each notification and sends them — along with a push subscription token — to the Cloudflare server over a secure (HTTPS) connection.</p>
           </div>
         </div>
-        <div style="margin-top:14px; background:#fffbf0; border-radius:10px; padding:14px 18px; font-size:13px; color:#6e6e73; text-align:center;">
-          <strong style="color:#1d1d1f;">Why the difference?</strong> Apple restricts background notifications for websites on iPhone. The free ntfy app bridges this gap — crew installs it once and never has to touch it again. Android handles it natively.
+        <div class="step">
+          <div class="step-num" style="background:#3b82f6;">B</div>
+          <div class="step-body">
+            <h3>Server saves the schedule</h3>
+            <p>Cloudflare stores the schedule in its key-value database with a 48-hour expiry. Nothing else is stored — no personal information, no location, no name.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num" style="background:#3b82f6;">C</div>
+          <div class="step-body">
+            <h3>The cron timer fires every 60 seconds</h3>
+            <p>Cloudflare's built-in scheduler wakes the server every minute. It checks every stored schedule and compares each notification time to the current time. If a notification is due (within a 90-second window), it fires.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num" style="background:#3b82f6;">D</div>
+          <div class="step-body">
+            <h3>Delivery route depends on device type</h3>
+            <p><strong>iPhone:</strong> The server posts a message to ntfy.sh using the crew member's unique topic ID. ntfy.sh relays it through Apple's APNs servers to the ntfy app on their phone — which shows the notification even when the phone is asleep.<br><br>
+            <strong>Android:</strong> The server sends an encrypted Web Push message directly to the crew member's browser subscription endpoint. The browser's background service wakes and displays the notification.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num" style="background:#3b82f6;">E</div>
+          <div class="step-body">
+            <h3>Fired notifications are removed from the schedule</h3>
+            <p>Once a notification fires, it's removed from the stored schedule. When all notifications for the day have fired, the schedule entry is deleted entirely from the server — ahead of the 48-hour automatic expiry.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">Security &amp; Reliability</div>
+      <div class="grid-2">
+        <div class="card">
+          <h3>🔐 Encrypted end-to-end</h3>
+          <p>All communication between devices and the server uses HTTPS. Push notification payloads are encrypted using the Web Push standard (AES-128-GCM) — only the recipient's device can decrypt them.</p>
+        </div>
+        <div class="card">
+          <h3>🌍 Globally distributed</h3>
+          <p>Cloudflare Workers runs in 300+ data centers worldwide. Requests are handled by the nearest location, keeping latency extremely low regardless of where the crew is working.</p>
+        </div>
+        <div class="card">
+          <h3>⏱️ 60-second precision</h3>
+          <p>The cron timer fires every minute. Notifications have a 90-second delivery window, so they can arrive within 0–90 seconds of the scheduled time under normal network conditions.</p>
+        </div>
+        <div class="card">
+          <h3>♻️ Self-cleaning</h3>
+          <p>All schedules auto-expire after 48 hours with no manual cleanup required. The server never accumulates stale data from crew members who don't use the app on a given day.</p>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /connections -->
+
+
+  <!-- ══════════════════ SETUP GUIDE ══════════════════ -->
+  <div class="panel" id="panel-setup">
+
+    <div class="callout yellow" style="margin-bottom:24px;">
+      <div class="ci">⚠️</div>
+      <div><strong>One-time setup only.</strong> Once complete, crew members just open the app each morning, enter their start time, and tap "Set Reminders." The setup below only needs to be done once per device.</div>
+    </div>
+
+    <div class="device-tabs">
+      <button class="dev-tab active" onclick="showDev('iphone')">🍎 iPhone</button>
+      <button class="dev-tab" onclick="showDev('android')">🤖 Android</button>
+      <button class="dev-tab" onclick="showDev('web')">🌐 Desktop / Web</button>
+    </div>
+
+    <!-- iPhone Setup -->
+    <div class="dev-panel active" id="dev-iphone">
+      <div class="callout blue" style="margin-bottom:20px;">
+        <div class="ci">ℹ️</div>
+        <div><strong>iPhone requires 4 steps.</strong> Apple restricts background notifications for websites, so a free helper app (ntfy) is needed once. After setup, crew never opens ntfy manually — notifications just appear.</div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h3>Open Clock-Bot in Safari</h3>
+          <p>Open <strong>Safari</strong> (must be Safari, not Chrome) and go to:<br>
+          <strong style="color:#e5342a;">lbrito1126.github.io/qwik-crew-clock</strong></p>
+          <div class="note">⚠️ Must use Safari. Chrome on iPhone cannot add sites to the home screen as a proper PWA.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h3>Add to Home Screen</h3>
+          <p>Tap the <strong>Share button</strong> (box with arrow pointing up) at the bottom of Safari → scroll down → tap <strong>"Add to Home Screen"</strong> → tap <strong>Add</strong>.</p>
+          <p style="margin-top:8px;">Clock-Bot now appears on the home screen like a regular app.</p>
+          <div class="note">📌 Always open Clock-Bot from the home screen icon — not from Safari — for notifications to work correctly.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h3>Download the free ntfy app</h3>
+          <p>Go to the <strong>App Store</strong> and search <strong>"ntfy"</strong> (or scan the QR code below). Install it — it's free.</p>
+          <div class="screen-hint">App Store → Search "ntfy" → Developer: Philipp Heckel → Install</div>
+          <div class="note">ntfy is a legitimate, open-source notification app. It is used only to deliver Clock-Bot alerts and does not send any other notifications unless subscribed to other topics.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h3>Find your personal notification code</h3>
+          <p>Open Clock-Bot from the home screen → tap the <strong>☰ menu</strong> (top right) → find the <strong>"Background Notifications"</strong> card → copy the code shown (looks like <code style="background:#f5f5f7; padding:1px 6px; border-radius:4px; font-size:12px;">qr-a1b2c3d4e5f6g7h8</code>).</p>
+          <div class="note">Each phone gets a unique code. It never changes.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <h3>Subscribe in the ntfy app</h3>
+          <p>Open the <strong>ntfy app</strong> → tap <strong>+</strong> (bottom right) → paste your code into the topic field → tap <strong>Subscribe</strong>.</p>
+          <div class="note">Leave the server as ntfy.sh (default). Do not change it.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <h3>Allow notifications when prompted</h3>
+          <p>When ntfy asks for permission to send notifications, tap <strong>Allow</strong>. If you accidentally tap Don't Allow: go to <strong>Settings → ntfy → Notifications → Allow Notifications</strong>.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">7</div>
+        <div class="step-body">
+          <h3>Set your first reminder — and test it</h3>
+          <p>Go back to Clock-Bot → enter your start time → tap <strong>"Set Reminders"</strong>. You should see a green "Reminders set ✓" toast.</p>
+          <p style="margin-top:8px;">To confirm everything works: tap the <strong>☰ menu → password <code style="background:#f5f5f7; padding:1px 5px; border-radius:4px; font-size:11px;">25896211</code> → Test ntfy Notification</strong>. A test notification should arrive within a few seconds.</p>
+          <div class="note">✅ Setup complete. From now on just open Clock-Bot each morning, set your time, and tap Set Reminders.</div>
         </div>
       </div>
     </div>
-  </section>
 
-  <!-- Setup for Crew -->
-  <section>
-    <div class="section-title">One-Time Setup Per Crew Member</div>
-    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-      <div class="card">
-        <div style="font-size:24px; margin-bottom:8px;">🤖</div>
-        <h3>Android — 2 steps</h3>
-        <p style="margin-bottom:8px;">1. Open <strong>lbrito1126.github.io/qwik-crew-clock</strong> in Chrome</p>
-        <p>2. Tap "Add to Home Screen" — done. No other setup needed.</p>
+    <!-- Android Setup -->
+    <div class="dev-panel" id="dev-android">
+      <div class="callout green" style="margin-bottom:20px;">
+        <div class="ci">✅</div>
+        <div><strong>Android is the easiest.</strong> No extra apps needed. Notifications work directly through the browser. Setup takes about 2 minutes.</div>
       </div>
-      <div class="card">
-        <div style="font-size:24px; margin-bottom:8px;">🍎</div>
-        <h3>iPhone — 4 steps</h3>
-        <p style="margin-bottom:8px;">1. Open the site in Safari, tap Share → "Add to Home Screen"</p>
-        <p style="margin-bottom:8px;">2. Download the free <strong>ntfy</strong> app from the App Store</p>
-        <p style="margin-bottom:8px;">3. In ntfy, subscribe to their personal code (shown in the app's Settings)</p>
-        <p>4. Tap "Set Reminders" — done.</p>
-      </div>
-    </div>
-  </section>
 
-  <!-- Privacy -->
-  <section>
-    <div class="section-title">Privacy &amp; Data</div>
-    <div class="privacy">
-      <div class="icon">🔒</div>
-      <div>
-        <h4>Minimal data, no tracking</h4>
-        <p>Clock-Bot stores only what's needed to fire notifications: a random device identifier and the scheduled notification times. <strong>No names, no location, no personal information.</strong> Schedules automatically delete after 48 hours. No data is sold or shared with any third party. The tool is internal-only.</p>
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h3>Open Clock-Bot in Chrome</h3>
+          <p>Open <strong>Google Chrome</strong> and go to:<br>
+          <strong style="color:#e5342a;">lbrito1126.github.io/qwik-crew-clock</strong></p>
+          <div class="note">Chrome is recommended. Samsung Internet also works. Firefox on Android does not support Web Push reliably.</div>
+        </div>
       </div>
-    </div>
-  </section>
 
-  <!-- Cost -->
-  <section>
-    <div class="section-title">Monthly Running Cost</div>
-    <div class="cost-grid">
-      <div class="cost-card">
-        <div class="cost-icon">☁️</div>
-        <h4>Cloudflare Workers</h4>
-        <div class="cost-amt">$5<span style="font-size:14px; font-weight:500; color:#6e6e73;">/mo</span></div>
-        <p>The server that stores schedules and fires notifications on time every minute, 24/7.</p>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h3>Add to Home Screen</h3>
+          <p>Tap the <strong>⋮ menu</strong> (top right in Chrome) → tap <strong>"Add to Home screen"</strong> → tap <strong>Add</strong>.</p>
+          <p style="margin-top:8px;">Clock-Bot now appears as an app icon on the home screen.</p>
+          <div class="note">📌 Always open Clock-Bot from the home screen icon for best results.</div>
+        </div>
       </div>
-      <div class="cost-card">
-        <div class="cost-icon">🔔</div>
-        <h4>ntfy.sh (iPhone bridge)</h4>
-        <div class="cost-amt">$5<span style="font-size:14px; font-weight:500; color:#6e6e73;">/mo</span></div>
-        <p>Enables background notifications on iPhones. One account covers the entire crew — no per-person cost.</p>
-      </div>
-    </div>
-    <div class="cost-total">
-      <div>
-        <div class="label">Total monthly cost</div>
-        <div style="font-size:13px; color:#636366; margin-top:2px;">Scales to unlimited crew members at no extra charge</div>
-      </div>
-      <div class="amount">$10<span style="font-size:16px; font-weight:600; color:#aeaeb2;">/mo</span></div>
-    </div>
-  </section>
 
-  <!-- FAQ -->
-  <section>
-    <div class="section-title">Common Questions</div>
-    <div class="faq-item">
-      <div class="q">Does every crew member need to create an account?</div>
-      <div class="a">No. On Android there's zero account setup. On iPhone they install the free ntfy app and subscribe to one personal code — no registration, no email, no password.</div>
-    </div>
-    <div class="faq-item">
-      <div class="q">What if a crew member's schedule changes day to day?</div>
-      <div class="a">They open the app, adjust their start time and hour mark, and tap "Set Reminders" again. Takes under a minute. The previous schedule is automatically replaced.</div>
-    </div>
-    <div class="faq-item">
-      <div class="q">Does it work if there's no cell service?</div>
-      <div class="a">The schedule is saved to a cloud server when "Set Reminders" is tapped (requires a brief internet connection at setup time). After that, notifications are sent by the server — so even if the phone loses signal, as long as it comes back before the notification fires, it will be delivered.</div>
-    </div>
-    <div class="faq-item">
-      <div class="q">Can it send reminders to the whole crew at once?</div>
-      <div class="a">Each crew member sets their own start time since they may clock in at different times. Notifications are personalized per device. There's no "broadcast to all" — that's intentional, so each person gets the right time for their shift.</div>
-    </div>
-    <div class="faq-item">
-      <div class="q">Does it require IT or a software vendor?</div>
-      <div class="a">No. Clock-Bot is a lightweight web app built and maintained in-house. There's no vendor contract, no enterprise software license, and no IT infrastructure required beyond the two $5/month cloud services listed above.</div>
-    </div>
-  </section>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h3>Open from home screen &amp; allow notifications</h3>
+          <p>Tap the Clock-Bot icon on the home screen. The first time you tap <strong>"Set Reminders"</strong>, Android will ask permission to send notifications. Tap <strong>Allow</strong>.</p>
+          <div class="note">If you tap Don't Allow by mistake: go to Settings → Apps → Clock-Bot → Notifications → Enable.</div>
+        </div>
+      </div>
 
-  <!-- Footer -->
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h3>Set your first reminder</h3>
+          <p>Enter your start time → choose your lunch mark → tap <strong>"Set Reminders"</strong>. A green "Reminders set ✓" should appear.</p>
+          <div class="note">✅ Setup complete. No extra apps needed. Notifications will arrive even when the phone is locked.</div>
+        </div>
+      </div>
+
+      <div class="step" style="background:#f0fff6; border:1.5px solid #34c75933;">
+        <div class="step-num" style="background:#16a34a;">✓</div>
+        <div class="step-body">
+          <h3>Optional: Test it works</h3>
+          <p>Tap <strong>☰ menu</strong> (top right) → enter password <code style="background:#e8e8ed; padding:1px 5px; border-radius:4px; font-size:11px;">25896211</code> → tap <strong>"Test Web Push"</strong>. A test notification should pop up within a few seconds.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Desktop / Web Setup -->
+    <div class="dev-panel" id="dev-web">
+      <div class="callout blue" style="margin-bottom:20px;">
+        <div class="ci">🖥️</div>
+        <div><strong>Desktop works for setting reminders</strong> but is best used on a phone since you need the notifications where you are. Desktop browsers support Web Push in Chrome, Edge, and Firefox.</div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h3>Open Clock-Bot in Chrome or Edge</h3>
+          <p>Go to:<br><strong style="color:#e5342a;">lbrito1126.github.io/qwik-crew-clock</strong></p>
+          <div class="note">Safari on Mac does not support Web Push reliably. Use Chrome or Edge.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h3>Allow notifications when prompted</h3>
+          <p>When you tap "Set Reminders" for the first time, the browser asks for notification permission. Click <strong>Allow</strong>.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h3>Keep the browser running</h3>
+          <p>On desktop, notifications require the browser to be running (it can be minimized). For reliable background delivery on a phone, use the mobile setup instead.</p>
+          <div class="note">💡 For supervisors who want to monitor the tool or test it, desktop is fine. For crew members in the field, phone setup is strongly recommended.</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /setup -->
+
+
+  <!-- ══════════════════ FAQ & COST ══════════════════ -->
+  <div class="panel" id="panel-faq">
+
+    <section>
+      <div class="section-title">Monthly Cost</div>
+      <div class="grid-2">
+        <div class="cost-card">
+          <div style="font-size:28px; margin-bottom:10px;">☁️</div>
+          <h4 style="font-size:15px; font-weight:700;">Cloudflare Workers</h4>
+          <div class="amt">$5<span style="font-size:14px; font-weight:500; color:#6e6e73;">/mo</span></div>
+          <p style="font-size:13px; color:#6e6e73;">The backend server that stores schedules and fires notifications every minute, 24/7. Paid plan required for the 1-minute cron frequency.</p>
+        </div>
+        <div class="cost-card">
+          <div style="font-size:28px; margin-bottom:10px;">🔔</div>
+          <h4 style="font-size:15px; font-weight:700;">ntfy.sh Pro</h4>
+          <div class="amt">$5<span style="font-size:14px; font-weight:500; color:#6e6e73;">/mo</span></div>
+          <p style="font-size:13px; color:#6e6e73;">Enables background notifications on iPhones. One paid account covers all crew members — no per-person cost.</p>
+        </div>
+      </div>
+      <div class="cost-total">
+        <div>
+          <div class="lbl">Total monthly cost</div>
+          <div style="font-size:12px; color:#636366; margin-top:3px;">Covers unlimited crew members. No per-user fees.</div>
+        </div>
+        <div class="ttl">$10<span style="font-size:15px; font-weight:600; color:#aeaeb2;">/mo</span></div>
+      </div>
+      <div class="card" style="margin-top:12px;">
+        <h3>What's free</h3>
+        <p>Clock-Bot app hosting (GitHub Pages) · Android Web Push delivery · All app updates and maintenance · Storage for up to thousands of crew schedules simultaneously</p>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">Frequently Asked Questions</div>
+
+      <div class="faq">
+        <div class="q">Does every crew member need to create an account anywhere?</div>
+        <div class="a">No accounts needed at all. On Android there's zero registration. On iPhone they install the free ntfy app and enter one personal code — no email, no password, no sign-up.</div>
+      </div>
+      <div class="faq">
+        <div class="q">What if a crew member's schedule changes day to day?</div>
+        <div class="a">They open Clock-Bot, change their start time or hour mark, and tap "Set Reminders" again. Takes under a minute. The new schedule automatically replaces the old one.</div>
+      </div>
+      <div class="faq">
+        <div class="q">Does it work without cell service?</div>
+        <div class="a">An internet connection is needed briefly when tapping "Set Reminders" to upload the schedule. After that, delivery is handled by the server — so if the phone loses signal after setup and regains it before a notification fires, the notification will be delivered. For locations with no signal all day, the app cannot guarantee delivery.</div>
+      </div>
+      <div class="faq">
+        <div class="q">Can it notify the entire crew at the same time?</div>
+        <div class="a">Each crew member sets their own start time since they may clock in at different times. Notifications are personal per device. If a crew starts together and someone needs to broadcast a reminder, that's a supervisor function — this tool is for individual automation.</div>
+      </div>
+      <div class="faq">
+        <div class="q">What happens if the server is down?</div>
+        <div class="a">Cloudflare Workers has 99.99% uptime globally. In the very unlikely event of an outage, the app has a local fallback using the phone's own timer — so reminders still fire as long as the app process is alive in memory.</div>
+      </div>
+      <div class="faq">
+        <div class="q">Does it require IT or a software vendor?</div>
+        <div class="a">No vendor contract, no enterprise license, no IT infrastructure. Clock-Bot is built and maintained in-house. The only external services are Cloudflare and ntfy.sh, both managed via simple web dashboards.</div>
+      </div>
+      <div class="faq">
+        <div class="q">Can this scale to more crew members?</div>
+        <div class="a">Yes — the $10/month cost stays flat regardless of crew size. The system can handle hundreds of concurrent schedules at no additional cost.</div>
+      </div>
+      <div class="faq">
+        <div class="q">Is there a way to see who has set their reminders?</div>
+        <div class="a">Currently the tool is anonymous by design (no names stored). If usage tracking becomes a requirement, that can be added — but it would require crew members to identify themselves in the app, which adds friction to the workflow.</div>
+      </div>
+    </section>
+
+  </div><!-- /faq -->
+
   <div style="text-align:center; color:#aeaeb2; font-size:12px; margin-top:40px; padding-top:24px; border-top:1px solid #d2d2d7;">
-    Clock-Bot &nbsp;·&nbsp; Internal crew tool &nbsp;·&nbsp; Built for field operations
+    Clock-Bot &nbsp;·&nbsp; Internal crew tool &nbsp;·&nbsp; Field operations
   </div>
 
-</div>
+</div><!-- /page -->
+
+<script>
+  function showTab(id) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'))
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'))
+    document.querySelector(`[onclick="showTab('${id}')"]`).classList.add('active')
+    document.getElementById('panel-' + id).classList.add('active')
+  }
+  function showDev(id) {
+    document.querySelectorAll('.dev-tab').forEach(t => t.classList.remove('active'))
+    document.querySelectorAll('.dev-panel').forEach(p => p.classList.remove('active'))
+    document.querySelector(`[onclick="showDev('${id}')"]`).classList.add('active')
+    document.getElementById('dev-' + id).classList.add('active')
+  }
+</script>
 </body>
 </html>
