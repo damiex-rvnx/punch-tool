@@ -536,6 +536,7 @@ function DebugPanel({ deviceId, lastSetError }) {
   const [ntfyRes, setNtfyRes]   = useState(null)
   const [pushRes, setPushRes]   = useState(null)
   const [regRes, setRegRes]     = useState(null)
+  const [cronLog, setCronLog]   = useState(null)
   const [loading, setLoading]   = useState('')
   const [subInfo, setSubInfo]   = useState(null)
 
@@ -687,6 +688,11 @@ function DebugPanel({ deviceId, lastSetError }) {
           {loading === 'push' ? '⏳ Sending...' : '📲 Test Web Push'}
         </button>
         {pushRes && <div style={box}><pre style={{ ...mono, color: pushRes.ok ? '#32d74b' : '#e5342a' }}>{JSON.stringify(pushRes, null, 2)}</pre></div>}
+
+        <button style={btn} disabled={loading === 'log'} onClick={() => hit('/cron-log', setCronLog, 'log')}>
+          {loading === 'log' ? '⏳ Loading...' : '📋 Cron Log'}
+        </button>
+        {cronLog && <div style={box}><pre style={{ ...mono, color: '#aeaeb2' }}>{JSON.stringify(cronLog.slice(0, 5), null, 2)}</pre></div>}
       </div>
     </div>
   )
