@@ -272,8 +272,15 @@ export default function App() {
     }
 
     setIsSet(true)
+    const swActive = !!(swReg.current?.active)
     if (subscribeErr) {
-      showToast('Push failed: ' + subscribeErr.substring(0, 35), '#d97706')
+      // Local SW timer still works — notifications fire while browser is open
+      const isBravePush = subscribeErr.includes('push service') || subscribeErr.includes('Registration failed')
+      if (isBravePush && isDesktop) {
+        showToast('Reminders set — browser must stay open', '#d97706')
+      } else {
+        showToast('Reminders set' + (swActive ? ' — browser must stay open' : ' (limited)'), '#d97706')
+      }
     } else if (sub && !workerOk) {
       showToast('Server sync failed — check connection', '#d97706')
     } else if (!sub) {
@@ -481,9 +488,8 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
         )}
         {isDesktop && notifPermission() !== 'denied' && (
           <div style={{ marginTop: 12, fontSize: 12, color: '#636366', textAlign: 'center', lineHeight: 1.6 }}>
-            Desktop notifications work in Chrome, Edge &amp; Firefox.{' '}
-            {notifPermission() === 'default' && 'You\'ll be asked to allow when you tap Set Reminders.'}
-            {notifPermission() === 'granted' && '✓ Notifications allowed.'}
+            {notifPermission() === 'default' && 'You\'ll be asked to allow notifications when you tap Set Reminders.'}
+            {notifPermission() === 'granted' && <>✓ Notifications allowed. <span style={{ color: '#4a4a4e' }}>On Brave, also enable <strong>brave://settings/privacy → Use Google services for push messaging</strong> so reminders fire when the browser is in the background.</span></>}
           </div>
         )}
       </div>
