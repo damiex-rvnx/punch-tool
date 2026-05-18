@@ -162,7 +162,7 @@ export default {
 
   async scheduled(_event, env) {
     const now       = Date.now()
-    const window_ms = 90_000
+    const window_ms = 130_000  // 2 min 10 sec covers the 2-min cron gap
     const log = { ran_at: new Date(now).toISOString(), devices: 0, sent: [], dropped: [], errors: [], future: 0 }
 
     const { keys } = await env.KV.list({ prefix: 'sched_' })
@@ -176,6 +176,7 @@ export default {
 
       const { subscription, schedule, ntfyTopic } = record
       const remaining = []
+      let changed = false
 
       for (const item of schedule) {
         const fireAt = new Date(item.fireAtISO).getTime()
@@ -183,6 +184,7 @@ export default {
         const future = fireAt > now + window_ms
 
         if (due) {
+          changed = true
           if (record.ntfyTopic) {
             // iOS: ntfy handles background delivery — skip web push to avoid duplicates
             try {
@@ -214,10 +216,12 @@ export default {
         }
       }
 
-      if (remaining.length === 0) {
-        await env.KV.delete(name)
-      } else {
-        await env.KV.put(name, JSON.stringify({ subscription, schedule: remaining, ntfyTopic }), { expirationTtl: 172800 })
+      if (changed) {
+        if (remaining.length === 0) {
+          await env.KV.delete(name)
+        } else {
+          await env.KV.put(name, JSON.stringify({ subscription, schedule: remaining, ntfyTopic }), { expirationTtl: 172800 })
+        }
       }
     }
 
