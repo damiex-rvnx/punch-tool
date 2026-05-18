@@ -465,15 +465,6 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
       </div>
 
       <div className="card-full">
-        {isDesktop && (
-          <div style={{ background: '#1c2333', border: '1px solid #3b5bdb', borderRadius: 12, padding: '14px 18px', marginBottom: 14, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-            <span style={{ fontSize: 22, flexShrink: 0 }}>📱</span>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#a5b4fc', marginBottom: 3 }}>Open on your phone</div>
-              <div style={{ fontSize: 12, color: '#8e8e93', lineHeight: 1.6 }}>Notifications are delivered to the device where you tap "Set Reminders." To receive alerts, open Clock-Bot on your iPhone or Android phone, not a laptop.</div>
-            </div>
-          </div>
-        )}
         <button style={css.btnSet} onClick={handleSet}>
           {isSet ? '✓ UPDATE REMINDERS' : 'SET REMINDERS'}
         </button>
@@ -481,8 +472,18 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
           <button style={css.btnCancel} onClick={handleCancel}>Cancel Reminders</button>
         )}
         {notifPermission() === 'denied' && (
-          <div style={{ background: '#2a1a1a', border: '1px solid #e5342a', borderRadius: 10, padding: '12px 16px', marginTop: 14, fontSize: 13, color: '#f2f2f7' }}>
-            &#x26A0;&#xFE0F; Notifications blocked. Open Settings &gt; [app] &gt; Notifications &gt; Allow.
+          <div style={{ background: '#2a1a1a', border: '1px solid #e5342a', borderRadius: 10, padding: '12px 16px', marginTop: 14, fontSize: 13, color: '#f2f2f7', lineHeight: 1.6 }}>
+            &#x26A0;&#xFE0F; Notifications blocked.{' '}
+            {isDesktop
+              ? 'Click the 🔒 lock icon in your browser\'s address bar → set Notifications to Allow → refresh the page.'
+              : 'Go to Settings → this app → Notifications → Allow.'}
+          </div>
+        )}
+        {isDesktop && notifPermission() !== 'denied' && (
+          <div style={{ marginTop: 12, fontSize: 12, color: '#636366', textAlign: 'center', lineHeight: 1.6 }}>
+            Desktop notifications work in Chrome, Edge &amp; Firefox.{' '}
+            {notifPermission() === 'default' && 'You\'ll be asked to allow when you tap Set Reminders.'}
+            {notifPermission() === 'granted' && '✓ Notifications allowed.'}
           </div>
         )}
       </div>
