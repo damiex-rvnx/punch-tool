@@ -99,9 +99,11 @@ export default {
           topic = rec.ntfyTopic
         }
         try {
+          const ntfyHeaders = { 'Title': 'QR Clock-Bot TEST', 'Priority': 'high', 'Tags': 'bell' }
+          if (env.NTFY_TOKEN) ntfyHeaders['Authorization'] = `Bearer ${env.NTFY_TOKEN}`
           const r = await fetch(`https://ntfy.sh/${topic}`, {
             method:  'POST',
-            headers: { 'Title': 'QR Clock-Bot TEST', 'Priority': 'high', 'Tags': 'bell' },
+            headers: ntfyHeaders,
             body:    '🧪  ntfy test — background notifications are working!',
           })
           const respText = await r.text().catch(() => '')
@@ -188,7 +190,7 @@ export default {
           if (record.ntfyTopic) {
             // iOS: ntfy handles background delivery — skip web push to avoid duplicates
             try {
-              await sendNtfy(record.ntfyTopic, item)
+              await sendNtfy(record.ntfyTopic, item, env.NTFY_TOKEN)
               log.sent.push({ id: item.id + ':ntfy' })
             } catch (e) {
               log.errors.push({ id: item.id + ':ntfy', err: e.message })
@@ -236,10 +238,12 @@ export default {
 
 // --- ntfy (native iOS push bridge) --------------------------------------------
 
-async function sendNtfy(topic, item) {
+async function sendNtfy(topic, item, token) {
+  const headers = { 'Title': 'QR Clock-Bot', 'Priority': 'high', 'Tags': 'clock2' }
+  if (token) headers['Authorization'] = `Bearer ${token}`
   await fetch(`https://ntfy.sh/${topic}`, {
     method:  'POST',
-    headers: { 'Title': 'QR Clock-Bot', 'Priority': 'high', 'Tags': 'clock2' },
+    headers,
     body:    `${item.emoji}  ${item.label}`,
   })
 }
