@@ -233,7 +233,7 @@ export default function App() {
 
       timerIds.current.push(setTimeout(() => setAlert({ emoji: item.emoji, label: item.label }), ms))
       swItems.push({ id: item.id, ms, label: item.label, emoji: item.emoji })
-      workerItems.push({ id: item.id, fireAtISO: new Date(Date.now() + ms).toISOString(), label: item.label, emoji: item.emoji })
+      workerItems.push({ id: item.id, fireAtISO: new Date(Date.now() + ms - 120000).toISOString(), label: item.label, emoji: item.emoji })
     })
 
     let workerOk = false
