@@ -170,7 +170,7 @@ export default function App() {
   }
 
   async function subscribePush() {
-    const reg = swReg.current || await navigator.serviceWorker.ready
+    const reg = await navigator.serviceWorker.ready
     let sub = await reg.pushManager.getSubscription()
     if (!sub) {
       sub = await reg.pushManager.subscribe({
