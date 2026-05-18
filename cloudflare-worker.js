@@ -162,7 +162,7 @@ export default {
 
   async scheduled(_event, env) {
     const now       = Date.now()
-    const window_ms = 130_000  // 2 min 10 sec covers the 2-min cron gap
+    const window_ms = 90_000
     const log = { ran_at: new Date(now).toISOString(), devices: 0, sent: [], dropped: [], errors: [], future: 0 }
 
     const { keys } = await env.KV.list({ prefix: 'sched_' })
