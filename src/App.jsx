@@ -19,8 +19,10 @@ function getNtfyTopic(deviceId) {
   return 'qr-' + deviceId.replace(/-/g, '').substring(0, 16)
 }
 
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-              (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+const isIOS     = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+const isAndroid = /Android/.test(navigator.userAgent)
+const isMobile  = isIOS || isAndroid
 
 function ClockIcon({ size = 96 }) {
   const ticks = Array.from({ length: 12 }, (_, i) => i * 30)
@@ -419,6 +421,8 @@ export default function App() {
   )
 }
 
+const isDesktop = !isMobile
+
 function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule, isSet, handleSet, handleCancel }) {
   return (
     <div className="responsive-grid" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -461,6 +465,15 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
       </div>
 
       <div className="card-full">
+        {isDesktop && (
+          <div style={{ background: '#1c2333', border: '1px solid #3b5bdb', borderRadius: 12, padding: '14px 18px', marginBottom: 14, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+            <span style={{ fontSize: 22, flexShrink: 0 }}>📱</span>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#a5b4fc', marginBottom: 3 }}>Open on your phone</div>
+              <div style={{ fontSize: 12, color: '#8e8e93', lineHeight: 1.6 }}>Notifications are delivered to the device where you tap "Set Reminders." To receive alerts, open Clock-Bot on your iPhone or Android phone, not a laptop.</div>
+            </div>
+          </div>
+        )}
         <button style={css.btnSet} onClick={handleSet}>
           {isSet ? '✓ UPDATE REMINDERS' : 'SET REMINDERS'}
         </button>
