@@ -430,14 +430,115 @@ export default function App() {
 
 const isDesktop = !isMobile
 
+const WHEEL_HOURS = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+const WHEEL_MINS  = Array.from({ length: 60 }, (_, i) => i)
+
+function WheelCol({ items, value, onChange, fmt = String }) {
+  const idx       = items.indexOf(value)
+  const colRef    = useRef(null)
+  const onChgRef  = useRef(onChange)
+  const idxRef    = useRef(idx)
+  onChgRef.current = onChange
+  idxRef.current   = idx
+
+  useEffect(() => {
+    const el = colRef.current
+    const handler = e => {
+      e.preventDefault()
+      const next = (idxRef.current + (e.deltaY > 0 ? 1 : -1) + items.length) % items.length
+      onChgRef.current(items[next])
+    }
+    el.addEventListener('wheel', handler, { passive: false })
+    return () => el.removeEventListener('wheel', handler)
+  }, [items])
+
+  return (
+    <div ref={colRef} style={{ width: 64, cursor: 'ns-resize', userSelect: 'none' }}>
+      {[-2, -1, 0, 1, 2].map(offset => {
+        const i   = (idx + offset + items.length) % items.length
+        const sel = offset === 0
+        const d   = Math.abs(offset)
+        return (
+          <div
+            key={offset}
+            onClick={() => !sel && onChgRef.current(items[i])}
+            style={{
+              height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize:   sel ? 30 : d === 1 ? 20 : 14,
+              fontWeight: sel ? 800 : 400,
+              color:      sel ? '#e5342a' : d === 1 ? '#aeaeb2' : '#3a3a3c',
+              cursor:     sel ? 'default' : 'pointer',
+              fontFamily: "'Barlow Condensed', sans-serif",
+              transition: 'font-size .12s, color .12s',
+            }}
+          >
+            {fmt(items[i])}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function DesktopTimePicker({ startHour, startMin, onHourMin }) {
+  const h12  = startHour % 12 === 0 ? 12 : startHour % 12
+  const ampm = startHour < 12 ? 'AM' : 'PM'
+  const timeVal = `${pad2(startHour)}:${pad2(startMin)}`
+
+  const setH = h => onHourMin((h % 12) + (ampm === 'PM' ? 12 : 0), startMin)
+  const setM = m => onHourMin(startHour, m)
+  const toggleAMPM = () => onHourMin(startHour < 12 ? startHour + 12 : startHour - 12, startMin)
+
+  return (
+    <div>
+      <div style={{ background: '#1c1c1e', borderRadius: 14, padding: '6px 0', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {/* Selection highlight band */}
+        <div style={{ position: 'absolute', left: 12, right: 12, top: '50%', transform: 'translateY(-50%)', height: 44, borderRadius: 10, border: '1.5px solid #e5342a33', background: '#e5342a08', pointerEvents: 'none' }} />
+        <WheelCol items={WHEEL_HOURS} value={h12}      onChange={setH} />
+        <div style={{ fontSize: 30, fontWeight: 800, color: '#e5342a', padding: '0 2px', lineHeight: 1, userSelect: 'none' }}>:</div>
+        <WheelCol items={WHEEL_MINS}  value={startMin} onChange={setM} fmt={v => String(v).padStart(2, '0')} />
+        <div style={{ marginLeft: 10, display: 'flex', flexDirection: 'column', gap: 6, paddingRight: 6 }}>
+          {['AM', 'PM'].map(ap => (
+            <button key={ap} onClick={() => ap !== ampm && toggleAMPM()}
+              style={{ padding: '6px 12px', borderRadius: 8, border: 'none', cursor: ap === ampm ? 'default' : 'pointer', background: ap === ampm ? '#e5342a' : 'transparent', color: ap === ampm ? '#fff' : '#636366', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, fontWeight: 700, letterSpacing: '0.06em', transition: 'all .15s', outline: 'none' }}>
+              {ap}
+            </button>
+          ))}
+        </div>
+      </div>
+      {/* Typeable input */}
+      <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <input
+          type="time"
+          value={timeVal}
+          onChange={e => {
+            const [h, m] = e.target.value.split(':').map(Number)
+            if (!isNaN(h) && !isNaN(m)) onHourMin(h, m)
+          }}
+          style={{ flex: 1, appearance: 'none', WebkitAppearance: 'none', background: '#1c1c1e', border: '1.5px solid #3a3a3c', borderRadius: 10, padding: '10px 14px', color: '#f2f2f7', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 20, fontWeight: 700, outline: 'none', cursor: 'text', width: '100%' }}
+        />
+        <span style={{ fontSize: 11, color: '#3a3a3c', whiteSpace: 'nowrap', fontWeight: 600, letterSpacing: '0.06em' }}>or type</span>
+      </div>
+    </div>
+  )
+}
+
 function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule, isSet, handleSet, handleCancel }) {
   return (
     <div className="responsive-grid" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div className="card-full" style={css.card}>
         <div style={css.lbl}>&#x23F0; YOUR START TIME</div>
-        <div style={{ overflow: 'hidden' }}>
-          <input type="time" value={timeVal} onChange={handleTimeChange} />
-        </div>
+        {isDesktop ? (
+          <DesktopTimePicker
+            startHour={s.startHour}
+            startMin={s.startMin}
+            onHourMin={(h, m) => update({ startHour: h, startMin: m })}
+          />
+        ) : (
+          <div style={{ overflow: 'hidden' }}>
+            <input type="time" value={timeVal} onChange={handleTimeChange} />
+          </div>
+        )}
         <div style={css.hint}>&#x1F4A1; Set this the night before if you know your start time</div>
       </div>
 
