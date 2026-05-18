@@ -1,7 +1,7 @@
 {
-  "name": "QR Clock-Bot",
-  "short_name": "QR Clock-Bot",
-  "description": "QwikResponse Crew Clock Reminder",
+  "name": "Clock-Bot",
+  "short_name": "Clock-Bot",
+  "description": "Crew Clock Reminder",
   "start_url": "/qwik-crew-clock/",
   "scope": "/qwik-crew-clock/",
   "display": "standalone",

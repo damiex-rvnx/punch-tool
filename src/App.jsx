@@ -375,7 +375,7 @@ export default function App() {
         <div style={css.headerWrap}>
           <ClockIcon />
           <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 26, fontWeight: 900, letterSpacing: '0.1em', color: '#f2f2f7', marginTop: 14, textTransform: 'uppercase' }}>
-            QR <span style={{ color: '#e5342a' }}>CLOCK-BOT</span>
+            <span style={{ color: '#e5342a' }}>CLOCK-BOT</span>
           </div>
           <div style={css.rule} />
           <div style={css.tagline}>Crew Clock Reminder</div>
@@ -388,7 +388,7 @@ export default function App() {
           handleSet={handleSet} handleCancel={handleCancel}
         />
 
-        <div style={css.footer}>QwikResponse Restoration &amp; Construction</div>
+        <div style={css.footer}>Crew Clock Reminder</div>
       </div>
 
       <style>{`

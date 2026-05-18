@@ -1,4 +1,4 @@
-// Service worker for QR Clock-Bot
+// Service worker for Clock-Bot
 // Handles push notifications (iOS APNs via VAPID Web Push) and
 // fallback setTimeout-based scheduling (Android background).
 
@@ -7,7 +7,7 @@ self.addEventListener('push', evt => {
   try { data = evt.data?.json() ?? {} } catch {}
 
   evt.waitUntil(
-    self.registration.showNotification(data.title || 'QR Clock-Bot', {
+    self.registration.showNotification(data.title || 'Clock-Bot', {
       body:              data.body  || '',
       icon:              data.icon  || '/qwik-crew-clock/icon-192.png',
       badge:             '/qwik-crew-clock/icon-192.png',
@@ -41,7 +41,7 @@ self.addEventListener('message', evt => {
     _pending.clear()
     evt.data.items.forEach(({ id, ms, label, emoji }) => {
       const t = setTimeout(() => {
-        self.registration.showNotification('QR Clock-Bot', {
+        self.registration.showNotification('Clock-Bot', {
           body:    `${emoji}  ${label}`,
           icon:    '/qwik-crew-clock/icon-192.png',
           badge:   '/qwik-crew-clock/icon-192.png',

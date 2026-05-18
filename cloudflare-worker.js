@@ -1,4 +1,4 @@
-// QR Clock-Bot - Cloudflare Worker
+// Clock-Bot - Cloudflare Worker
 // Schedules push notifications via VAPID Web Push (RFC 8291 / 8292)
 //
 // Secrets (Cloudflare dashboard):  VAPID_PRIVATE_KEY  - base64url PKCS8 EC private key
@@ -99,7 +99,7 @@ export default {
           topic = rec.ntfyTopic
         }
         try {
-          const ntfyHeaders = { 'Title': 'QR Clock-Bot TEST', 'Priority': 'high', 'Tags': 'bell' }
+          const ntfyHeaders = { 'Title': 'Clock-Bot TEST', 'Priority': 'high', 'Tags': 'bell' }
           if (env.NTFY_TOKEN) ntfyHeaders['Authorization'] = `Bearer ${env.NTFY_TOKEN}`
           const r = await fetch(`https://ntfy.sh/${topic}`, {
             method:  'POST',
@@ -121,7 +121,7 @@ export default {
         const rec = JSON.parse(raw)
         try {
           await sendPush(rec.subscription, {
-            title: 'QR Clock-Bot TEST',
+            title: 'Clock-Bot TEST',
             body:  'If you see this, push delivery works ✓',
             icon:  '/qwik-crew-clock/icon-192.png',
             tag:   'test',
@@ -199,7 +199,7 @@ export default {
             // Android / non-ntfy: use web push
             try {
               await sendPush(subscription, {
-                title: 'QR Clock-Bot',
+                title: 'Clock-Bot',
                 body:  `${item.emoji}  ${item.label}`,
                 icon:  '/qwik-crew-clock/icon-192.png',
                 tag:   item.id,
@@ -239,7 +239,7 @@ export default {
 // --- ntfy (native iOS push bridge) --------------------------------------------
 
 async function sendNtfy(topic, item, token) {
-  const headers = { 'Title': 'QR Clock-Bot', 'Priority': 'high', 'Tags': 'clock2' }
+  const headers = { 'Title': 'Clock-Bot', 'Priority': 'high', 'Tags': 'clock2' }
   if (token) headers['Authorization'] = `Bearer ${token}`
   await fetch(`https://ntfy.sh/${topic}`, {
     method:  'POST',
