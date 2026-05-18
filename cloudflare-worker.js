@@ -99,7 +99,12 @@ export default {
           topic = rec.ntfyTopic
         }
         try {
-          const ntfyHeaders = { 'Title': 'Clock-Bot TEST', 'Priority': 'high', 'Tags': 'bell' }
+          const ntfyHeaders = {
+            'Title':    'Clock-Bot TEST',
+            'Priority': 'high',
+            'Tags':     'bell',
+            'Icon':     'https://lbrito1126.github.io/qwik-crew-clock/icon-192.png',
+          }
           if (env.NTFY_TOKEN) ntfyHeaders['Authorization'] = `Bearer ${env.NTFY_TOKEN}`
           const r = await fetch(`https://ntfy.sh/${topic}`, {
             method:  'POST',
@@ -239,7 +244,12 @@ export default {
 // --- ntfy (native iOS push bridge) --------------------------------------------
 
 async function sendNtfy(topic, item, token) {
-  const headers = { 'Title': 'Clock-Bot', 'Priority': 'high', 'Tags': 'clock2' }
+  const headers = {
+    'Title':    'Clock-Bot',
+    'Priority': 'high',
+    'Tags':     'clock2',
+    'Icon':     'https://lbrito1126.github.io/qwik-crew-clock/icon-192.png',
+  }
   if (token) headers['Authorization'] = `Bearer ${token}`
   await fetch(`https://ntfy.sh/${topic}`, {
     method:  'POST',
