@@ -322,41 +322,39 @@ export default function App() {
 
   return (
     <div style={css.page}>
-      {isIOS && (
-        <>
-          <button
-            onClick={() => setSettingsOpen(true)}
-            aria-label="Settings"
-            style={{ position: 'fixed', top: 16, right: 16, zIndex: 9990, width: 44, height: 44, borderRadius: 10, border: '1.5px solid #3a3a3c', background: '#2c2c2e', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5, cursor: 'pointer', padding: 0, boxShadow: '0 2px 12px rgba(0,0,0,.4)' }}
-          >
-            {[0,1,2].map(i => (
-              <span key={i} style={{ display: 'block', width: 18, height: 2, background: '#f2f2f7', borderRadius: 1 }} />
-            ))}
-          </button>
+      <>
+        <button
+          onClick={() => setSettingsOpen(true)}
+          aria-label="Settings"
+          style={{ position: 'fixed', top: 16, right: 16, zIndex: 9990, width: 44, height: 44, borderRadius: 10, border: '1.5px solid #3a3a3c', background: '#2c2c2e', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5, cursor: 'pointer', padding: 0, boxShadow: '0 2px 12px rgba(0,0,0,.4)' }}
+        >
+          {[0,1,2].map(i => (
+            <span key={i} style={{ display: 'block', width: 18, height: 2, background: '#f2f2f7', borderRadius: 1 }} />
+          ))}
+        </button>
 
-          <div
-            onClick={() => setSettingsOpen(false)}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)', zIndex: 9991, opacity: settingsOpen ? 1 : 0, pointerEvents: settingsOpen ? 'auto' : 'none', transition: 'opacity .3s ease' }}
-          />
+        <div
+          onClick={() => setSettingsOpen(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)', zIndex: 9991, opacity: settingsOpen ? 1 : 0, pointerEvents: settingsOpen ? 'auto' : 'none', transition: 'opacity .3s ease' }}
+        />
 
-          <div
-            style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(340px, 90vw)', background: '#1c1c1e', borderLeft: '1px solid #3a3a3c', zIndex: 9992, transform: settingsOpen ? 'translateX(0)' : 'translateX(100%)', transition: 'transform .3s cubic-bezier(0.4,0,0.2,1)', display: 'flex', flexDirection: 'column', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 16px', borderBottom: '1px solid #3a3a3c', flexShrink: 0 }}>
-              <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#8e8e93' }}>Settings</div>
-              <button
-                onClick={() => setSettingsOpen(false)}
-                aria-label="Close settings"
-                style={{ background: 'none', border: 'none', color: '#8e8e93', fontSize: 28, cursor: 'pointer', padding: '0 2px', lineHeight: 1, fontWeight: 300, fontFamily: 'system-ui' }}
-              >×</button>
-            </div>
-            <div style={{ padding: 20, flex: 1 }}>
-              <NtfySetupCard css={css} deviceId={getDeviceId()} />
-              <DebugPanel deviceId={getDeviceId()} lastSetError={lastSetError} />
-            </div>
+        <div
+          style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(340px, 90vw)', background: '#1c1c1e', borderLeft: '1px solid #3a3a3c', zIndex: 9992, transform: settingsOpen ? 'translateX(0)' : 'translateX(100%)', transition: 'transform .3s cubic-bezier(0.4,0,0.2,1)', display: 'flex', flexDirection: 'column', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 16px', borderBottom: '1px solid #3a3a3c', flexShrink: 0 }}>
+            <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#8e8e93' }}>Settings</div>
+            <button
+              onClick={() => setSettingsOpen(false)}
+              aria-label="Close settings"
+              style={{ background: 'none', border: 'none', color: '#8e8e93', fontSize: 28, cursor: 'pointer', padding: '0 2px', lineHeight: 1, fontWeight: 300, fontFamily: 'system-ui' }}
+            >×</button>
           </div>
-        </>
-      )}
+          <div style={{ padding: 20, flex: 1 }}>
+            {isIOS && <NtfySetupCard css={css} deviceId={getDeviceId()} />}
+            <DebugPanel deviceId={getDeviceId()} lastSetError={lastSetError} />
+          </div>
+        </div>
+      </>
 
       {toast && (
         <div style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', background: toast.color, color: '#fff', padding: '10px 22px', borderRadius: 10, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, fontWeight: 700, zIndex: 9999, animation: 'sd .25s ease', whiteSpace: 'nowrap', boxShadow: '0 4px 20px rgba(0,0,0,.5)' }}>
