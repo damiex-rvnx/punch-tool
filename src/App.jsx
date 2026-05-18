@@ -394,6 +394,7 @@ export default function App() {
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: #1c1c1e; }
+        button { outline: none; -webkit-tap-highlight-color: transparent; }
         input[type=time] {
           appearance: none; -webkit-appearance: none;
           background: #1c1c1e; border: 1.5px solid #3a3a3c; border-radius: 10px;
