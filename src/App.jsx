@@ -405,8 +405,9 @@ export default function App() {
         input[type=range] { -webkit-appearance: none; width: 100%; height: 4px; background: #3a3a3c; border-radius: 2px; outline: none; }
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #e5342a; cursor: pointer; border: 2px solid #1c1c1e; }
         input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: #e5342a; cursor: pointer; border: 2px solid #1c1c1e; }
-        @keyframes sd  { from{opacity:0;transform:translateY(-10px);}to{opacity:1;transform:translateY(0);} }
-        @keyframes pop { 0%,100%{transform:scale(1);}50%{transform:scale(1.08);} }
+        @keyframes sd        { from{opacity:0;transform:translateY(-10px);}to{opacity:1;transform:translateY(0);} }
+        @keyframes pop       { 0%,100%{transform:scale(1);}50%{transform:scale(1.08);} }
+        @keyframes fadeFlash { 0%{opacity:1;}70%{opacity:1;}100%{opacity:0;} }
         @supports (backdrop-filter: blur(1px)) { .settings-backdrop { backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); } }
         @media (min-width: 800px) {
           .responsive-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 16px !important; }
@@ -699,6 +700,17 @@ function DebugPanel({ deviceId, lastSetError }) {
 
 function LunchCard({ css, s, update }) {
   const lunchLabel = LUNCH_OPTS.find(o => o.v === s.lunchHour)?.l ?? `${s.lunchHour}h`
+  const [lunchFlash, setLunchFlash] = useState(null)
+  const lunchFlashTimer = useRef(null)
+
+  function pickLunchHour(v) {
+    update({ lunchHour: v })
+    const t = fmtTime(s.startHour * 60 + s.startMin + h2m(v))
+    clearTimeout(lunchFlashTimer.current)
+    setLunchFlash({ text: `Clock out at ${t}`, k: Date.now() })
+    lunchFlashTimer.current = setTimeout(() => setLunchFlash(null), 2500)
+  }
+
   return (
     <>
       <div style={css.lbl}>
@@ -708,11 +720,16 @@ function LunchCard({ css, s, update }) {
       <div style={{ fontSize: 11, color: '#8e8e93', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Clock Out at Hour Mark:</div>
       <div style={css.segRow}>
         {LUNCH_OPTS.map(o => (
-          <button key={o.v} style={{ ...css.segBase, ...(s.lunchHour === o.v ? css.segActive : {}) }} onClick={() => update({ lunchHour: o.v })}>
+          <button key={o.v} style={{ ...css.segBase, ...(s.lunchHour === o.v ? css.segActive : {}) }} onClick={() => pickLunchHour(o.v)}>
             {o.l}
           </button>
         ))}
       </div>
+      {lunchFlash && (
+        <div key={lunchFlash.k} style={{ textAlign: 'center', fontSize: 11, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.08em', color: '#e5342a', marginTop: 6, animation: 'fadeFlash 2.5s ease forwards' }}>
+          {lunchFlash.text}
+        </div>
+      )}
       <div style={css.divider} />
       <div style={css.lbl}>
         &#x23F1; LUNCH DURATION
@@ -740,6 +757,17 @@ function LunchCard({ css, s, update }) {
 
 function DinnerCard({ css, s, update }) {
   const dinnerLabel = DINNER_OPTS.find(o => o.v === s.dinnerHour)?.l ?? `${s.dinnerHour}h`
+  const [dinnerFlash, setDinnerFlash] = useState(null)
+  const dinnerFlashTimer = useRef(null)
+
+  function pickDinnerHour(v) {
+    update({ dinnerHour: v })
+    const t = fmtTime(s.startHour * 60 + s.startMin + h2m(v))
+    clearTimeout(dinnerFlashTimer.current)
+    setDinnerFlash({ text: `Clock out at ${t}`, k: Date.now() })
+    dinnerFlashTimer.current = setTimeout(() => setDinnerFlash(null), 2500)
+  }
+
   return (
     <>
       <div style={css.lbl}>
@@ -749,11 +777,16 @@ function DinnerCard({ css, s, update }) {
       <div style={{ fontSize: 11, color: '#8e8e93', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Clock Out at Hour Mark:</div>
       <div style={css.segRow}>
         {DINNER_OPTS.map(o => (
-          <button key={o.v} style={{ ...css.segBase, ...(s.dinnerHour === o.v ? css.segActive : {}) }} onClick={() => update({ dinnerHour: o.v })}>
+          <button key={o.v} style={{ ...css.segBase, ...(s.dinnerHour === o.v ? css.segActive : {}) }} onClick={() => pickDinnerHour(o.v)}>
             {o.l}
           </button>
         ))}
       </div>
+      {dinnerFlash && (
+        <div key={dinnerFlash.k} style={{ textAlign: 'center', fontSize: 11, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.08em', color: '#e5342a', marginTop: 6, animation: 'fadeFlash 2.5s ease forwards' }}>
+          {dinnerFlash.text}
+        </div>
+      )}
       <div style={css.divider} />
       <div style={css.lbl}>
         &#x23F1; DINNER DURATION
