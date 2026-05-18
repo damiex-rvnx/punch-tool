@@ -535,6 +535,7 @@ function DebugPanel({ deviceId, lastSetError }) {
   const [status, setStatus]     = useState(null)
   const [ntfyRes, setNtfyRes]   = useState(null)
   const [pushRes, setPushRes]   = useState(null)
+  const [regRes, setRegRes]     = useState(null)
   const [loading, setLoading]   = useState('')
   const [subInfo, setSubInfo]   = useState(null)
 
@@ -650,6 +651,28 @@ function DebugPanel({ deviceId, lastSetError }) {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <button style={{ ...btn, borderColor: '#32d74b', color: '#32d74b' }} disabled={loading === 'reg'} onClick={async () => {
+          setLoading('reg')
+          try {
+            const reg = await navigator.serviceWorker.ready
+            const sub = await reg.pushManager.getSubscription()
+            if (!sub) { setRegRes({ error: 'No push subscription found — press Set Reminders first' }); setLoading(''); return }
+            const res = await fetch(WORKER_URL, {
+              method:  'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body:    JSON.stringify({ action: 'subscribe', deviceId, subscription: sub.toJSON(), schedule: [{ id: 'test', fireAtISO: new Date(Date.now() + 300000).toISOString(), label: 'Debug test', emoji: '🧪' }], ntfyTopic: getNtfyTopic(deviceId) }),
+            })
+            const json = await res.json().catch(() => ({}))
+            setRegRes({ http_status: res.status, ok: res.ok, ...json })
+          } catch (e) {
+            setRegRes({ error: e.message || String(e) })
+          }
+          setLoading('')
+        }}>
+          {loading === 'reg' ? '⏳ Registering...' : '🔗 Force Register with Server'}
+        </button>
+        {regRes && <div style={box}><pre style={{ ...mono, color: regRes.ok ? '#32d74b' : '#e5342a' }}>{JSON.stringify(regRes, null, 2)}</pre></div>}
+
         <button style={btn} disabled={loading === 'status'} onClick={() => hit(`/status?deviceId=${deviceId}`, setStatus, 'status')}>
           {loading === 'status' ? '⏳ Checking...' : '📡 Check Server Status'}
         </button>
