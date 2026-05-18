@@ -62,6 +62,7 @@ const DEFAULT = {
   lunchDuration: 30,
   dinnerHour: 10.00,
   dinnerWarning: 5,
+
   dinnerDuration: 30,
   dinnerEnabled: true,
 }
@@ -732,8 +733,8 @@ function LunchCard({ css, s, update }) {
         <span style={css.val}>{s.lunchWarning} min</span>
       </div>
       <div style={css.sliderWrap}>
-        <input type="range" min={1} max={15} step={1} value={s.lunchWarning} onChange={e => update({ lunchWarning: Number(e.target.value) })} />
-        <div style={css.sliderLabels}><span>1 min early</span><span>15 min early</span></div>
+        <input type="range" min={2} max={15} step={1} value={s.lunchWarning} onChange={e => update({ lunchWarning: Number(e.target.value) })} />
+        <div style={css.sliderLabels}><span>2 min early</span><span>15 min early</span></div>
       </div>
     </>
   )
@@ -773,8 +774,8 @@ function DinnerCard({ css, s, update }) {
         <span style={css.val}>{s.dinnerWarning} min</span>
       </div>
       <div style={css.sliderWrap}>
-        <input type="range" min={1} max={15} step={1} value={s.dinnerWarning} onChange={e => update({ dinnerWarning: Number(e.target.value) })} />
-        <div style={css.sliderLabels}><span>1 min early</span><span>15 min early</span></div>
+        <input type="range" min={2} max={15} step={1} value={s.dinnerWarning} onChange={e => update({ dinnerWarning: Number(e.target.value) })} />
+        <div style={css.sliderLabels}><span>2 min early</span><span>15 min early</span></div>
       </div>
       <div style={css.divider} />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

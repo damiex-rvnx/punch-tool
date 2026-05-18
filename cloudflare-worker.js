@@ -183,24 +183,27 @@ export default {
         const future = fireAt > now + window_ms
 
         if (due) {
-          try {
-            await sendPush(subscription, {
-              title: 'QR Clock-Bot',
-              body:  `${item.emoji}  ${item.label}`,
-              icon:  '/qwik-crew-clock/icon-192.png',
-              tag:   item.id,
-            }, env)
-            log.sent.push({ id: item.id, fireAtISO: item.fireAtISO })
-          } catch (e) {
-            log.errors.push({ id: item.id, err: e.message })
-            if (!e.message?.includes('GONE')) remaining.push(item)
-          }
           if (record.ntfyTopic) {
+            // iOS: ntfy handles background delivery — skip web push to avoid duplicates
             try {
               await sendNtfy(record.ntfyTopic, item)
               log.sent.push({ id: item.id + ':ntfy' })
             } catch (e) {
               log.errors.push({ id: item.id + ':ntfy', err: e.message })
+            }
+          } else {
+            // Android / non-ntfy: use web push
+            try {
+              await sendPush(subscription, {
+                title: 'QR Clock-Bot',
+                body:  `${item.emoji}  ${item.label}`,
+                icon:  '/qwik-crew-clock/icon-192.png',
+                tag:   item.id,
+              }, env)
+              log.sent.push({ id: item.id, fireAtISO: item.fireAtISO })
+            } catch (e) {
+              log.errors.push({ id: item.id, err: e.message })
+              if (!e.message?.includes('GONE')) remaining.push(item)
             }
           }
         } else if (future) {
