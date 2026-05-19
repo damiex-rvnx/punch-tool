@@ -722,53 +722,22 @@ function WheelCol({ items, value, onChange, fmt = String }) {
   )
 }
 
-function DesktopTimePicker({ startHour, startMin, onHourMin }) {
-  const h12  = startHour % 12 === 0 ? 12 : startHour % 12
-  const ampm = startHour < 12 ? 'AM' : 'PM'
-  const timeVal = `${pad2(startHour)}:${pad2(startMin)}`
 
-  const setH = h => onHourMin((h % 12) + (ampm === 'PM' ? 12 : 0), startMin)
-  const setM = m => onHourMin(startHour, m)
-  const toggleAMPM = () => onHourMin(startHour < 12 ? startHour + 12 : startHour - 12, startMin)
+function ShiftTimeline({ s, schedule, showLunch, showDinner, unpaidBreaks, update }) {
+  const start  = s.startHour * 60 + s.startMin
+  const endOut = start + s.endHour * 60 + (s.endMin ?? 0) + unpaidBreaks
+  const span   = Math.max(endOut - start, 60)
 
-  return (
-    <div>
-      <div style={{ background: 'var(--inp)', borderRadius: 14, padding: '6px 0', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        {/* Selection highlight band */}
-        <div style={{ position: 'absolute', left: 12, right: 12, top: '50%', transform: 'translateY(-50%)', height: 44, borderRadius: 10, border: '1.5px solid #e5342a33', background: '#e5342a08', pointerEvents: 'none' }} />
-        <WheelCol items={WHEEL_HOURS} value={h12}      onChange={setH} />
-        <div style={{ fontSize: 30, fontWeight: 800, color: '#e5342a', padding: '0 2px', lineHeight: 1, userSelect: 'none' }}>:</div>
-        <WheelCol items={WHEEL_MINS}  value={startMin} onChange={setM} fmt={v => String(v).padStart(2, '0')} />
-        <div style={{ marginLeft: 10, display: 'flex', flexDirection: 'column', gap: 6, paddingRight: 6 }}>
-          {['AM', 'PM'].map(ap => (
-            <button key={ap} onClick={() => ap !== ampm && toggleAMPM()}
-              style={{ padding: '6px 12px', borderRadius: 8, border: 'none', cursor: ap === ampm ? 'default' : 'pointer', background: ap === ampm ? '#e5342a' : 'transparent', color: ap === ampm ? '#fff' : 'var(--hint)', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, fontWeight: 700, letterSpacing: '0.06em', transition: 'all .15s', outline: 'none' }}>
-              {ap}
-            </button>
-          ))}
-        </div>
-      </div>
-      {/* Typeable input */}
-      <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
-        <input
-          type="time"
-          value={timeVal}
-          onChange={e => {
-            const [h, m] = e.target.value.split(':').map(Number)
-            if (!isNaN(h) && !isNaN(m)) onHourMin(h, m)
-          }}
-          style={{ flex: 1, appearance: 'none', WebkitAppearance: 'none', background: 'var(--inp)', border: '1.5px solid var(--bdr)', borderRadius: 10, padding: '10px 14px', color: 'var(--fg)', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 20, fontWeight: 700, outline: 'none', cursor: 'text', width: '100%' }}
-        />
-        <span style={{ fontSize: 11, color: 'var(--bdr)', whiteSpace: 'nowrap', fontWeight: 600, letterSpacing: '0.06em' }}>or type</span>
-      </div>
-    </div>
-  )
-}
+  const barRef      = useRef(null)
+  const dragRef     = useRef(null)
+  const dragSnapRef = useRef(null)
+  const sRef        = useRef(s)
+  const updRef      = useRef(update)
+  sRef.current      = s
+  updRef.current    = update
 
-function ShiftTimeline({ s, schedule, showLunch, showDinner, unpaidBreaks }) {
-  const start    = s.startHour * 60 + s.startMin
-  const endOut   = start + s.endHour * 60 + (s.endMin ?? 0) + unpaidBreaks
-  const span     = Math.max(endOut - start, 60)
+  const [activeDot, setActiveDot] = useState(null)
+  const [tooltip, setTooltip]     = useState(null)
 
   const pct = mins => {
     let pos = mins - start
@@ -776,44 +745,190 @@ function ShiftTimeline({ s, schedule, showLunch, showDinner, unpaidBreaks }) {
     return Math.min(100, Math.max(0, (pos / span) * 100))
   }
 
+  function computeAndApply(id, clientX) {
+    if (!barRef.current || !dragSnapRef.current) return null
+    const cur      = sRef.current
+    const curStart = cur.startHour * 60 + cur.startMin
+    const curEndT  = cur.endHour * 60 + (cur.endMin ?? 0)
+    const curShowL = curEndT > 300
+    const curShowD = curEndT > 720
+    const curUnp   = (curShowL ? cur.lunchDuration : 0) + (curShowD && cur.dinnerEnabled ? cur.dinnerDuration : 0)
+    const snap     = dragSnapRef.current
+    const rect     = barRef.current.getBoundingClientRect()
+    const p        = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width))
+    const abs      = snap.start + p * snap.span
+    const s5       = m => Math.round(m / 5) * 5
+
+    switch (id) {
+      case 'ci': {
+        const t = ((s5(Math.round(abs)) % 1440) + 1440) % 1440
+        updRef.current({ startHour: Math.floor(t / 60), startMin: t % 60 })
+        navigator.vibrate?.(5)
+        return { text: fmtTime(t), pct: 0 }
+      }
+      case 'lo': {
+        const rel = Math.max(60, Math.min(8 * 60, s5(Math.round(abs - curStart))))
+        updRef.current({ lunchHour: rel / 60 })
+        navigator.vibrate?.(5)
+        return { text: fmtTime(curStart + rel), pct: p * 100 }
+      }
+      case 'lw': {
+        const lunchOut = curStart + h2m(cur.lunchHour)
+        const w = Math.max(2, Math.min(15, Math.round(lunchOut - abs)))
+        updRef.current({ lunchWarning: w })
+        navigator.vibrate?.(5)
+        return { text: `${w}m warn`, pct: p * 100 }
+      }
+      case 'dout': {
+        const minD = h2m(cur.lunchHour) + cur.lunchDuration + 60
+        const rel  = Math.max(minD, Math.min(14 * 60, s5(Math.round(abs - curStart))))
+        updRef.current({ dinnerHour: rel / 60 })
+        navigator.vibrate?.(5)
+        return { text: fmtTime(curStart + rel), pct: p * 100 }
+      }
+      case 'dw': {
+        const dinnerOut = curStart + h2m(cur.dinnerHour)
+        const w = Math.max(2, Math.min(15, Math.round(dinnerOut - abs)))
+        updRef.current({ dinnerWarning: w })
+        navigator.vibrate?.(5)
+        return { text: `${w}m warn`, pct: p * 100 }
+      }
+      case 'eo': {
+        const rel = Math.max(240, s5(Math.round(abs - curStart - curUnp)))
+        updRef.current({ endHour: Math.min(24, Math.floor(rel / 60)), endMin: rel % 60 })
+        navigator.vibrate?.(5)
+        return { text: fmtTime(curStart + rel + curUnp), pct: p * 100 }
+      }
+      case 'ew': {
+        const endT = curStart + cur.endHour * 60 + (cur.endMin ?? 0) + curUnp
+        const w    = Math.max(2, Math.min(30, Math.round(endT - abs)))
+        updRef.current({ endWarning: w })
+        navigator.vibrate?.(5)
+        return { text: `${w}m warn`, pct: p * 100 }
+      }
+      default: return null
+    }
+  }
+
+  useEffect(() => {
+    function getX(e) { return e.touches ? e.touches[0].clientX : e.clientX }
+    function onMove(e) {
+      if (!dragRef.current) return
+      if (e.cancelable) e.preventDefault()
+      const res = computeAndApply(dragRef.current, getX(e))
+      if (res) setTooltip(res)
+    }
+    function onUp() {
+      dragRef.current = null
+      dragSnapRef.current = null
+      setActiveDot(null)
+      setTooltip(null)
+    }
+    document.addEventListener('pointermove', onMove, { passive: false })
+    document.addEventListener('pointerup', onUp)
+    return () => {
+      document.removeEventListener('pointermove', onMove)
+      document.removeEventListener('pointerup', onUp)
+    }
+  }, [])
+
+  function onDotDown(id, e) {
+    if (e.cancelable) e.preventDefault()
+    e.stopPropagation()
+    const cur      = sRef.current
+    const curStart = cur.startHour * 60 + cur.startMin
+    const curEndT  = cur.endHour * 60 + (cur.endMin ?? 0)
+    const curShowL = curEndT > 300
+    const curShowD = curEndT > 720
+    const curUnp   = (curShowL ? cur.lunchDuration : 0) + (curShowD && cur.dinnerEnabled ? cur.dinnerDuration : 0)
+    const curEO    = curStart + curEndT + curUnp
+    dragSnapRef.current = { span: Math.max(curEO - curStart, 60), start: curStart }
+    dragRef.current = id
+    setActiveDot(id)
+    const res = computeAndApply(id, e.touches ? e.touches[0].clientX : e.clientX)
+    if (res) setTooltip(res)
+    navigator.vibrate?.(10)
+  }
+
+  const draggable = new Set(['ci', 'lo', 'lw', 'dout', 'dw', 'eo', 'ew'])
   const dots = schedule.filter(i => ['ciw', 'ci', 'lw', 'lo', 'li', 'dw', 'dout', 'din', 'ew', 'eo', 'ef'].includes(i.id))
 
   const dotColor = id => {
     if (id === 'ci')  return '#32d74b'
     if (id === 'eo')  return '#e5342a'
     if (id.endsWith('w')) return '#d97706'
-    return '#636366'
+    return 'var(--hint)'
   }
+  const dotSz = id => ['ci', 'lo', 'dout', 'eo'].includes(id) ? 13 : id.endsWith('w') ? 10 : 8
 
   return (
     <div style={{ marginBottom: 16 }}>
-      <div style={{ position: 'relative', height: 4, background: 'var(--bdr)', borderRadius: 2, margin: '24px 0 8px' }}>
-        {/* worked segments: red fill except during break zones */}
-        <div style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, background: '#e5342a22', borderRadius: 2 }} />
-        {showLunch && (() => {
-          const lo = pct(start + h2m(s.lunchHour))
-          const li = pct(start + h2m(s.lunchHour) + s.lunchDuration)
-          return <div style={{ position: 'absolute', left: `${lo}%`, width: `${li - lo}%`, top: 0, bottom: 0, background: 'var(--bg)', borderLeft: '1px solid var(--bdr)', borderRight: '1px solid var(--bdr)' }} />
-        })()}
-        {showDinner && s.dinnerEnabled && (() => {
-          const dout = pct(start + h2m(s.dinnerHour))
-          const din  = pct(start + h2m(s.dinnerHour) + s.dinnerDuration)
-          return <div style={{ position: 'absolute', left: `${dout}%`, width: `${din - dout}%`, top: 0, bottom: 0, background: 'var(--bg)', borderLeft: '1px solid var(--bdr)', borderRight: '1px solid var(--bdr)' }} />
-        })()}
-        {/* Event dots */}
-        {dots.map(item => (
-          <div key={item.id} style={{ position: 'absolute', left: `${pct(item.fireAt)}%`, top: '50%', transform: 'translate(-50%, -50%)', width: 10, height: 10, borderRadius: '50%', background: dotColor(item.id), border: '2px solid var(--bg)', zIndex: 1 }} />
-        ))}
+      <div style={{ position: 'relative', margin: '28px 0 8px' }}>
+        {tooltip && (
+          <div style={{
+            position: 'absolute',
+            left: `${Math.max(8, Math.min(92, tooltip.pct))}%`,
+            bottom: 'calc(100% + 6px)',
+            transform: 'translateX(-50%)',
+            background: '#e5342a', color: '#fff',
+            padding: '2px 8px', borderRadius: 6,
+            fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700,
+            pointerEvents: 'none', whiteSpace: 'nowrap', zIndex: 10,
+          }}>{tooltip.text}</div>
+        )}
+        <div ref={barRef} style={{ position: 'relative', height: 4, background: 'var(--bdr)', borderRadius: 2 }}>
+          <div style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, background: '#e5342a22', borderRadius: 2 }} />
+          {showLunch && (() => {
+            const lo = pct(start + h2m(s.lunchHour))
+            const li = pct(start + h2m(s.lunchHour) + s.lunchDuration)
+            return <div style={{ position: 'absolute', left: `${lo}%`, width: `${li - lo}%`, top: 0, bottom: 0, background: 'var(--bg)', borderLeft: '1px solid var(--bdr)', borderRight: '1px solid var(--bdr)' }} />
+          })()}
+          {showDinner && s.dinnerEnabled && (() => {
+            const dout = pct(start + h2m(s.dinnerHour))
+            const din  = pct(start + h2m(s.dinnerHour) + s.dinnerDuration)
+            return <div style={{ position: 'absolute', left: `${dout}%`, width: `${din - dout}%`, top: 0, bottom: 0, background: 'var(--bg)', borderLeft: '1px solid var(--bdr)', borderRight: '1px solid var(--bdr)' }} />
+          })()}
+          {dots.map(item => {
+            const isDr = draggable.has(item.id)
+            const isAc = activeDot === item.id
+            const sz   = dotSz(item.id)
+            return (
+              <div
+                key={item.id}
+                onPointerDown={isDr ? e => onDotDown(item.id, e) : undefined}
+                style={{
+                  position: 'absolute',
+                  left: `${pct(item.fireAt)}%`,
+                  top: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  width: isAc ? sz + 4 : sz,
+                  height: isAc ? sz + 4 : sz,
+                  borderRadius: '50%',
+                  background: dotColor(item.id),
+                  border: '2px solid var(--bg)',
+                  zIndex: isAc ? 3 : 1,
+                  cursor: isDr ? (isAc ? 'grabbing' : 'grab') : 'default',
+                  touchAction: isDr ? 'none' : 'auto',
+                  transition: isAc ? 'none' : 'width .1s, height .1s',
+                  boxShadow: isAc ? `0 0 0 3px ${dotColor(item.id)}55` : 'none',
+                }}
+              />
+            )
+          })}
+        </div>
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--hint)', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.06em' }}>
         <span>{fmtTime(start)}</span>
         <span>{fmtTime(endOut)}</span>
       </div>
+      <div style={{ textAlign: 'center', fontSize: 9, color: 'var(--muted)', marginTop: 5, fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+        ⟺ drag circles to adjust
+      </div>
     </div>
   )
 }
 
-function SchedulePreviewContent({ css, schedule, s, showLunch, showDinner, unpaidBreaks }) {
+function SchedulePreviewContent({ css, schedule, s, showLunch, showDinner, unpaidBreaks, update }) {
   const now = new Date()
   const nowMins = now.getHours() * 60 + now.getMinutes()
   const sorted = [...schedule].sort((a, b) => {
@@ -840,7 +955,7 @@ function SchedulePreviewContent({ css, schedule, s, showLunch, showDinner, unpai
 
   return (
     <div>
-      <ShiftTimeline s={s} schedule={schedule} showLunch={showLunch} showDinner={showDinner} unpaidBreaks={unpaidBreaks} />
+      <ShiftTimeline s={s} schedule={schedule} showLunch={showLunch} showDinner={showDinner} unpaidBreaks={unpaidBreaks} update={update} />
       {todayItems.length > 0 && <>{sectionLabel('Today')}{grid(todayItems, false)}</>}
       {tmrwItems.length > 0 && <div style={{ marginTop: todayItems.length > 0 ? 16 : 0 }}>{sectionLabel('Tomorrow')}{grid(tmrwItems, true)}</div>}
     </div>
@@ -959,7 +1074,7 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
         : `${schedule.length} reminders · next ${nextItem ? fmtTime(nextItem.fireAt) + (nextTmrw ? ' (tmrw)' : '') : ''}`,
       className: 'card-full',
       visible: true,
-      render: () => <SchedulePreviewContent css={css} schedule={schedule} s={s} showLunch={showLunch} showDinner={showDinner} unpaidBreaks={unpaidBreaks} />,
+      render: () => <SchedulePreviewContent css={css} schedule={schedule} s={s} showLunch={showLunch} showDinner={showDinner} unpaidBreaks={unpaidBreaks} update={update} />,
     },
     shiftLength: {
       title: '🏁 SHIFT LENGTH',
@@ -1527,9 +1642,12 @@ function DurDropdown({ value, onChange }) {
 }
 
 function ClockInCard({ css, s, update, timeVal, handleTimeChange }) {
+  const [wheelOpen, setWheelOpen] = useState(false)
   const [warnFlash, setWarnFlash] = useState(null)
   const warnTimer  = useRef(null)
   const start      = s.startHour * 60 + s.startMin
+  const h12  = s.startHour % 12 === 0 ? 12 : s.startHour % 12
+  const ampm = s.startHour < 12 ? 'AM' : 'PM'
 
   function handleStartWarning(v) {
     update({ startWarning: v })
@@ -1549,17 +1667,48 @@ function ClockInCard({ css, s, update, timeVal, handleTimeChange }) {
 
   return (
     <>
-      {isDesktop ? (
-        <DesktopTimePicker
-          startHour={s.startHour}
-          startMin={s.startMin}
-          onHourMin={(h, m) => update({ startHour: h, startMin: m })}
-        />
-      ) : (
+      {/* Time display box — tap to open wheel */}
+      <div
+        onClick={() => setWheelOpen(o => !o)}
+        style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--inp)', border: `1.5px solid ${wheelOpen ? '#e5342a' : 'var(--bdr)'}`, borderRadius: 10, padding: '13px 14px', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 22, fontWeight: 700, color: 'var(--fg)', transition: 'border-color .15s', userSelect: 'none' }}
+      >
+        <span>
+          {String(h12).padStart(2, '0')}
+          <span style={{ color: '#e5342a', margin: '0 3px' }}>:</span>
+          {String(s.startMin).padStart(2, '0')}
+          <span style={{ color: 'var(--lbl)', marginLeft: 8, fontSize: 15, fontWeight: 700 }}>{ampm}</span>
+        </span>
+        <span style={{ fontSize: 11, color: 'var(--hint)', fontWeight: 700, letterSpacing: '0.1em' }}>
+          {wheelOpen ? 'DONE ▲' : 'EDIT ▼'}
+        </span>
+      </div>
+
+      {/* Collapsible wheel */}
+      <AnimatedReveal show={wheelOpen} style={{ marginTop: 8 }}>
+        <div style={{ background: 'var(--inp)', borderRadius: 14, padding: '6px 0', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ position: 'absolute', left: 12, right: 12, top: '50%', transform: 'translateY(-50%)', height: 44, borderRadius: 10, border: '1.5px solid #e5342a33', background: '#e5342a08', pointerEvents: 'none' }} />
+          <WheelCol items={WHEEL_HOURS} value={h12} onChange={h => update({ startHour: (h % 12) + (ampm === 'PM' ? 12 : 0) })} />
+          <div style={{ fontSize: 30, fontWeight: 800, color: '#e5342a', padding: '0 2px', lineHeight: 1, userSelect: 'none' }}>:</div>
+          <WheelCol items={WHEEL_MINS} value={s.startMin} onChange={m => update({ startMin: m })} fmt={v => String(v).padStart(2, '0')} />
+          <div style={{ marginLeft: 10, display: 'flex', flexDirection: 'column', gap: 6, paddingRight: 6 }}>
+            {['AM', 'PM'].map(ap => (
+              <button key={ap}
+                onClick={e => { e.stopPropagation(); ap !== ampm && update({ startHour: s.startHour < 12 ? s.startHour + 12 : s.startHour - 12 }) }}
+                style={{ padding: '6px 12px', borderRadius: 8, border: 'none', cursor: ap === ampm ? 'default' : 'pointer', background: ap === ampm ? '#e5342a' : 'transparent', color: ap === ampm ? '#fff' : 'var(--hint)', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, fontWeight: 700, letterSpacing: '0.06em', transition: 'all .15s', outline: 'none' }}>
+                {ap}
+              </button>
+            ))}
+          </div>
+        </div>
+      </AnimatedReveal>
+
+      {/* Clock-in time input — stays in sync with wheel */}
+      <div style={{ marginTop: 10 }}>
         <div style={{ overflow: 'hidden' }}>
           <input type="time" value={timeVal} onChange={handleTimeChange} />
         </div>
-      )}
+      </div>
+
       <div style={css.hint}>&#x1F4A1; Set this the night before if you know your start time</div>
       <div style={css.divider} />
       <div style={css.lbl}>
