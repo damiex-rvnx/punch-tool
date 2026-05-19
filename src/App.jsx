@@ -54,7 +54,8 @@ function ClockIcon({ size = 96 }) {
   )
 }
 
-const STORAGE_KEY = 'qwik_crew_v16'
+const STORAGE_KEY = 'qwik_crew_v17'
+const USER_DEFAULT_KEY = 'qwik_crew_user_default'
 
 const DEFAULT = {
   startHour: 7,
@@ -72,8 +73,9 @@ const DEFAULT = {
   endWarning: 15,
   endEnabled: true,
   endFollowupEnabled: true,
+  endFollowupDelay: 30,
   cardOrder: ['shiftLength', 'lunch', 'dinner', 'schedulePreview'],
-  openCards: { schedulePreview: false, shiftLength: true, lunch: true, dinner: true },
+  openCards: { schedulePreview: false, shiftLength: true, lunch: true, dinner: true, clockIn: true },
 }
 
 const LUNCH_OPTS = [
@@ -123,6 +125,10 @@ function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) return { ...DEFAULT, ...JSON.parse(raw) }
+  } catch {}
+  try {
+    const userDef = localStorage.getItem(USER_DEFAULT_KEY)
+    if (userDef) return { ...DEFAULT, ...JSON.parse(userDef) }
   } catch {}
   return { ...DEFAULT }
 }
@@ -187,7 +193,7 @@ export default function App() {
         { id: 'ew', emoji: '⚠️', label: `Shift ends in ${s.endWarning} min — heads up!`, fireAt: endOut - s.endWarning },
         { id: 'eo', emoji: '🏁', label: 'Clock Out — End of Shift',                      fireAt: endOut },
         ...(s.endFollowupEnabled ? [
-          { id: 'ef', emoji: '❓', label: 'Still on the clock? Clock out now!',          fireAt: endOut + 30 },
+          { id: 'ef', emoji: '❓', label: 'Still on the clock? Clock out now!',          fireAt: endOut + (s.endFollowupDelay ?? 30) },
         ] : []),
       ] : []),
     ]
@@ -197,6 +203,11 @@ export default function App() {
     clearTimeout(toastTimer.current)
     setToast({ msg, color })
     toastTimer.current = setTimeout(() => setToast(null), 3800)
+  }
+
+  function saveAsDefault() {
+    localStorage.setItem(USER_DEFAULT_KEY, JSON.stringify(s))
+    showToast('Default saved ✓', '#15803d')
   }
 
   async function subscribePush() {
@@ -386,6 +397,18 @@ export default function App() {
             >×</button>
           </div>
           <div style={{ padding: 20, flex: 1 }}>
+            <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: '1px solid #3a3a3c' }}>
+              <div style={{ fontSize: 11, color: '#636366', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>Saved Defaults</div>
+              <button
+                onClick={saveAsDefault}
+                style={{ width: '100%', padding: '10px 14px', background: '#1c1c1e', border: '1.5px solid #3a3a3c', borderRadius: 10, color: '#f2f2f7', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, fontWeight: 700, cursor: 'pointer', textAlign: 'left' }}
+              >
+                💾 Save current settings as default
+              </button>
+              <div style={{ fontSize: 11, color: '#636366', marginTop: 6, lineHeight: 1.5 }}>
+                Restores these settings when you clear/reinstall the app.
+              </div>
+            </div>
             {isIOS && <NtfySetupCard css={css} deviceId={getDeviceId()} />}
             <CardOrderPanel s={s} update={update} />
             <DebugPanel deviceId={getDeviceId()} lastSetError={lastSetError} />
@@ -579,26 +602,34 @@ function DesktopTimePicker({ startHour, startMin, onHourMin }) {
 }
 
 function SchedulePreviewContent({ css, schedule }) {
-  const nowMins = new Date().getHours() * 60 + new Date().getMinutes()
+  const now = new Date()
+  const nowMins = now.getHours() * 60 + now.getMinutes()
   const sorted = [...schedule].sort((a, b) => {
     const ae = a.fireAt < nowMins ? a.fireAt + 1440 : a.fireAt
     const be = b.fireAt < nowMins ? b.fireAt + 1440 : b.fireAt
     return ae - be
   })
+  const todayItems = sorted.filter(item => item.fireAt >= nowMins)
+  const tmrwItems  = sorted.filter(item => item.fireAt < nowMins)
+
+  const sectionLabel = txt => (
+    <div style={{ fontSize: 10, color: '#636366', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>{txt}</div>
+  )
+  const grid = (items, dim) => (
+    <div style={{ ...css.previewGrid, opacity: dim ? 0.5 : 1 }}>
+      {items.map(item => (
+        <React.Fragment key={item.id}>
+          <div style={css.previewLabel}>{item.emoji} {item.label}</div>
+          <div style={css.previewTime}>{fmtTime(item.fireAt)}</div>
+        </React.Fragment>
+      ))}
+    </div>
+  )
+
   return (
-    <div style={css.previewGrid}>
-      {sorted.map(item => {
-        const tmrw = item.fireAt < nowMins
-        return (
-          <React.Fragment key={item.id}>
-            <div style={css.previewLabel}>{item.emoji} {item.label}</div>
-            <div style={css.previewTime}>
-              {fmtTime(item.fireAt)}
-              {tmrw && <span style={{ color: '#636366', fontSize: 10, fontWeight: 400, marginLeft: 5 }}>tmrw</span>}
-            </div>
-          </React.Fragment>
-        )
-      })}
+    <div>
+      {todayItems.length > 0 && <>{sectionLabel('Today')}{grid(todayItems, false)}</>}
+      {tmrwItems.length > 0 && <div style={{ marginTop: todayItems.length > 0 ? 16 : 0 }}>{sectionLabel('Tomorrow')}{grid(tmrwItems, true)}</div>}
     </div>
   )
 }
@@ -639,19 +670,29 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
   const endLabel = `${s.endHour}h${endMin ? ` ${String(endMin).padStart(2,'0')}m` : ''}`
   const start    = s.startHour * 60 + s.startMin
 
-  const nowMins  = new Date().getHours() * 60 + new Date().getMinutes()
+  const [nowMins, setNowMins] = useState(() => {
+    const n = new Date(); return n.getHours() * 60 + n.getMinutes()
+  })
+  useEffect(() => {
+    const id = setInterval(() => {
+      const n = new Date(); setNowMins(n.getHours() * 60 + n.getMinutes())
+    }, 30000)
+    return () => clearInterval(id)
+  }, [])
+
   const nextItem = [...schedule].sort((a, b) => {
     const ae = a.fireAt < nowMins ? a.fireAt + 1440 : a.fireAt
     const be = b.fireAt < nowMins ? b.fireAt + 1440 : b.fireAt
     return ae - be
   })[0]
+  const nextTmrw = nextItem && nextItem.fireAt < nowMins
 
   const cardDefs = {
     schedulePreview: {
       title: '📋 SCHEDULE PREVIEW',
       summary: schedule.length === 0
         ? 'no reminders set'
-        : `${schedule.length} reminders · next ${nextItem ? fmtTime(nextItem.fireAt) : ''}`,
+        : `${schedule.length} reminders · next ${nextItem ? fmtTime(nextItem.fireAt) + (nextTmrw ? ' (tmrw)' : '') : ''}`,
       className: 'card-full',
       visible: true,
       render: () => <SchedulePreviewContent css={css} schedule={schedule} />,
@@ -681,31 +722,17 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
   return (
     <div className="responsive-grid" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-      {/* Clock-in — fixed at top */}
-      <div className="card-full" style={css.card}>
-        <div style={css.lbl}>&#x23F0; YOUR START TIME</div>
-        {isDesktop ? (
-          <DesktopTimePicker
-            startHour={s.startHour}
-            startMin={s.startMin}
-            onHourMin={(h, m) => update({ startHour: h, startMin: m })}
-          />
-        ) : (
-          <div style={{ overflow: 'hidden' }}>
-            <input type="time" value={timeVal} onChange={handleTimeChange} />
-          </div>
-        )}
-        <div style={css.hint}>&#x1F4A1; Set this the night before if you know your start time</div>
-        <div style={css.divider} />
-        <div style={css.lbl}>
-          &#x1F514; HEADS-UP BEFORE CLOCK-IN
-          <span style={css.val}>{s.startWarning} min</span>
-        </div>
-        <div style={css.sliderWrap}>
-          <input type="range" min={2} max={15} step={1} value={s.startWarning} onChange={e => update({ startWarning: Number(e.target.value) })} />
-          <div style={css.sliderLabels}><span>2 min early</span><span>15 min early</span></div>
-        </div>
-      </div>
+      {/* Clock-in — collapsible, fixed at top */}
+      <CollapseCard
+        css={css}
+        className="card-full"
+        title="⏰ YOUR START TIME"
+        summary={`clock in ${fmtTime(start)} · warn ${s.startWarning} min early`}
+        open={openCards.clockIn ?? true}
+        onToggle={() => toggleCard('clockIn')}
+      >
+        <ClockInCard css={css} s={s} update={update} timeVal={timeVal} handleTimeChange={handleTimeChange} />
+      </CollapseCard>
 
       {/* Collapsible + reorderable cards */}
       {visibleOrder.map((id, visIdx) => {
@@ -733,6 +760,24 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
         {isSet && (
           <button style={css.btnCancel} onClick={handleCancel}>Cancel Reminders</button>
         )}
+        {isSet && nextItem && (() => {
+          const eff = nextItem.fireAt < nowMins ? nextItem.fireAt + 1440 : nextItem.fireAt
+          const diff = eff - nowMins
+          const h = Math.floor(diff / 60), m = diff % 60
+          const timeStr = h > 0 ? `${h}h${m > 0 ? ` ${m}m` : ''}` : `${m}m`
+          return (
+            <div style={{ marginTop: 12, padding: '12px 16px', background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 10, textAlign: 'center' }}>
+              <div style={{ fontSize: 10, color: '#636366', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>Next Reminder</div>
+              <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, fontWeight: 700, color: '#aeaeb2' }}>
+                {nextItem.emoji} {nextItem.label}
+              </div>
+              <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 22, fontWeight: 900, color: '#e5342a', marginTop: 2 }}>
+                in {timeStr}
+              </div>
+              <div style={{ fontSize: 11, color: '#636366', marginTop: 2 }}>at {fmtTime(nextItem.fireAt)}{nextTmrw ? ' tomorrow' : ''}</div>
+            </div>
+          )
+        })()}
         {notifPermission() === 'denied' && (
           <div style={{ background: '#2a1a1a', border: '1px solid #e5342a', borderRadius: 10, padding: '12px 16px', marginTop: 14, fontSize: 13, color: '#f2f2f7', lineHeight: 1.6 }}>
             &#x26A0;&#xFE0F; Notifications blocked.{' '}
@@ -1036,8 +1081,19 @@ function Toggle({ on, onToggle, label }) {
 
 function EndOfShiftCard({ css, s, update, unpaidBreaks }) {
   const [wheelOpen, setWheelOpen] = useState(false)
+  const [warnFlash, setWarnFlash]   = useState(null)
+  const warnTimer                   = useRef(null)
   const endMin   = s.endMin ?? 0
   const endLabel = `${s.endHour}h${endMin ? ` ${String(endMin).padStart(2, '0')}m` : ''}`
+
+  function handleEndWarning(v) {
+    update({ endWarning: v })
+    clearTimeout(warnTimer.current)
+    const endOutMins = s.startHour * 60 + s.startMin + s.endHour * 60 + endMin + (unpaidBreaks ?? 0)
+    setWarnFlash({ text: `Notified at ${fmtTime(endOutMins - v)}`, k: Date.now() })
+    warnTimer.current = setTimeout(() => setWarnFlash(null), 2500)
+    navigator.vibrate?.(10)
+  }
 
   const clockOutTotal = (s.startHour * 60 + s.startMin + s.endHour * 60 + endMin + unpaidBreaks) % 1440
   const clockOutH   = Math.floor(clockOutTotal / 60)
@@ -1103,9 +1159,15 @@ function EndOfShiftCard({ css, s, update, unpaidBreaks }) {
         <span style={css.val}>{s.endWarning} min</span>
       </div>
       <div style={css.sliderWrap}>
-        <input type="range" min={2} max={30} step={1} value={s.endWarning} onChange={e => update({ endWarning: Number(e.target.value) })} />
+        <input type="range" min={2} max={30} step={1} value={s.endWarning}
+          onChange={e => handleEndWarning(Number(e.target.value))} />
         <div style={css.sliderLabels}><span>2 min early</span><span>30 min early</span></div>
       </div>
+      {warnFlash && (
+        <div key={warnFlash.k} style={{ textAlign: 'center', fontSize: 11, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.08em', color: '#e5342a', marginTop: 6, animation: 'fadeFlash 2.5s ease forwards' }}>
+          {warnFlash.text}
+        </div>
+      )}
 
       <div style={css.divider} />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1130,6 +1192,26 @@ function EndOfShiftCard({ css, s, update, unpaidBreaks }) {
             </div>
             <Toggle on={s.endFollowupEnabled} onToggle={() => update({ endFollowupEnabled: !s.endFollowupEnabled })} label="Toggle follow-up reminder" />
           </div>
+          {s.endFollowupEnabled && (
+            <>
+              <div style={css.divider} />
+              <div style={css.lbl}>
+                &#x2753; FOLLOW-UP DELAY
+                <span style={css.val}>{s.endFollowupDelay ?? 30} min</span>
+              </div>
+              <div style={css.segRow}>
+                {[15, 30, 45].map(v => (
+                  <button
+                    key={v}
+                    style={{ ...css.segBase, ...((s.endFollowupDelay ?? 30) === v ? css.segActive : {}) }}
+                    onClick={() => update({ endFollowupDelay: v })}
+                  >
+                    {v} min
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </>
       )}
     </>
@@ -1167,10 +1249,82 @@ function DurDropdown({ value, onChange }) {
   )
 }
 
+function ClockInCard({ css, s, update, timeVal, handleTimeChange }) {
+  const [warnFlash, setWarnFlash] = useState(null)
+  const warnTimer  = useRef(null)
+  const start      = s.startHour * 60 + s.startMin
+
+  function handleStartWarning(v) {
+    update({ startWarning: v })
+    clearTimeout(warnTimer.current)
+    setWarnFlash({ text: `Notified at ${fmtTime(start - v)}`, k: Date.now() })
+    warnTimer.current = setTimeout(() => setWarnFlash(null), 2500)
+    navigator.vibrate?.(10)
+  }
+
+  async function sendTestNotif() {
+    if (!notifSupported) return
+    if (notifPermission() === 'default') await Notification.requestPermission()
+    if (notifPermission() === 'granted') {
+      new Notification('🧪 Clock-Bot Test', { body: 'Notifications are working!', icon: '/qwik-crew-clock/icon-192.png' })
+    }
+  }
+
+  return (
+    <>
+      {isDesktop ? (
+        <DesktopTimePicker
+          startHour={s.startHour}
+          startMin={s.startMin}
+          onHourMin={(h, m) => update({ startHour: h, startMin: m })}
+        />
+      ) : (
+        <div style={{ overflow: 'hidden' }}>
+          <input type="time" value={timeVal} onChange={handleTimeChange} />
+        </div>
+      )}
+      <div style={css.hint}>&#x1F4A1; Set this the night before if you know your start time</div>
+      <div style={css.divider} />
+      <div style={css.lbl}>
+        &#x1F514; HEADS-UP BEFORE CLOCK-IN
+        <span style={css.val}>{s.startWarning} min</span>
+      </div>
+      <div style={css.sliderWrap}>
+        <input type="range" min={2} max={15} step={1} value={s.startWarning}
+          onChange={e => handleStartWarning(Number(e.target.value))} />
+        <div style={css.sliderLabels}><span>2 min early</span><span>15 min early</span></div>
+      </div>
+      {warnFlash && (
+        <div key={warnFlash.k} style={{ textAlign: 'center', fontSize: 11, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.08em', color: '#e5342a', marginTop: 6, animation: 'fadeFlash 2.5s ease forwards' }}>
+          {warnFlash.text}
+        </div>
+      )}
+      <div style={css.divider} />
+      <button
+        onClick={sendTestNotif}
+        style={{ width: '100%', padding: '10px 14px', background: 'transparent', color: '#636366', border: '1.5px solid #3a3a3c', borderRadius: 10, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.06em' }}
+      >
+        🧪 Send Test Notification
+      </button>
+    </>
+  )
+}
+
 function LunchCard({ css, s, update }) {
   const lunchLabel = LUNCH_OPTS.find(o => o.v === s.lunchHour)?.l ?? `${s.lunchHour}h`
   const [lunchFlash, setLunchFlash] = useState(null)
   const lunchFlashTimer = useRef(null)
+  const [warnFlash, setWarnFlash]   = useState(null)
+  const warnTimer                   = useRef(null)
+
+  function handleLunchWarning(v) {
+    update({ lunchWarning: v })
+    clearTimeout(warnTimer.current)
+    const lunchOutMins = s.startHour * 60 + s.startMin + h2m(s.lunchHour)
+    setWarnFlash({ text: `Notified at ${fmtTime(lunchOutMins - v)}`, k: Date.now() })
+    warnTimer.current = setTimeout(() => setWarnFlash(null), 2500)
+    navigator.vibrate?.(10)
+  }
 
   function pickLunchHour(v) {
     update({ lunchHour: v })
@@ -1204,9 +1358,15 @@ function LunchCard({ css, s, update }) {
         <span style={css.val}>{s.lunchWarning} min</span>
       </div>
       <div style={css.sliderWrap}>
-        <input type="range" min={2} max={15} step={1} value={s.lunchWarning} onChange={e => update({ lunchWarning: Number(e.target.value) })} />
+        <input type="range" min={2} max={15} step={1} value={s.lunchWarning}
+          onChange={e => handleLunchWarning(Number(e.target.value))} />
         <div style={css.sliderLabels}><span>2 min early</span><span>15 min early</span></div>
       </div>
+      {warnFlash && (
+        <div key={warnFlash.k} style={{ textAlign: 'center', fontSize: 11, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.08em', color: '#e5342a', marginTop: 6, animation: 'fadeFlash 2.5s ease forwards' }}>
+          {warnFlash.text}
+        </div>
+      )}
     </>
   )
 }
@@ -1215,6 +1375,17 @@ function DinnerCard({ css, s, update }) {
   const dinnerLabel = DINNER_OPTS.find(o => o.v === s.dinnerHour)?.l ?? `${s.dinnerHour}h`
   const [dinnerFlash, setDinnerFlash] = useState(null)
   const dinnerFlashTimer = useRef(null)
+  const [warnFlash, setWarnFlash]   = useState(null)
+  const warnTimer                   = useRef(null)
+
+  function handleDinnerWarning(v) {
+    update({ dinnerWarning: v })
+    clearTimeout(warnTimer.current)
+    const dinnerOutMins = s.startHour * 60 + s.startMin + h2m(s.dinnerHour)
+    setWarnFlash({ text: `Notified at ${fmtTime(dinnerOutMins - v)}`, k: Date.now() })
+    warnTimer.current = setTimeout(() => setWarnFlash(null), 2500)
+    navigator.vibrate?.(10)
+  }
 
   function pickDinnerHour(v) {
     update({ dinnerHour: v })
@@ -1248,9 +1419,15 @@ function DinnerCard({ css, s, update }) {
         <span style={css.val}>{s.dinnerWarning} min</span>
       </div>
       <div style={css.sliderWrap}>
-        <input type="range" min={2} max={15} step={1} value={s.dinnerWarning} onChange={e => update({ dinnerWarning: Number(e.target.value) })} />
+        <input type="range" min={2} max={15} step={1} value={s.dinnerWarning}
+          onChange={e => handleDinnerWarning(Number(e.target.value))} />
         <div style={css.sliderLabels}><span>2 min early</span><span>15 min early</span></div>
       </div>
+      {warnFlash && (
+        <div key={warnFlash.k} style={{ textAlign: 'center', fontSize: 11, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.08em', color: '#e5342a', marginTop: 6, animation: 'fadeFlash 2.5s ease forwards' }}>
+          {warnFlash.text}
+        </div>
+      )}
       <div style={css.divider} />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
@@ -1259,13 +1436,7 @@ function DinnerCard({ css, s, update }) {
             {s.dinnerEnabled ? 'On — working a long day' : 'Off — no dinner break today'}
           </div>
         </div>
-        <button
-          onClick={() => update({ dinnerEnabled: !s.dinnerEnabled })}
-          style={{ width: 51, height: 31, borderRadius: 15.5, border: 'none', cursor: 'pointer', background: s.dinnerEnabled ? '#32d74b' : '#3a3a3c', position: 'relative', transition: 'background .25s', flexShrink: 0 }}
-          aria-label="Toggle dinner reminders"
-        >
-          <span style={{ position: 'absolute', top: 2, left: s.dinnerEnabled ? 22 : 2, width: 27, height: 27, borderRadius: '50%', background: '#fff', transition: 'left .25s' }} />
-        </button>
+        <Toggle on={s.dinnerEnabled} onToggle={() => update({ dinnerEnabled: !s.dinnerEnabled })} label="Toggle dinner reminders" />
       </div>
     </>
   )
