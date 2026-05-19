@@ -54,11 +54,12 @@ function ClockIcon({ size = 96 }) {
   )
 }
 
-const STORAGE_KEY = 'qwik_crew_v15'
+const STORAGE_KEY = 'qwik_crew_v16'
 
 const DEFAULT = {
   startHour: 7,
   startMin: 0,
+  startWarning: 5,
   lunchHour: 5.00,
   lunchWarning: 5,
   lunchDuration: 30,
@@ -170,7 +171,8 @@ export default function App() {
     const dinnerIn  = dinnerOut + s.dinnerDuration
     const endOut    = start + endTotal + unpaidBreaks
     return [
-      { id: 'ci',   emoji: '⏰', label: 'Clock In',                                        fireAt: start },
+      { id: 'ciw', emoji: '🔔', label: `Clock in in ${s.startWarning} min — heads up!`,   fireAt: start - s.startWarning },
+      { id: 'ci',  emoji: '⏰', label: 'Clock In',                                         fireAt: start },
       ...(showLunch ? [
         { id: 'lw', emoji: '🔔', label: `Lunch in ${s.lunchWarning} min — heads up!`,     fireAt: lunchOut - s.lunchWarning },
         { id: 'lo', emoji: '🍽️', label: 'Clock Out — Lunch Break',                         fireAt: lunchOut },
@@ -694,6 +696,15 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
           </div>
         )}
         <div style={css.hint}>&#x1F4A1; Set this the night before if you know your start time</div>
+        <div style={css.divider} />
+        <div style={css.lbl}>
+          &#x1F514; HEADS-UP BEFORE CLOCK-IN
+          <span style={css.val}>{s.startWarning} min</span>
+        </div>
+        <div style={css.sliderWrap}>
+          <input type="range" min={2} max={15} step={1} value={s.startWarning} onChange={e => update({ startWarning: Number(e.target.value) })} />
+          <div style={css.sliderLabels}><span>2 min early</span><span>15 min early</span></div>
+        </div>
       </div>
 
       {/* Collapsible + reorderable cards */}
