@@ -54,7 +54,7 @@ function ClockIcon({ size = 96 }) {
   )
 }
 
-const STORAGE_KEY = 'qwik_crew_v11'
+const STORAGE_KEY = 'qwik_crew_v12'
 
 const DEFAULT = {
   startHour: 7,
@@ -64,9 +64,11 @@ const DEFAULT = {
   lunchDuration: 30,
   dinnerHour: 10.00,
   dinnerWarning: 5,
-
   dinnerDuration: 30,
   dinnerEnabled: true,
+  endHour: 8.00,
+  endWarning: 15,
+  endEnabled: true,
 }
 
 const LUNCH_OPTS = [
@@ -84,6 +86,8 @@ const DINNER_OPTS = [
   { l: '9h 45m',  v: 9.75 },
   { l: '10h 00m', v: 10.00 },
 ]
+
+const END_OPTS = Array.from({ length: 13 }, (_, i) => ({ l: `${i + 4}h`, v: i + 4 }))
 
 const DUR_OPTS = [
   { l: '30 min', v: 30 },
@@ -147,21 +151,32 @@ export default function App() {
 
   const update = useCallback(patch => setS(prev => ({ ...prev, ...patch })), [])
 
+  const showLunch  = s.endHour > 5
+  const showDinner = s.endHour > 12
+
   const schedule = (() => {
     const start     = s.startHour * 60 + s.startMin
     const lunchOut  = start + h2m(s.lunchHour)
     const lunchIn   = lunchOut + s.lunchDuration
     const dinnerOut = start + h2m(s.dinnerHour)
     const dinnerIn  = dinnerOut + s.dinnerDuration
+    const endOut    = start + h2m(s.endHour)
     return [
       { id: 'ci',   emoji: '⏰', label: 'Clock In',                                        fireAt: start },
-      { id: 'lw',   emoji: '🔔', label: `Lunch in ${s.lunchWarning} min — heads up!`,      fireAt: lunchOut - s.lunchWarning },
-      { id: 'lo',   emoji: '🍽️', label: 'Clock Out — Lunch Break',                          fireAt: lunchOut },
-      { id: 'li',   emoji: '✅', label: `Clock Back In — Lunch (${s.lunchDuration} min)`,  fireAt: lunchIn },
-      ...(s.dinnerEnabled ? [
+      ...(showLunch ? [
+        { id: 'lw', emoji: '🔔', label: `Lunch in ${s.lunchWarning} min — heads up!`,     fireAt: lunchOut - s.lunchWarning },
+        { id: 'lo', emoji: '🍽️', label: 'Clock Out — Lunch Break',                         fireAt: lunchOut },
+        { id: 'li', emoji: '✅', label: `Clock Back In — Lunch (${s.lunchDuration} min)`, fireAt: lunchIn },
+      ] : []),
+      ...(showDinner && s.dinnerEnabled ? [
         { id: 'dw',   emoji: '🔔', label: `Dinner in ${s.dinnerWarning} min — heads up!`,     fireAt: dinnerOut - s.dinnerWarning },
         { id: 'dout', emoji: '🌙', label: 'Clock Out — Dinner Break',                         fireAt: dinnerOut },
         { id: 'din',  emoji: '🔁', label: `Clock Back In — Dinner (${s.dinnerDuration} min)`, fireAt: dinnerIn },
+      ] : []),
+      ...(s.endEnabled ? [
+        { id: 'ew', emoji: '⚠️', label: `Shift ends in ${s.endWarning} min — heads up!`, fireAt: endOut - s.endWarning },
+        { id: 'eo', emoji: '🏁', label: 'Clock Out — End of Shift',                      fireAt: endOut },
+        { id: 'ef', emoji: '❓', label: 'Still on the clock? Clock out now!',            fireAt: endOut + 30 },
       ] : []),
     ]
   })()
@@ -395,6 +410,7 @@ export default function App() {
           timeVal={timeVal} handleTimeChange={handleTimeChange}
           schedule={schedule} isSet={isSet}
           handleSet={handleSet} handleCancel={handleCancel}
+          showLunch={showLunch} showDinner={showDinner}
         />
 
         <div style={css.footer}>Crew Clock Reminder</div>
@@ -523,7 +539,7 @@ function DesktopTimePicker({ startHour, startMin, onHourMin }) {
   )
 }
 
-function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule, isSet, handleSet, handleCancel }) {
+function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule, isSet, handleSet, handleCancel, showLunch, showDinner }) {
   return (
     <div className="responsive-grid" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div className="card-full" style={css.card}>
@@ -542,8 +558,9 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
         <div style={css.hint}>&#x1F4A1; Set this the night before if you know your start time</div>
       </div>
 
-      <div style={css.card}><LunchCard css={css} s={s} update={update} /></div>
-      <div style={css.card}><DinnerCard css={css} s={s} update={update} /></div>
+      <div style={css.card}><EndOfShiftCard css={css} s={s} update={update} /></div>
+      {showLunch  && <div style={css.card}><LunchCard  css={css} s={s} update={update} /></div>}
+      {showDinner && <div style={css.card}><DinnerCard css={css} s={s} update={update} /></div>}
 
       <div className="card-full" style={css.card}>
         <div style={css.lbl}>&#x1F4CB; SCHEDULE PREVIEW</div>
@@ -817,6 +834,70 @@ function DebugPanel({ deviceId, lastSetError }) {
         {cronLog && <div style={box}><pre style={{ ...mono, color: '#aeaeb2' }}>{JSON.stringify(cronLog.slice(0, 5), null, 2)}</pre></div>}
       </div>
     </div>
+  )
+}
+
+function EndOfShiftCard({ css, s, update }) {
+  const endLabel = END_OPTS.find(o => o.v === s.endHour)?.l ?? `${s.endHour}h`
+  const [endFlash, setEndFlash] = useState(null)
+  const endFlashTimer = useRef(null)
+
+  function pickEndHour(v) {
+    update({ endHour: v })
+    const t = fmtTime(s.startHour * 60 + s.startMin + h2m(v))
+    clearTimeout(endFlashTimer.current)
+    setEndFlash({ text: `Shift ends at ${t}`, k: Date.now() })
+    endFlashTimer.current = setTimeout(() => setEndFlash(null), 2500)
+  }
+
+  return (
+    <>
+      <div style={css.lbl}>
+        &#x1F3C1; SHIFT LENGTH
+        <span style={css.val}>{endLabel} shift</span>
+      </div>
+      <div style={{ fontSize: 11, color: '#8e8e93', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Expected Shift Length:</div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+        {END_OPTS.map(o => (
+          <button key={o.v} style={{ ...css.segBase, flex: '1 1 calc(20% - 6px)', minWidth: 52, ...(s.endHour === o.v ? css.segActive : {}) }} onClick={() => pickEndHour(o.v)}>
+            {o.l}
+          </button>
+        ))}
+      </div>
+      {endFlash && (
+        <div key={endFlash.k} style={{ textAlign: 'center', fontSize: 11, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.08em', color: '#e5342a', marginTop: 6, animation: 'fadeFlash 2.5s ease forwards' }}>
+          {endFlash.text}
+        </div>
+      )}
+      <div style={css.divider} />
+      <div style={css.lbl}>
+        &#x1F514; HEADS-UP BEFORE SHIFT END
+        <span style={css.val}>{s.endWarning} min</span>
+      </div>
+      <div style={css.sliderWrap}>
+        <input type="range" min={2} max={30} step={1} value={s.endWarning} onChange={e => update({ endWarning: Number(e.target.value) })} />
+        <div style={css.sliderLabels}><span>2 min early</span><span>30 min early</span></div>
+      </div>
+      <div style={{ fontSize: 11, color: '#636366', marginTop: 8 }}>
+        A follow-up reminder fires 30 min after shift end if you haven't clocked out.
+      </div>
+      <div style={css.divider} />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{ fontSize: 13, color: '#f2f2f7', fontWeight: 600 }}>End-of-shift reminder</div>
+          <div style={{ fontSize: 11, color: '#636366', marginTop: 2 }}>
+            {s.endEnabled ? 'On — remind me to clock out' : 'Off — no end-of-shift alert'}
+          </div>
+        </div>
+        <button
+          onClick={() => update({ endEnabled: !s.endEnabled })}
+          style={{ width: 51, height: 31, borderRadius: 15.5, border: 'none', cursor: 'pointer', background: s.endEnabled ? '#32d74b' : '#3a3a3c', position: 'relative', transition: 'background .25s', flexShrink: 0 }}
+          aria-label="Toggle end-of-shift reminder"
+        >
+          <span style={{ position: 'absolute', top: 2, left: s.endEnabled ? 22 : 2, width: 27, height: 27, borderRadius: '50%', background: '#fff', transition: 'left .25s' }} />
+        </button>
+      </div>
+    </>
   )
 }
 
