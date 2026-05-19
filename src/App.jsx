@@ -883,9 +883,22 @@ function Toggle({ on, onToggle, label }) {
 
 function EndOfShiftCard({ css, s, update }) {
   const [wheelOpen, setWheelOpen] = useState(false)
-  const endMin     = s.endMin ?? 0
-  const endLabel   = `${s.endHour}h${endMin ? ` ${String(endMin).padStart(2,'0')}m` : ''}`
-  const shiftEndAt = fmtTime(s.startHour * 60 + s.startMin + s.endHour * 60 + endMin)
+  const endMin = s.endMin ?? 0
+  const endLabel = `${s.endHour}h${endMin ? ` ${String(endMin).padStart(2, '0')}m` : ''}`
+
+  const clockOutTotal = (s.startHour * 60 + s.startMin + s.endHour * 60 + endMin) % 1440
+  const clockOutH   = Math.floor(clockOutTotal / 60)
+  const clockOutM   = clockOutTotal % 60
+  const clockOutVal = `${pad2(clockOutH)}:${pad2(clockOutM)}`
+
+  function handleClockOutChange(e) {
+    const [h, m] = e.target.value.split(':').map(Number)
+    if (isNaN(h) || isNaN(m)) return
+    const startMins = s.startHour * 60 + s.startMin
+    let diff = h * 60 + m - startMins
+    if (diff <= 0) diff += 1440
+    update({ endHour: Math.min(16, Math.max(4, Math.floor(diff / 60))), endMin: diff % 60 })
+  }
 
   return (
     <>
@@ -894,7 +907,7 @@ function EndOfShiftCard({ css, s, update }) {
         <span style={css.val}>{endLabel} shift</span>
       </div>
 
-      {/* Tappable display box — same size/style as start-time input */}
+      {/* Duration display box — tap to open wheel */}
       <div
         onClick={() => setWheelOpen(o => !o)}
         style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#1c1c1e', border: `1.5px solid ${wheelOpen ? '#e5342a' : '#3a3a3c'}`, borderRadius: 10, padding: '13px 14px', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 22, fontWeight: 700, color: '#f2f2f7', transition: 'border-color .15s', userSelect: 'none' }}
@@ -910,7 +923,7 @@ function EndOfShiftCard({ css, s, update }) {
         </span>
       </div>
 
-      {/* Collapsible wheel — same layout as clock-in picker, no AM/PM */}
+      {/* Collapsible wheel */}
       {wheelOpen && (
         <div style={{ marginTop: 8, background: '#1c1c1e', borderRadius: 14, padding: '6px 0', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ position: 'absolute', left: 12, right: 12, top: '50%', transform: 'translateY(-50%)', height: 44, borderRadius: 10, border: '1.5px solid #e5342a33', background: '#e5342a08', pointerEvents: 'none' }} />
@@ -921,8 +934,17 @@ function EndOfShiftCard({ css, s, update }) {
         </div>
       )}
 
-      <div style={{ fontSize: 12, color: '#636366', marginTop: 8 }}>
-        Shift ends at <span style={{ color: '#e5342a', fontWeight: 700 }}>{shiftEndAt}</span>
+      {/* Clock-out time input — always visible, stays in sync with wheel */}
+      <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 11, color: '#8e8e93', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Clock-out time</div>
+          <div style={{ overflow: 'hidden' }}>
+            <input type="time" value={clockOutVal} onChange={handleClockOutChange} />
+          </div>
+        </div>
+        <div style={{ fontSize: 11, color: '#636366', lineHeight: 1.5, paddingTop: 18 }}>
+          = <span style={{ color: '#e5342a', fontWeight: 700 }}>{endLabel}</span> shift
+        </div>
       </div>
 
       <div style={css.divider} />
