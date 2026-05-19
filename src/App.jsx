@@ -135,7 +135,7 @@ function loadState() {
 
 export default function App() {
   const [s, setS]           = useState(loadState)
-  const [isSet, setIsSet]   = useState(false)
+  const [isSet, setIsSet]   = useState(() => localStorage.getItem('qwik_crew_isset') === '1')
   const [toast, setToast]   = useState(null)
   const [alert, setAlert]   = useState(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -362,6 +362,7 @@ export default function App() {
     }
 
     setIsSet(true)
+    localStorage.setItem('qwik_crew_isset', '1')
     setSetSnapshot({ ...s })
     const swActive = !!(swReg.current?.active)
     if (subscribeErr) {
@@ -384,6 +385,7 @@ export default function App() {
   function handleCancel() {
     clearTimers()
     setIsSet(false)
+    localStorage.removeItem('qwik_crew_isset')
     setSetSnapshot(null)
     setConfirmCancel(false)
     showToast('Reminders cancelled', '#374151')
