@@ -54,7 +54,7 @@ function ClockIcon({ size = 96 }) {
   )
 }
 
-const STORAGE_KEY = 'qwik_crew_v13'
+const STORAGE_KEY = 'qwik_crew_v14'
 
 const DEFAULT = {
   startHour: 7,
@@ -71,6 +71,8 @@ const DEFAULT = {
   endWarning: 15,
   endEnabled: true,
   endFollowupEnabled: true,
+  cardOrder: ['schedulePreview', 'shiftLength', 'lunch', 'dinner'],
+  openCards: { schedulePreview: false, shiftLength: true, lunch: true, dinner: true },
 }
 
 const LUNCH_OPTS = [
@@ -572,9 +574,124 @@ function DesktopTimePicker({ startHour, startMin, onHourMin }) {
   )
 }
 
+function SchedulePreviewContent({ css, schedule }) {
+  const nowMins = new Date().getHours() * 60 + new Date().getMinutes()
+  const sorted = [...schedule].sort((a, b) => {
+    const ae = a.fireAt < nowMins ? a.fireAt + 1440 : a.fireAt
+    const be = b.fireAt < nowMins ? b.fireAt + 1440 : b.fireAt
+    return ae - be
+  })
+  return (
+    <div style={css.previewGrid}>
+      {sorted.map(item => {
+        const tmrw = item.fireAt < nowMins
+        return (
+          <React.Fragment key={item.id}>
+            <div style={css.previewLabel}>{item.emoji} {item.label}</div>
+            <div style={css.previewTime}>
+              {fmtTime(item.fireAt)}
+              {tmrw && <span style={{ color: '#636366', fontSize: 10, fontWeight: 400, marginLeft: 5 }}>tmrw</span>}
+            </div>
+          </React.Fragment>
+        )
+      })}
+    </div>
+  )
+}
+
+function CollapseCard({ css, title, summary, open, onToggle, canUp, canDown, onUp, onDown, className, children }) {
+  return (
+    <div className={className || ''} style={css.card}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        {/* Reorder buttons */}
+        <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+          <button
+            onClick={e => { e.stopPropagation(); onUp() }}
+            disabled={!canUp}
+            style={{ background: 'none', border: 'none', padding: '3px 5px', color: canUp ? '#636366' : '#2c2c2e', cursor: canUp ? 'pointer' : 'default', fontSize: 13, lineHeight: 1 }}
+          >▴</button>
+          <button
+            onClick={e => { e.stopPropagation(); onDown() }}
+            disabled={!canDown}
+            style={{ background: 'none', border: 'none', padding: '3px 5px', color: canDown ? '#636366' : '#2c2c2e', cursor: canDown ? 'pointer' : 'default', fontSize: 13, lineHeight: 1 }}
+          >▾</button>
+        </div>
+        {/* Collapse toggle */}
+        <div onClick={onToggle} style={{ flex: 1, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', userSelect: 'none' }}>
+          <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#8e8e93' }}>
+            {title}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {!open && summary && (
+              <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 700, color: '#e5342a', letterSpacing: '0.04em' }}>{summary}</span>
+            )}
+            <span style={{ fontSize: 10, color: '#4a4a4e' }}>{open ? '▲' : '▼'}</span>
+          </div>
+        </div>
+      </div>
+      {open && <div style={{ marginTop: 14 }}>{children}</div>}
+    </div>
+  )
+}
+
 function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule, isSet, handleSet, handleCancel, showLunch, showDinner, unpaidBreaks }) {
+  const openCards = s.openCards || DEFAULT.openCards
+  const cardOrder = s.cardOrder || DEFAULT.cardOrder
+
+  function toggleCard(id) {
+    update({ openCards: { ...openCards, [id]: !openCards[id] } })
+  }
+
+  function moveCard(id, dir) {
+    const order    = [...cardOrder]
+    const visible  = order.filter(cid => cardDefs[cid]?.visible)
+    const visIdx   = visible.indexOf(id)
+    const target   = visible[visIdx + dir]
+    if (!target) return
+    const ai = order.indexOf(id), bi = order.indexOf(target)
+    ;[order[ai], order[bi]] = [order[bi], order[ai]]
+    update({ cardOrder: order })
+  }
+
+  const endMin     = s.endMin ?? 0
+  const endLabel   = `${s.endHour}h${endMin ? ` ${String(endMin).padStart(2,'0')}m` : ''}`
+  const lunchLabel = LUNCH_OPTS.find(o => o.v === s.lunchHour)?.l ?? `${s.lunchHour}h`
+  const dinnerLabel = DINNER_OPTS.find(o => o.v === s.dinnerHour)?.l ?? `${s.dinnerHour}h`
+
+  const cardDefs = {
+    schedulePreview: {
+      title: '📋 SCHEDULE PREVIEW',
+      summary: `${schedule.length} reminder${schedule.length !== 1 ? 's' : ''}`,
+      className: 'card-full',
+      visible: true,
+      render: () => <SchedulePreviewContent css={css} schedule={schedule} />,
+    },
+    shiftLength: {
+      title: '🏁 SHIFT LENGTH',
+      summary: endLabel,
+      visible: true,
+      render: () => <EndOfShiftCard css={css} s={s} update={update} unpaidBreaks={unpaidBreaks} />,
+    },
+    lunch: {
+      title: '🍽️ LUNCH BREAK',
+      summary: `${lunchLabel} · ${s.lunchDuration} min`,
+      visible: showLunch,
+      render: () => <LunchCard css={css} s={s} update={update} />,
+    },
+    dinner: {
+      title: '🌙 DINNER BREAK',
+      summary: `${dinnerLabel} · ${s.dinnerDuration} min`,
+      visible: showDinner,
+      render: () => <DinnerCard css={css} s={s} update={update} />,
+    },
+  }
+
+  const visibleOrder = cardOrder.filter(id => cardDefs[id]?.visible)
+
   return (
     <div className="responsive-grid" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+      {/* Clock-in — fixed at top */}
       <div className="card-full" style={css.card}>
         <div style={css.lbl}>&#x23F0; YOUR START TIME</div>
         {isDesktop ? (
@@ -591,37 +708,29 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
         <div style={css.hint}>&#x1F4A1; Set this the night before if you know your start time</div>
       </div>
 
-      <div style={css.card}><EndOfShiftCard css={css} s={s} update={update} unpaidBreaks={unpaidBreaks} /></div>
-      {showLunch  && <div style={css.card}><LunchCard  css={css} s={s} update={update} /></div>}
-      {showDinner && <div style={css.card}><DinnerCard css={css} s={s} update={update} /></div>}
+      {/* Collapsible + reorderable cards */}
+      {visibleOrder.map((id, visIdx) => {
+        const def = cardDefs[id]
+        return (
+          <CollapseCard
+            key={id}
+            css={css}
+            title={def.title}
+            summary={def.summary}
+            open={openCards[id] ?? true}
+            onToggle={() => toggleCard(id)}
+            canUp={visIdx > 0}
+            canDown={visIdx < visibleOrder.length - 1}
+            onUp={() => moveCard(id, -1)}
+            onDown={() => moveCard(id, 1)}
+            className={def.className || ''}
+          >
+            {def.render()}
+          </CollapseCard>
+        )
+      })}
 
-      <div className="card-full" style={css.card}>
-        <div style={css.lbl}>&#x1F4CB; SCHEDULE PREVIEW</div>
-        <div style={css.previewGrid}>
-          {(() => {
-            const nowMins = new Date().getHours() * 60 + new Date().getMinutes()
-            return [...schedule]
-              .sort((a, b) => {
-                const ae = a.fireAt < nowMins ? a.fireAt + 1440 : a.fireAt
-                const be = b.fireAt < nowMins ? b.fireAt + 1440 : b.fireAt
-                return ae - be
-              })
-              .map(item => {
-                const tmrw = item.fireAt < nowMins
-                return (
-                  <React.Fragment key={item.id}>
-                    <div style={css.previewLabel}>{item.emoji} {item.label}</div>
-                    <div style={css.previewTime}>
-                      {fmtTime(item.fireAt)}
-                      {tmrw && <span style={{ color: '#636366', fontSize: 10, fontWeight: 400, marginLeft: 5 }}>tmrw</span>}
-                    </div>
-                  </React.Fragment>
-                )
-              })
-          })()}
-        </div>
-      </div>
-
+      {/* Set Reminders — fixed at bottom */}
       <div className="card-full">
         <button style={css.btnSet} onClick={handleSet}>
           {isSet ? '✓ UPDATE REMINDERS' : 'SET REMINDERS'}
@@ -884,8 +993,7 @@ function Toggle({ on, onToggle, label }) {
 
 function EndOfShiftCard({ css, s, update, unpaidBreaks }) {
   const [wheelOpen, setWheelOpen] = useState(false)
-  const endMin = s.endMin ?? 0
-  const endLabel = `${s.endHour}h${endMin ? ` ${String(endMin).padStart(2, '0')}m` : ''}`
+  const endMin  = s.endMin ?? 0
 
   const clockOutTotal = (s.startHour * 60 + s.startMin + s.endHour * 60 + endMin + unpaidBreaks) % 1440
   const clockOutH   = Math.floor(clockOutTotal / 60)
@@ -904,11 +1012,6 @@ function EndOfShiftCard({ css, s, update, unpaidBreaks }) {
 
   return (
     <>
-      <div style={css.lbl}>
-        &#x1F3C1; SHIFT LENGTH
-        <span style={css.val}>{endLabel} shift</span>
-      </div>
-
       {/* Duration display box — tap to open wheel */}
       <div
         onClick={() => setWheelOpen(o => !o)}
@@ -1035,10 +1138,6 @@ function LunchCard({ css, s, update }) {
 
   return (
     <>
-      <div style={css.lbl}>
-        &#x1F37D;&#xFE0F; LUNCH BREAK
-        <span style={css.val}>{lunchLabel} mark</span>
-      </div>
       <div style={{ fontSize: 11, color: '#8e8e93', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Clock Out at Hour Mark:</div>
       <div style={css.segRow}>
         {LUNCH_OPTS.map(o => (
@@ -1083,10 +1182,6 @@ function DinnerCard({ css, s, update }) {
 
   return (
     <>
-      <div style={css.lbl}>
-        &#x1F319; DINNER / LONG DAY BREAK
-        <span style={css.val}>{dinnerLabel} mark</span>
-      </div>
       <div style={{ fontSize: 11, color: '#8e8e93', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Clock Out at Hour Mark:</div>
       <div style={css.segRow}>
         {DINNER_OPTS.map(o => (
