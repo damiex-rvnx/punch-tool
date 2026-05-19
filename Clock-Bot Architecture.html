@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Clock-Bot — How It All Works</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', system-ui, sans-serif; background: #0a0a0f; color: #f2f2f7; line-height: 1.6; min-height: 100vh; }
+
+  .page { max-width: 960px; margin: 0 auto; padding: 48px 20px 80px; }
+
+  /* ── Hero ── */
+  .hero { text-align: center; margin-bottom: 64px; }
+  .hero-tag { font-size: 11px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: #e5342a; margin-bottom: 14px; }
+  .hero h1 { font-size: 36px; font-weight: 800; margin-bottom: 12px; }
+  .hero h1 span { color: #e5342a; }
+  .hero p { font-size: 15px; color: #8e8e93; max-width: 540px; margin: 0 auto; }
+
+  /* ── Section ── */
+  .section-label { font-size: 10px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: #636366; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: #2c2c2e; }
+  section { margin-bottom: 64px; }
+
+  /* ── Component cards ── */
+  .components { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 48px; }
+
+  .comp {
+    background: #1c1c1e;
+    border: 1px solid #2c2c2e;
+    border-radius: 16px;
+    padding: 24px;
+    position: relative;
+    transition: border-color .2s;
+  }
+  .comp:hover { border-color: #3a3a3c; }
+  .comp.highlight { border-color: #e5342a44; }
+
+  .comp-icon { font-size: 32px; margin-bottom: 14px; display: block; }
+  .comp-name { font-size: 17px; font-weight: 800; margin-bottom: 2px; }
+  .comp-where { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: #636366; margin-bottom: 12px; }
+  .comp-desc { font-size: 13px; color: #aeaeb2; line-height: 1.7; }
+
+  .tag { display: inline-block; padding: 3px 10px; border-radius: 100px; font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin-top: 12px; }
+  .tag-free    { background: #1a3a1a; color: #32d74b; }
+  .tag-paid    { background: #3a1a1a; color: #e5342a; }
+  .tag-device  { background: #1a1a3a; color: #6699ff; }
+  .tag-secret  { background: #2a1a3a; color: #bf7aff; }
+
+  /* ── Flow diagram ── */
+  .flow-wrap { background: #1c1c1e; border: 1px solid #2c2c2e; border-radius: 20px; padding: 36px 28px; }
+  .flow-title { text-align: center; font-size: 15px; font-weight: 700; color: #f2f2f7; margin-bottom: 4px; }
+  .flow-sub { text-align: center; font-size: 12px; color: #636366; margin-bottom: 36px; }
+
+  /* Step rows */
+  .flow-step { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 0; position: relative; }
+  .flow-step + .flow-step { margin-top: 0; }
+
+  .step-left { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; width: 48px; }
+  .step-circle { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; font-weight: 800; }
+  .step-line { width: 2px; flex: 1; min-height: 32px; margin: 4px 0; }
+
+  .step-body { padding-bottom: 32px; flex: 1; }
+  .step-body h3 { font-size: 15px; font-weight: 700; margin-bottom: 6px; margin-top: 10px; }
+  .step-body p { font-size: 13px; color: #8e8e93; line-height: 1.7; }
+
+  .step-actors { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .actor { display: flex; align-items: center; gap: 6px; background: #2c2c2e; border-radius: 8px; padding: 6px 10px; font-size: 12px; color: #aeaeb2; font-weight: 500; }
+  .actor-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  /* Colors */
+  .c-red    { background: #e5342a; }
+  .c-green  { background: #32d74b; }
+  .c-blue   { background: #3b82f6; }
+  .c-purple { background: #bf7aff; }
+  .c-orange { background: #f59e0b; }
+  .c-gray   { background: #636366; }
+
+  /* ── Secret keys section ── */
+  .secrets { display: flex; flex-direction: column; gap: 12px; }
+  .secret-row { background: #1c1c1e; border: 1px solid #2c2c2e; border-radius: 12px; padding: 18px 20px; display: flex; gap: 16px; align-items: flex-start; }
+  .secret-icon { font-size: 24px; flex-shrink: 0; margin-top: 2px; }
+  .secret-name { font-family: 'Fira Code', monospace; font-size: 13px; font-weight: 500; color: #bf7aff; margin-bottom: 4px; }
+  .secret-where { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #636366; margin-bottom: 8px; }
+  .secret-desc { font-size: 13px; color: #aeaeb2; line-height: 1.65; }
+  .secret-analogy { margin-top: 8px; background: #2c2c2e; border-radius: 8px; padding: 8px 12px; font-size: 12px; color: #636366; font-style: italic; }
+
+  /* ── KV diagram ── */
+  .kv-table { width: 100%; border-collapse: collapse; font-family: 'Fira Code', monospace; font-size: 12px; }
+  .kv-table th { text-align: left; padding: 10px 14px; color: #636366; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; border-bottom: 1px solid #2c2c2e; font-family: 'Inter', sans-serif; }
+  .kv-table td { padding: 12px 14px; border-bottom: 1px solid #1c1c1e; vertical-align: top; }
+  .kv-table tr:last-child td { border-bottom: none; }
+  .kv-key   { color: #bf7aff; }
+  .kv-value { color: #32d74b; }
+  .kv-ttl   { color: #f59e0b; font-size: 11px; }
+  .kv-note  { font-family: 'Inter', sans-serif; font-size: 11px; color: #636366; margin-top: 4px; }
+
+  /* ── Cron visual ── */
+  .cron-ticks { display: flex; align-items: flex-end; gap: 6px; height: 80px; background: #1c1c1e; border-radius: 12px; padding: 16px; overflow: hidden; position: relative; }
+  .cron-tick { flex: 1; border-radius: 3px 3px 0 0; background: #2c2c2e; min-width: 8px; position: relative; transition: background .3s; }
+  .cron-tick.active { background: #e5342a; }
+  .cron-tick.sent { background: #32d74b; }
+  .cron-label { position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); font-size: 9px; color: #636366; white-space: nowrap; font-family: 'Fira Code', monospace; }
+  .cron-wrap { position: relative; padding-bottom: 28px; }
+  .cron-legend { display: flex; gap: 20px; margin-top: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #8e8e93; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+  /* ── GitHub pages ── */
+  .deploy-flow { display: flex; align-items: center; gap: 0; flex-wrap: wrap; }
+  .deploy-node { background: #1c1c1e; border: 1px solid #2c2c2e; border-radius: 12px; padding: 14px 18px; text-align: center; flex-shrink: 0; }
+  .deploy-node .dn-icon { font-size: 24px; margin-bottom: 6px; }
+  .deploy-node .dn-name { font-size: 12px; font-weight: 700; color: #f2f2f7; }
+  .deploy-node .dn-sub { font-size: 10px; color: #636366; margin-top: 2px; }
+  .deploy-arr { font-size: 18px; color: #3a3a3c; padding: 0 8px; flex-shrink: 0; }
+  .deploy-label { font-size: 10px; color: #636366; text-align: center; margin-top: 6px; }
+
+  /* ── Callout ── */
+  .callout { border-radius: 12px; padding: 16px 20px; font-size: 13px; color: #aeaeb2; line-height: 1.7; display: flex; gap: 12px; margin-top: 16px; }
+  .callout.blue { background: #0a1628; border: 1px solid #1e3a5f; }
+  .callout.green { background: #0a1f0a; border: 1px solid #1a3a1a; }
+  .callout.purple { background: #1a0a2a; border: 1px solid #3a1a5a; }
+  .callout .ci { font-size: 20px; flex-shrink: 0; }
+
+  /* ── iOS vs Android ── */
+  .platform-split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 560px) { .platform-split { grid-template-columns: 1fr; } }
+  .platform-card { background: #1c1c1e; border: 1px solid #2c2c2e; border-radius: 16px; padding: 22px; }
+  .platform-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .platform-step { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px; font-size: 13px; color: #aeaeb2; }
+  .ps-num { width: 20px; height: 20px; border-radius: 50%; font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+
+  footer { text-align: center; font-size: 11px; color: #3a3a3c; margin-top: 48px; padding-top: 24px; border-top: 1px solid #1c1c1e; }
+
+  @media (max-width: 600px) {
+    .hero h1 { font-size: 26px; }
+    .components { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-tag">Semi-Technical Explainer</div>
+    <h1>How <span>Clock-Bot</span> Actually Works</h1>
+    <p>Every piece of the system, what it does, why it exists, and how they talk to each other — explained without assuming you write code.</p>
+  </div>
+
+
+  <!-- ══ PART 1: THE PIECES ══ -->
+  <section>
+    <div class="section-label">Part 1 — Every piece of the system</div>
+
+    <div class="components">
+
+      <div class="comp highlight">
+        <span class="comp-icon">📱</span>
+        <div class="comp-name">Clock-Bot App</div>
+        <div class="comp-where">Lives on your phone / browser</div>
+        <div class="comp-desc">The screen you actually interact with. Built with React — a JavaScript framework that draws the UI. When you tap "Set Reminders" it packages up your schedule and sends it to the Cloudflare server. After that your phone's job is done until the notification arrives.</div>
+        <span class="tag tag-device">Runs on your device</span>
+      </div>
+
+      <div class="comp">
+        <span class="comp-icon">😺</span>
+        <div class="comp-name">GitHub &amp; GitHub Pages</div>
+        <div class="comp-where">Free hosting on GitHub's servers</div>
+        <div class="comp-desc">GitHub stores your code like Google Drive stores documents — with full version history. GitHub Pages takes that code and publishes it as a live website automatically. Every time code is pushed to the branch, GitHub Actions (a built-in robot) rebuilds the app and puts the new version live within minutes.</div>
+        <span class="tag tag-free">Free hosting</span>
+      </div>
+
+      <div class="comp">
+        <span class="comp-icon">☁️</span>
+        <div class="comp-name">Cloudflare Worker</div>
+        <div class="comp-where">Runs on Cloudflare's global servers</div>
+        <div class="comp-desc">A small piece of server code that runs in the cloud — not on your phone, not on your laptop. It has four jobs: save schedules when you tap Set Reminders, check every minute if any notifications are due, send those notifications out, and answer status questions from the debug panel.</div>
+        <span class="tag tag-paid">$5/mo</span>
+      </div>
+
+      <div class="comp">
+        <span class="comp-icon">🗄️</span>
+        <div class="comp-name">Cloudflare KV</div>
+        <div class="comp-where">Cloudflare's database (attached to the Worker)</div>
+        <div class="comp-desc">KV = Key-Value. The simplest possible database — just a label and what's stored under it. Your schedule gets saved here under your device ID as the label. The cron reads it every minute. Data auto-deletes after 48 hours. No names, no personal info — just times and a device code.</div>
+        <span class="tag tag-paid">Included in $5/mo</span>
+      </div>
+
+      <div class="comp">
+        <span class="comp-icon">⏱️</span>
+        <div class="comp-name">Cron Trigger</div>
+        <div class="comp-where">Built into Cloudflare — runs automatically</div>
+        <div class="comp-desc">A scheduler that wakes up the Cloudflare Worker every 60 seconds, 24/7, whether anyone is using the app or not. It's the heartbeat of the whole system. Without it, nothing would ever fire — notifications would just sit in KV forever waiting.</div>
+        <span class="tag tag-paid">Included in $5/mo</span>
+      </div>
+
+      <div class="comp">
+        <span class="comp-icon">🔧</span>
+        <div class="comp-name">Service Worker</div>
+        <div class="comp-where">Lives inside your browser on your device</div>
+        <div class="comp-desc">A background script the browser keeps running even after you close the Clock-Bot tab. Its only job is to receive incoming push notifications and display them on screen. Think of it as a sleeping security guard who wakes up only when a package (notification) arrives at the door.</div>
+        <span class="tag tag-device">Runs on your device</span>
+      </div>
+
+      <div class="comp">
+        <span class="comp-icon">🔔</span>
+        <div class="comp-name">ntfy.sh</div>
+        <div class="comp-where">Third-party service — ntfy's servers</div>
+        <div class="comp-desc">iPhone's problem: Apple won't let websites send background notifications. ntfy bridges the gap. The Cloudflare Worker posts a message to ntfy's servers, which relay it through Apple's official notification pipeline (APNs) to the ntfy app on the iPhone. One paid account covers all crew iPhones.</div>
+        <span class="tag tag-paid">$5/mo</span>
+      </div>
+
+      <div class="comp">
+        <span class="comp-icon">🤖</span>
+        <div class="comp-name">Web Push (VAPID)</div>
+        <div class="comp-where">Internet standard — no extra service needed</div>
+        <div class="comp-desc">The protocol Android uses to receive notifications directly. VAPID is just a security standard — it uses a pair of keys (public + private) to prove the notification is really from your server and not a fake. Android and desktop Chrome support this natively. No middle service needed unlike iOS.</div>
+        <span class="tag tag-free">Free — built into browsers</span>
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ══ PART 2: THE FLOW ══ -->
+  <section>
+    <div class="section-label">Part 2 — What happens when you tap "Set Reminders"</div>
+
+    <div class="flow-wrap">
+      <div class="flow-title">The complete journey — from button tap to locked-screen notification</div>
+      <div class="flow-sub">Follow it top to bottom. Each step hands off to the next.</div>
+
+      <!-- Step 1 -->
+      <div class="flow-step">
+        <div class="step-left">
+          <div class="step-circle" style="background:#e5342a22; color:#e5342a; font-size:14px;">1</div>
+          <div class="step-line" style="background: linear-gradient(#e5342a44, #3b82f644);"></div>
+        </div>
+        <div class="step-body">
+          <h3>You tap "Set Reminders" on your phone</h3>
+          <p>The app reads your start time, lunch mark, dinner mark, and warning times. It calculates the exact clock time for each notification — e.g. start 7:30 AM + 4h 30m = clock out at 12:00 PM.</p>
+          <div class="step-actors">
+            <div class="actor"><div class="actor-dot c-red"></div>Clock-Bot App</div>
+            <div class="actor"><div class="actor-dot c-blue"></div>Your Phone</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="flow-step">
+        <div class="step-left">
+          <div class="step-circle" style="background:#3b82f622; color:#3b82f6; font-size:14px;">2</div>
+          <div class="step-line" style="background: linear-gradient(#3b82f644, #bf7aff44);"></div>
+        </div>
+        <div class="step-body">
+          <h3>Browser creates a push subscription</h3>
+          <p>Your browser contacts Google (Android) or Apple (iOS) servers and gets back a unique "address" — like a mailing address for your specific browser on this specific device. This is stored as the push subscription token.</p>
+          <div class="step-actors">
+            <div class="actor"><div class="actor-dot c-blue"></div>Service Worker</div>
+            <div class="actor"><div class="actor-dot c-purple"></div>Google / Apple servers</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="flow-step">
+        <div class="step-left">
+          <div class="step-circle" style="background:#bf7aff22; color:#bf7aff; font-size:14px;">3</div>
+          <div class="step-line" style="background: linear-gradient(#bf7aff44, #32d74b44);"></div>
+        </div>
+        <div class="step-body">
+          <h3>App sends the schedule to Cloudflare</h3>
+          <p>The app packages up your device ID, the push subscription "address," your ntfy topic (iPhone only), and the list of notification times — then sends it all to the Cloudflare Worker over a secure HTTPS connection. This is the only moment your phone and the server talk.</p>
+          <div class="step-actors">
+            <div class="actor"><div class="actor-dot c-red"></div>Clock-Bot App</div>
+            <div class="actor"><div class="actor-dot c-green"></div>Cloudflare Worker</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="flow-step">
+        <div class="step-left">
+          <div class="step-circle" style="background:#32d74b22; color:#32d74b; font-size:14px;">4</div>
+          <div class="step-line" style="background: linear-gradient(#32d74b44, #f59e0b44);"></div>
+        </div>
+        <div class="step-body">
+          <h3>Cloudflare saves it to KV and waits</h3>
+          <p>The Worker stores everything in KV under your device ID as the key. Your phone is now completely out of the picture. It can be locked, out of signal, even turned off — nothing changes on Cloudflare's end.</p>
+          <div class="step-actors">
+            <div class="actor"><div class="actor-dot c-green"></div>Cloudflare Worker</div>
+            <div class="actor"><div class="actor-dot c-orange"></div>Cloudflare KV</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 5 -->
+      <div class="flow-step">
+        <div class="step-left">
+          <div class="step-circle" style="background:#f59e0b22; color:#f59e0b; font-size:14px;">5</div>
+          <div class="step-line" style="background: linear-gradient(#f59e0b44, #bf7aff44);"></div>
+        </div>
+        <div class="step-body">
+          <h3>Cron wakes the Worker every 60 seconds</h3>
+          <p>Cloudflare's built-in scheduler fires every minute. The Worker reads all schedules from KV and compares each notification time to the current time. If something is due within a 90-second window — it fires. If not — it goes back to sleep and logs "future: X."</p>
+          <div class="step-actors">
+            <div class="actor"><div class="actor-dot c-orange"></div>Cron Trigger</div>
+            <div class="actor"><div class="actor-dot c-green"></div>Cloudflare Worker</div>
+            <div class="actor"><div class="actor-dot c-orange"></div>Cloudflare KV</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 6 -->
+      <div class="flow-step">
+        <div class="step-left">
+          <div class="step-circle" style="background:#bf7aff22; color:#bf7aff; font-size:14px;">6</div>
+          <div class="step-line" style="background: linear-gradient(#bf7aff44, #32d74b44);"></div>
+        </div>
+        <div class="step-body">
+          <h3>Worker routes the notification by device type</h3>
+          <p>If the schedule has an ntfy topic stored → it's an iPhone → send via ntfy.sh. If no ntfy topic → it's Android → send via Web Push directly. Never both. This is why you stopped getting duplicate notifications.</p>
+          <div class="step-actors">
+            <div class="actor"><div class="actor-dot c-green"></div>Cloudflare Worker</div>
+            <div class="actor"><div class="actor-dot c-purple"></div>ntfy.sh (iPhone)</div>
+            <div class="actor"><div class="actor-dot c-blue"></div>Web Push (Android)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 7 -->
+      <div class="flow-step">
+        <div class="step-left">
+          <div class="step-circle" style="background:#32d74b22; color:#32d74b; font-size:14px;">7</div>
+        </div>
+        <div class="step-body">
+          <h3>Notification appears on your locked screen</h3>
+          <p>For iPhone: ntfy.sh relays the message through Apple's servers (APNs) → ntfy app on the phone wakes up → shows the notification. For Android: Google's servers (FCM) push it to the browser's service worker → service worker displays it. Either way, your phone buzzes with the reminder.</p>
+          <div class="step-actors">
+            <div class="actor"><div class="actor-dot c-purple"></div>Apple APNs</div>
+            <div class="actor"><div class="actor-dot c-blue"></div>Google FCM</div>
+            <div class="actor"><div class="actor-dot c-gray"></div>Service Worker</div>
+            <div class="actor"><div class="actor-dot c-blue"></div>Your Phone</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ══ PART 3: THE SECRET KEYS ══ -->
+  <section>
+    <div class="section-label">Part 3 — The secret keys and what they protect</div>
+
+    <div class="callout purple">
+      <div class="ci">🔑</div>
+      <div>Secret keys are like passwords — but instead of a human typing them, machines use them automatically to prove identity and encrypt data. None of them are visible in the app's code. They live in Cloudflare's secure environment and are injected at runtime.</div>
+    </div>
+
+    <div class="secrets" style="margin-top: 20px;">
+
+      <div class="secret-row">
+        <div class="secret-icon">🔐</div>
+        <div>
+          <div class="secret-name">VAPID_PRIVATE_KEY</div>
+          <div class="secret-where">Stored in Cloudflare → used by the Worker</div>
+          <div class="secret-desc">VAPID stands for Voluntary Application Server Identification. This private key lets the Cloudflare server sign outgoing push notifications with a cryptographic signature. Android's push service (Google FCM) checks that signature and will only deliver the notification if it matches your registered public key. Without it, anyone could spoof notifications from your server.</div>
+          <div class="secret-analogy">Analogy: A wax seal on a letter. Only you have the stamp. The recipient can verify the seal is genuine without ever seeing your stamp.</div>
+        </div>
+      </div>
+
+      <div class="secret-row">
+        <div class="secret-icon">🌐</div>
+        <div>
+          <div class="secret-name">VAPID_PUBLIC_KEY</div>
+          <div class="secret-where">Baked into the app's code — visible, intentionally</div>
+          <div class="secret-desc">The public half of the VAPID key pair. This one is NOT secret — it's embedded in the Clock-Bot app and sent to Google/Apple when creating a push subscription. They use it to verify the private key's signature. A key pair works because knowing the public key tells you nothing about the private key.</div>
+          <div class="secret-analogy">Analogy: Your mailing address. Everyone can see it and needs it to send you mail. Knowing it doesn't let anyone read your mail.</div>
+        </div>
+      </div>
+
+      <div class="secret-row">
+        <div class="secret-icon">🔔</div>
+        <div>
+          <div class="secret-name">NTFY_TOKEN</div>
+          <div class="secret-where">Stored in Cloudflare → used by the Worker</div>
+          <div class="secret-desc">Your ntfy.sh paid account's API token. When the Worker sends a notification to ntfy.sh, it includes this token in the request header. ntfy uses it to count the message against your paid account's quota (10,000/day) instead of the shared anonymous IP limit (250/day). Before this was set, all requests looked anonymous and hit the limit fast.</div>
+          <div class="secret-analogy">Analogy: A membership card. The bouncer (ntfy.sh) sees your card and knows you're a paying member with a higher limit — not a random stranger off the street.</div>
+        </div>
+      </div>
+
+      <div class="secret-row">
+        <div class="secret-icon">🚀</div>
+        <div>
+          <div class="secret-name">CLOUDFLARE_API_TOKEN</div>
+          <div class="secret-where">Stored in GitHub → used by GitHub Actions only</div>
+          <div class="secret-desc">When you push code to GitHub, GitHub Actions automatically redeploys the Cloudflare Worker. To do that, GitHub needs permission to talk to your Cloudflare account. This token is that permission slip — scoped only to deploying Workers, nothing else. It lives in GitHub's secret storage and is never visible in code or logs.</div>
+          <div class="secret-analogy">Analogy: A contractor's key card. It opens the server room door but not the executive suite. Limited access on purpose.</div>
+        </div>
+      </div>
+
+      <div class="secret-row">
+        <div class="secret-icon">📝</div>
+        <div>
+          <div class="secret-name">GITHUB_TOKEN</div>
+          <div class="secret-where">Auto-generated by GitHub Actions — you never touch it</div>
+          <div class="secret-desc">GitHub creates this automatically for each Actions run. The deploy script uses it to push the built app files to the gh-pages branch (which is what gets served as the live website). It expires after each run. You never set this — GitHub handles it entirely behind the scenes.</div>
+          <div class="secret-analogy">Analogy: A temporary visitor badge that's issued at the door, used once, and shredded when you leave.</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ══ PART 4: KV DATABASE ══ -->
+  <section>
+    <div class="section-label">Part 4 — What's actually stored in KV right now</div>
+
+    <div style="background:#1c1c1e; border:1px solid #2c2c2e; border-radius:16px; padding:24px;">
+      <div style="font-size:13px; color:#636366; margin-bottom:16px;">Every row in the KV database looks like this. There are only ever 2 types of keys:</div>
+      <table class="kv-table">
+        <tr>
+          <th>Key (the label)</th>
+          <th>Value (what's stored)</th>
+          <th>Expires</th>
+        </tr>
+        <tr>
+          <td class="kv-key">sched_3c20c77f-f26d-4bdb...</td>
+          <td class="kv-value">
+            { subscription: {...}, schedule: [<br>
+            &nbsp;&nbsp;{ id:"lw", fireAtISO:"12:00" },<br>
+            &nbsp;&nbsp;{ id:"lo", fireAtISO:"12:05" }<br>
+            ], ntfyTopic:"qr-3c20c77f..." }
+            <div class="kv-note">One entry per device. Contains the push subscription "address," the list of notification times, and the ntfy topic for iPhones.</div>
+          </td>
+          <td class="kv-ttl">48 hrs<br><span style="color:#636366">auto-delete</span></td>
+        </tr>
+        <tr>
+          <td class="kv-key">cron_log</td>
+          <td class="kv-value">
+            [ { ran_at:"...", devices:1,<br>
+            &nbsp;&nbsp;sent:["lw:ntfy"],<br>
+            &nbsp;&nbsp;future:3, errors:[] },<br>
+            &nbsp;&nbsp;... last 20 runs ]
+            <div class="kv-note">The cron diary. Every minute's run is logged here. This is what you read in the debug panel's Cron Log button.</div>
+          </td>
+          <td class="kv-ttl">48 hrs<br><span style="color:#636366">auto-delete</span></td>
+        </tr>
+      </table>
+    </div>
+  </section>
+
+
+  <!-- ══ PART 5: CRON VISUAL ══ -->
+  <section>
+    <div class="section-label">Part 5 — What cron actually does every minute</div>
+
+    <div style="background:#1c1c1e; border:1px solid #2c2c2e; border-radius:16px; padding:24px;">
+      <div style="font-size:13px; color:#636366; margin-bottom:16px;">Each bar = one cron run. It wakes up, checks, and goes back to sleep in about 50ms.</div>
+      <div class="cron-wrap">
+        <div class="cron-ticks" id="cronViz">
+          <!-- Generated by JS below -->
+        </div>
+      </div>
+      <div class="cron-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#2c2c2e;"></div>Checked — nothing due (future: X)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#e5342a;"></div>Checking now</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#32d74b;"></div>Notification sent!</div>
+      </div>
+
+      <div style="margin-top:20px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; font-size:12px;">
+        <div style="background:#0a0a0f; border-radius:10px; padding:14px;">
+          <div style="color:#636366; font-size:10px; text-transform:uppercase; letter-spacing:.1em; margin-bottom:6px;">What it does each run</div>
+          <div style="color:#aeaeb2; line-height:1.8;">
+            1. Wake up<br>
+            2. Read all schedules from KV<br>
+            3. Compare times to now<br>
+            4. Send anything due<br>
+            5. Update KV<br>
+            6. Log the result<br>
+            7. Go back to sleep
+          </div>
+        </div>
+        <div style="background:#0a0a0f; border-radius:10px; padding:14px;">
+          <div style="color:#636366; font-size:10px; text-transform:uppercase; letter-spacing:.1em; margin-bottom:6px;">The timing window</div>
+          <div style="color:#aeaeb2; line-height:1.8;">
+            A notification is "due" if it falls within a <strong style="color:#f2f2f7;">±90 second window</strong> of now. This compensates for the cron not firing at the exact millisecond — it might fire 10 seconds late, but the 90s window catches it.
+          </div>
+        </div>
+        <div style="background:#0a0a0f; border-radius:10px; padding:14px;">
+          <div style="color:#636366; font-size:10px; text-transform:uppercase; letter-spacing:.1em; margin-bottom:6px;">The cron syntax</div>
+          <div style="font-family:'Fira Code', monospace; color:#bf7aff; font-size:13px; margin-bottom:8px;">*/1 * * * *</div>
+          <div style="color:#aeaeb2; line-height:1.8; font-size:11px;">
+            Every 1 minute<br>
+            Every hour<br>
+            Every day<br>
+            Every month<br>
+            Every weekday
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ══ PART 6: GITHUB PAGES ══ -->
+  <section>
+    <div class="section-label">Part 6 — How code gets from your laptop to the live website</div>
+
+    <div style="background:#1c1c1e; border:1px solid #2c2c2e; border-radius:16px; padding:24px;">
+      <div style="font-size:13px; color:#636366; margin-bottom:24px;">This happens automatically every time code is pushed. You never manually upload files.</div>
+
+      <div style="display:flex; flex-direction:column; gap:0;">
+
+        <div style="display:flex; gap:14px; align-items:flex-start; padding-bottom:20px; position:relative;">
+          <div style="width:36px; height:36px; background:#e5342a22; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0;">✏️</div>
+          <div style="flex:1;">
+            <div style="font-size:14px; font-weight:700; margin-bottom:4px;">Code is written and pushed to GitHub</div>
+            <div style="font-size:12px; color:#636366;">git push → code lands on the <span style="font-family:'Fira Code',monospace; color:#bf7aff;">claude/crew-clock-app-SDfGg</span> branch in the GitHub repository</div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:14px; align-items:flex-start; padding-bottom:20px; border-left:1px dashed #2c2c2e; margin-left:18px; padding-left:32px;">
+        </div>
+
+        <div style="display:flex; gap:14px; align-items:flex-start; padding-bottom:20px; position:relative;">
+          <div style="width:36px; height:36px; background:#3b82f622; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0;">🤖</div>
+          <div style="flex:1;">
+            <div style="font-size:14px; font-weight:700; margin-bottom:4px;">GitHub Actions wakes up automatically</div>
+            <div style="font-size:12px; color:#636366;">A robot defined in <span style="font-family:'Fira Code',monospace; color:#bf7aff;">.github/workflows/deploy-pages.yml</span> detects the push and starts running. No human involvement needed.</div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:14px; align-items:flex-start; padding-bottom:20px; position:relative;">
+          <div style="width:36px; height:36px; background:#f59e0b22; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0;">🔨</div>
+          <div style="flex:1;">
+            <div style="font-size:14px; font-weight:700; margin-bottom:4px;">It builds the app</div>
+            <div style="font-size:12px; color:#636366;">Runs <span style="font-family:'Fira Code',monospace; color:#bf7aff;">npm run build</span> — this takes the React source code (readable by developers) and compiles it into optimised HTML/CSS/JS files a browser can load fast. The output goes into a <span style="font-family:'Fira Code',monospace; color:#bf7aff;">dist/</span> folder.</div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:14px; align-items:flex-start; padding-bottom:20px; position:relative;">
+          <div style="width:36px; height:36px; background:#32d74b22; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0;">📤</div>
+          <div style="flex:1;">
+            <div style="font-size:14px; font-weight:700; margin-bottom:4px;">Pushes built files to the gh-pages branch</div>
+            <div style="font-size:12px; color:#636366;">The built files are pushed to a separate branch called <span style="font-family:'Fira Code',monospace; color:#bf7aff;">gh-pages</span>. This branch only ever contains the compiled output — never the raw source code. GitHub Pages serves whatever is in this branch.</div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:14px; align-items:flex-start; position:relative;">
+          <div style="width:36px; height:36px; background:#bf7aff22; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0;">🌐</div>
+          <div style="flex:1;">
+            <div style="font-size:14px; font-weight:700; margin-bottom:4px;">Live at lbrito1126.github.io/qwik-crew-clock</div>
+            <div style="font-size:12px; color:#636366;">GitHub's servers read the gh-pages branch and serve those files to anyone who visits the URL. Usually live within 2–3 minutes of the original push. The Cloudflare Worker gets deployed the same way via a separate workflow file.</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ══ PART 7: iOS vs Android ══ -->
+  <section>
+    <div class="section-label">Part 7 — Why iPhone and Android work differently</div>
+
+    <div class="platform-split">
+      <div class="platform-card" style="border-color:#bf7aff44;">
+        <h3 style="color:#bf7aff;">🍎 iPhone path</h3>
+        <div class="platform-step">
+          <div class="ps-num" style="background:#bf7aff22; color:#bf7aff;">1</div>
+          <div>Cloudflare Worker fires → sees ntfyTopic in KV → knows it's an iPhone</div>
+        </div>
+        <div class="platform-step">
+          <div class="ps-num" style="background:#bf7aff22; color:#bf7aff;">2</div>
+          <div>Worker posts message to <strong>ntfy.sh</strong> using your NTFY_TOKEN for authentication</div>
+        </div>
+        <div class="platform-step">
+          <div class="ps-num" style="background:#bf7aff22; color:#bf7aff;">3</div>
+          <div>ntfy.sh forwards it to <strong>Apple's APNs servers</strong></div>
+        </div>
+        <div class="platform-step">
+          <div class="ps-num" style="background:#bf7aff22; color:#bf7aff;">4</div>
+          <div>APNs delivers it to the <strong>ntfy app</strong> on the iPhone — even when screen is off</div>
+        </div>
+        <div class="callout purple" style="margin-top:12px; padding:10px 14px;">
+          <div class="ci" style="font-size:16px;">⚠️</div>
+          <div style="font-size:12px;">Apple blocks websites from doing this directly. ntfy exists purely to work around that restriction using a native app Apple does allow.</div>
+        </div>
+      </div>
+
+      <div class="platform-card" style="border-color:#32d74b44;">
+        <h3 style="color:#32d74b;">🤖 Android path</h3>
+        <div class="platform-step">
+          <div class="ps-num" style="background:#32d74b22; color:#32d74b;">1</div>
+          <div>Cloudflare Worker fires → no ntfyTopic in KV → knows it's Android</div>
+        </div>
+        <div class="platform-step">
+          <div class="ps-num" style="background:#32d74b22; color:#32d74b;">2</div>
+          <div>Worker encrypts the notification payload using the <strong>VAPID keys</strong> and sends it to Google's FCM servers</div>
+        </div>
+        <div class="platform-step">
+          <div class="ps-num" style="background:#32d74b22; color:#32d74b;">3</div>
+          <div>Google FCM delivers it to the <strong>browser's service worker</strong> on the device</div>
+        </div>
+        <div class="platform-step">
+          <div class="ps-num" style="background:#32d74b22; color:#32d74b;">4</div>
+          <div>Service worker decrypts it and <strong>displays the notification</strong> on the lock screen</div>
+        </div>
+        <div class="callout green" style="margin-top:12px; padding:10px 14px;">
+          <div class="ci" style="font-size:16px;">✅</div>
+          <div style="font-size:12px;">Android allows websites to do this natively. No extra app needed. Web Push is a proper open standard that Android browsers support.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>Clock-Bot — Semi-Technical Architecture Guide &nbsp;·&nbsp; Damiex</footer>
+
+</div>
+
+<script>
+  // Animate the cron visualizer
+  const viz = document.getElementById('cronViz')
+  const TICKS = 28
+  const heights = Array.from({length: TICKS}, () => Math.random() * 30 + 10)
+  // Make one of them "sent" (green) around position 18
+  const sentIdx = 18
+
+  heights.forEach((h, i) => {
+    const div = document.createElement('div')
+    div.className = 'cron-tick' + (i === sentIdx ? ' sent' : '')
+    div.style.height = h + 'px'
+    viz.appendChild(div)
+  })
+
+  // Animate the "active" (current) tick moving
+  let current = TICKS - 1
+  function tick() {
+    viz.querySelectorAll('.cron-tick').forEach((el, i) => {
+      el.classList.remove('active')
+      if (i === sentIdx) el.classList.add('sent')
+    })
+    current = (current + 1) % TICKS
+    const el = viz.children[current]
+    if (current !== sentIdx) {
+      el.classList.add('active')
+    }
+  }
+  setInterval(tick, 800)
+</script>
+
+</body>
+</html>
