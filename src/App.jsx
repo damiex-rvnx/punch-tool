@@ -445,7 +445,7 @@ export default function App() {
         @keyframes sd        { from{opacity:0;transform:translateY(-10px);}to{opacity:1;transform:translateY(0);} }
         @keyframes pop       { 0%,100%{transform:scale(1);}50%{transform:scale(1.08);} }
         @keyframes fadeFlash { 0%{opacity:1;}70%{opacity:1;}100%{opacity:0;} }
-        @keyframes dropDown { from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);} }
+        @keyframes dropDown { from{opacity:0;transform:translateY(-10px);}to{opacity:1;transform:translateY(0);} }
         @supports (backdrop-filter: blur(1px)) { .settings-backdrop { backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); } }
         @media (min-width: 800px) {
           .responsive-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 16px !important; }
@@ -620,7 +620,7 @@ function CollapseCard({ css, title, summary, open, onToggle, className, children
         </div>
         <span style={{ fontSize: 10, color: '#4a4a4e', marginLeft: 10, marginTop: 2, flexShrink: 0 }}>{open ? '▲' : '▼'}</span>
       </div>
-      {open && <div style={{ marginTop: 14 }}>{children}</div>}
+      {open && <div style={{ marginTop: 14, animation: 'dropDown .26s cubic-bezier(0.16,1,0.3,1)' }}>{children}</div>}
     </div>
   )
 }
@@ -1063,7 +1063,7 @@ function EndOfShiftCard({ css, s, update, unpaidBreaks }) {
 
       {/* Collapsible wheel */}
       {wheelOpen && (
-        <div style={{ marginTop: 8, background: '#1c1c1e', borderRadius: 14, padding: '6px 0', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'dropDown .18s ease' }}>
+        <div style={{ marginTop: 8, background: '#1c1c1e', borderRadius: 14, padding: '6px 0', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'dropDown .26s cubic-bezier(0.16,1,0.3,1)' }}>
           <div style={{ position: 'absolute', left: 12, right: 12, top: '50%', transform: 'translateY(-50%)', height: 44, borderRadius: 10, border: '1.5px solid #e5342a33', background: '#e5342a08', pointerEvents: 'none' }} />
           <WheelCol items={SHIFT_HOURS} value={s.endHour} onChange={h => update({ endHour: h })} />
           <div style={{ fontSize: 22, fontWeight: 800, color: '#e5342a', padding: '0 4px', lineHeight: 1, userSelect: 'none' }}>h</div>
@@ -1139,7 +1139,7 @@ function DurDropdown({ value, onChange }) {
         </span>
       </div>
       {open && (
-        <div style={{ marginTop: 4, background: '#1c1c1e', border: '1.5px solid #e5342a', borderRadius: 10, overflow: 'hidden', animation: 'dropDown .18s ease' }}>
+        <div style={{ marginTop: 4, background: '#1c1c1e', border: '1.5px solid #e5342a', borderRadius: 10, overflow: 'hidden', animation: 'dropDown .26s cubic-bezier(0.16,1,0.3,1)' }}>
           {DUR_OPTS.map((o, i) => (
             <div
               key={o.v}
