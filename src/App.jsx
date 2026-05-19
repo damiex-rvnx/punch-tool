@@ -144,6 +144,7 @@ export default function App() {
   const [setSnapshot, setSetSnapshot] = useState(null)
   const [confirmCancel, setConfirmCancel] = useState(false)
   const [nextReminderOpen, setNextReminderOpen] = useState(false)
+  const [legalOpen, setLegalOpen] = useState(false)
   const [nowMins, setNowMins] = useState(() => { const n = new Date(); return n.getHours() * 60 + n.getMinutes() })
   const cancelConfirmTimer = useRef(null)
   const timerIds   = useRef([])
@@ -462,16 +463,16 @@ export default function App() {
                 <span style={{ fontSize: 14 }}>{nextItem.emoji}</span>
                 <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 900, color: '#e5342a', letterSpacing: '0.04em' }}>{countdown}</span>
               </button>
-              {nextReminderOpen && (
-                <div style={{ position: 'fixed', top: 68, left: 16, zIndex: 9989, background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 14, padding: '14px 16px', minWidth: 220, maxWidth: 280, boxShadow: '0 8px 32px rgba(0,0,0,.6)', animation: 'dropDown .38s cubic-bezier(0.16,1,0.3,1)' }}>
+              <AnimatedReveal show={nextReminderOpen} style={{ position: 'fixed', top: 68, left: 16, zIndex: 9989 }}>
+                <div style={{ background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 14, padding: '14px 16px', minWidth: 220, maxWidth: 280, boxShadow: '0 8px 32px rgba(0,0,0,.6)' }}>
                   <div style={{ fontSize: 10, color: '#636366', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>Next Reminder</div>
                   <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, fontWeight: 700, color: '#aeaeb2', marginBottom: 6, lineHeight: 1.3 }}>{nextItem.emoji} {nextItem.label}</div>
                   <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 26, fontWeight: 900, color: '#e5342a', lineHeight: 1 }}>in {countdown}</div>
                   <div style={{ fontSize: 11, color: '#636366', marginTop: 4 }}>at {fmtTime(nextItem.fireAt)}{nextTmrw ? ' · tomorrow' : ''}</div>
                   <button onClick={() => setNextReminderOpen(false)} style={{ marginTop: 12, width: '100%', padding: '7px 0', background: 'transparent', border: '1px solid #3a3a3c', borderRadius: 8, color: '#636366', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Dismiss</button>
                 </div>
-              )}
-            </>
+              </AnimatedReveal>
+</>
           )
         })()}
 
@@ -528,6 +529,14 @@ export default function App() {
               </div>
             </div>
             <DebugPanel deviceId={getDeviceId()} lastSetError={lastSetError} />
+            <div style={{ borderTop: '1px solid #3a3a3c', paddingTop: 16, marginTop: 16 }}>
+              <button
+                onClick={() => { setSettingsOpen(false); setLegalOpen(true) }}
+                style={{ background: 'none', border: 'none', color: '#636366', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer', padding: 0 }}
+              >
+                Terms of Service &amp; Privacy Policy ↗
+              </button>
+            </div>
           </div>
         </div>
       </>
@@ -552,6 +561,8 @@ export default function App() {
           <button onClick={() => setAlert(null)} style={{ padding: '12px 32px', background: 'transparent', color: '#f2f2f7', border: '1.5px solid #3a3a3c', borderRadius: 12, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 17, fontWeight: 700, cursor: 'pointer' }}>Got it ✓</button>
         </div>
       )}
+
+      {legalOpen && <LegalModal onClose={() => setLegalOpen(false)} />}
 
       <div style={css.inner}>
         <div style={css.headerWrap}>
@@ -604,6 +615,7 @@ export default function App() {
         @keyframes pop       { 0%,100%{transform:scale(1);}50%{transform:scale(1.08);} }
         @keyframes fadeFlash { 0%{opacity:1;}70%{opacity:1;}100%{opacity:0;} }
         @keyframes dropDown { from{opacity:0;transform:translateY(-16px);}to{opacity:1;transform:translateY(0);} }
+        @keyframes dropUp   { from{opacity:1;transform:translateY(0);}to{opacity:0;transform:translateY(-16px);} }
         @supports (backdrop-filter: blur(1px)) { .settings-backdrop { backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); } }
         @media (min-width: 800px) {
           .responsive-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 16px !important; }
@@ -816,6 +828,74 @@ function SchedulePreviewContent({ css, schedule, s, showLunch, showDinner, unpai
   )
 }
 
+function AnimatedReveal({ show, style = {}, children }) {
+  const [rendered, setRendered] = useState(show)
+  const [closing, setClosing]   = useState(false)
+  useEffect(() => {
+    if (show) { setRendered(true); setClosing(false) }
+    else if (rendered) setClosing(true)
+  }, [show])
+  if (!rendered) return null
+  return (
+    <div
+      style={{ ...style, animation: closing ? 'dropUp .36s cubic-bezier(0.16,1,0.3,1) forwards' : 'dropDown .42s cubic-bezier(0.16,1,0.3,1)' }}
+      onAnimationEnd={() => { if (closing) { setRendered(false); setClosing(false) } }}
+    >
+      {children}
+    </div>
+  )
+}
+
+function LegalModal({ onClose }) {
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9993, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'flex-end', animation: 'sd .25s ease' }}>
+      <div style={{ width: '100%', maxHeight: '90vh', background: '#1c1c1e', borderRadius: '20px 20px 0 0', display: 'flex', flexDirection: 'column', overflow: 'hidden', animation: 'dropDown .42s cubic-bezier(0.16,1,0.3,1)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 14px', borderBottom: '1px solid #3a3a3c', flexShrink: 0 }}>
+          <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#8e8e93' }}>Terms of Service &amp; Privacy Policy</div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#8e8e93', fontSize: 28, cursor: 'pointer', padding: '0 2px', lineHeight: 1, fontWeight: 300, fontFamily: 'system-ui' }}>×</button>
+        </div>
+        <div style={{ overflowY: 'auto', padding: '20px 20px 40px', WebkitOverflowScrolling: 'touch' }}>
+          {[
+            {
+              heading: 'Terms of Service',
+              body: [
+                ['Free to use', 'Clock-Bot is provided free of charge with no subscription or in-app purchases.'],
+                ['No warranty', 'This app is provided "as is" without warranty of any kind. We do not guarantee that notifications will be delivered on time or at all — delivery depends on your device settings, browser permissions, network connectivity, and push service availability.'],
+                ['Your responsibility', 'You are solely responsible for clocking in and out in ADP or any other timekeeping system on time. Clock-Bot is a reminder tool only and does not interact with ADP or any payroll system.'],
+                ['Not affiliated with ADP', 'Clock-Bot is an independent tool and is not affiliated with, endorsed by, or connected to ADP or any of its products.'],
+                ['Changes', 'We may update these terms at any time. Continued use of the app after changes constitutes acceptance.'],
+              ],
+            },
+            {
+              heading: 'Privacy Policy',
+              body: [
+                ['What we collect', 'An anonymous random device ID (generated on your device and never linked to your identity), your push notification subscription endpoint (required to deliver notifications), and your schedule settings.'],
+                ['What we do NOT collect', 'No name, email address, phone number, location, or any personally identifiable information is ever collected or transmitted.'],
+                ['How data is used', 'Your device ID, push endpoint, and schedule are stored temporarily on Cloudflare Workers solely to schedule and deliver your notifications. This data is not used for any other purpose.'],
+                ['Data retention', 'Schedule data on our server is automatically deleted after your shift ends or within 24 hours, whichever comes first. Cancelling reminders deletes it immediately.'],
+                ['iOS notifications', 'If you use the ntfy.sh option for background notifications on iPhone, only your generated topic code (a random string) is shared with ntfy.sh. No personal data is involved.'],
+                ['Third parties', 'Push notifications are delivered via Cloudflare Workers using standard Web Push (Google FCM / Apple APNS depending on your browser). No data is sold or shared with any third party beyond what is required for notification delivery.'],
+                ['Local storage', 'Your settings are also saved in your browser\'s localStorage. This data never leaves your device except as described above.'],
+              ],
+            },
+          ].map(section => (
+            <div key={section.heading} style={{ marginBottom: 28 }}>
+              <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 17, fontWeight: 900, letterSpacing: '0.06em', color: '#e5342a', textTransform: 'uppercase', marginBottom: 14 }}>{section.heading}</div>
+              {section.body.map(([title, text]) => (
+                <div key={title} style={{ marginBottom: 14 }}>
+                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700, color: '#f2f2f7', marginBottom: 4, letterSpacing: '0.04em' }}>{title}</div>
+                  <div style={{ fontSize: 13, color: '#8e8e93', lineHeight: 1.7 }}>{text}</div>
+                </div>
+              ))}
+            </div>
+          ))}
+          <div style={{ fontSize: 11, color: '#3a3a3c', textAlign: 'center', marginTop: 8 }}>Clock-Bot · Free app · No ads · No tracking</div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function CollapseCard({ css, title, summary, open, onToggle, className, children }) {
   return (
     <div className={className || ''} style={css.card}>
@@ -835,7 +915,7 @@ function CollapseCard({ css, title, summary, open, onToggle, className, children
         </div>
         <span style={{ fontSize: 10, color: '#4a4a4e', marginLeft: 10, marginTop: 2, flexShrink: 0 }}>{open ? '▲' : '▼'}</span>
       </div>
-      {open && <div style={{ marginTop: 14, animation: 'dropDown .42s cubic-bezier(0.16,1,0.3,1)' }}>{children}</div>}
+      <AnimatedReveal show={open} style={{ marginTop: 14 }}>{children}</AnimatedReveal>
     </div>
   )
 }
@@ -1302,15 +1382,15 @@ function EndOfShiftCard({ css, s, update, unpaidBreaks, isOvernight }) {
       </div>
 
       {/* Collapsible wheel */}
-      {wheelOpen && (
-        <div style={{ marginTop: 8, background: '#1c1c1e', borderRadius: 14, padding: '6px 0', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'dropDown .42s cubic-bezier(0.16,1,0.3,1)' }}>
+      <AnimatedReveal show={wheelOpen} style={{ marginTop: 8 }}>
+        <div style={{ background: '#1c1c1e', borderRadius: 14, padding: '6px 0', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ position: 'absolute', left: 12, right: 12, top: '50%', transform: 'translateY(-50%)', height: 44, borderRadius: 10, border: '1.5px solid #e5342a33', background: '#e5342a08', pointerEvents: 'none' }} />
           <WheelCol items={SHIFT_HOURS} value={s.endHour} onChange={h => update({ endHour: h })} />
           <div style={{ fontSize: 22, fontWeight: 800, color: '#e5342a', padding: '0 4px', lineHeight: 1, userSelect: 'none' }}>h</div>
           <WheelCol items={SHIFT_MINS} value={endMin} onChange={m => update({ endMin: m })} fmt={v => String(v).padStart(2, '0')} />
           <div style={{ fontSize: 22, fontWeight: 800, color: '#e5342a', padding: '0 4px', lineHeight: 1, userSelect: 'none' }}>m</div>
         </div>
-      )}
+      </AnimatedReveal>
 
       {/* Clock-out time input — always visible, stays in sync with wheel */}
       <div style={{ marginTop: 12 }}>
@@ -1409,8 +1489,8 @@ function DurDropdown({ value, onChange }) {
           {open ? 'DONE ▲' : 'EDIT ▼'}
         </span>
       </div>
-      {open && (
-        <div style={{ marginTop: 4, background: '#1c1c1e', border: '1.5px solid #e5342a', borderRadius: 10, overflow: 'hidden', animation: 'dropDown .42s cubic-bezier(0.16,1,0.3,1)' }}>
+      <AnimatedReveal show={open}>
+        <div style={{ marginTop: 4, background: '#1c1c1e', border: '1.5px solid #e5342a', borderRadius: 10, overflow: 'hidden' }}>
           {DUR_OPTS.map((o, i) => (
             <div
               key={o.v}
@@ -1422,7 +1502,7 @@ function DurDropdown({ value, onChange }) {
             </div>
           ))}
         </div>
-      )}
+      </AnimatedReveal>
     </>
   )
 }
