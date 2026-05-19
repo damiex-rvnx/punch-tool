@@ -143,6 +143,8 @@ export default function App() {
   const [lastSetError, setLastSetError] = useState(null)
   const [setSnapshot, setSetSnapshot] = useState(null)
   const [confirmCancel, setConfirmCancel] = useState(false)
+  const [nextReminderOpen, setNextReminderOpen] = useState(false)
+  const [nowMins, setNowMins] = useState(() => { const n = new Date(); return n.getHours() * 60 + n.getMinutes() })
   const cancelConfirmTimer = useRef(null)
   const timerIds   = useRef([])
   const toastTimer = useRef(null)
@@ -170,6 +172,11 @@ export default function App() {
       .then(r => r.json())
       .then(data => { if (data.exists) setIsSet(true) })
       .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    const id = setInterval(() => { const n = new Date(); setNowMins(n.getHours() * 60 + n.getMinutes()) }, 30000)
+    return () => clearInterval(id)
   }, [])
 
   const update = useCallback(patch => setS(prev => ({ ...prev, ...patch })), [])
@@ -231,6 +238,23 @@ export default function App() {
   function saveAsDefault() {
     localStorage.setItem(USER_DEFAULT_KEY, JSON.stringify(s))
     showToast('Default saved ✓', '#15803d')
+  }
+
+  const nextItem = [...schedule].sort((a, b) => {
+    const ae = a.fireAt < nowMins ? a.fireAt + 1440 : a.fireAt
+    const be = b.fireAt < nowMins ? b.fireAt + 1440 : b.fireAt
+    return ae - be
+  })[0]
+  const nextTmrw = nextItem && nextItem.fireAt < nowMins
+
+  function openADP() {
+    const url = s.adpUrl || 'https://workforcenow.adp.com'
+    if (isIOS) {
+      window.location.href = 'adpmobile://'
+      setTimeout(() => { window.location.href = url }, 1200)
+    } else {
+      window.open(url, '_blank', 'noopener,noreferrer')
+    }
   }
 
   async function subscribePush() {
@@ -407,6 +431,7 @@ export default function App() {
   return (
     <div style={css.page}>
       <>
+        {/* Hamburger — top right */}
         <button
           onClick={() => setSettingsOpen(true)}
           aria-label="Settings"
@@ -415,6 +440,42 @@ export default function App() {
           {[0,1,2].map(i => (
             <span key={i} style={{ display: 'block', width: 18, height: 2, background: '#f2f2f7', borderRadius: 1 }} />
           ))}
+        </button>
+
+        {/* Next-reminder chip — top left, visible when armed */}
+        {isSet && nextItem && (() => {
+          const eff  = nextItem.fireAt < nowMins ? nextItem.fireAt + 1440 : nextItem.fireAt
+          const diff = eff - nowMins
+          const h = Math.floor(diff / 60), m = diff % 60
+          const countdown = h > 0 ? `${h}h${m > 0 ? ` ${m}m` : ''}` : `${m}m`
+          return (
+            <>
+              <button
+                onClick={() => setNextReminderOpen(o => !o)}
+                style={{ position: 'fixed', top: 16, left: 16, zIndex: 9990, display: 'flex', alignItems: 'center', gap: 6, padding: '0 12px', height: 44, borderRadius: 10, border: `1.5px solid ${nextReminderOpen ? '#e5342a' : '#3a3a3c'}`, background: '#2c2c2e', cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,.4)', transition: 'border-color .15s' }}
+              >
+                <span style={{ fontSize: 14 }}>{nextItem.emoji}</span>
+                <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 900, color: '#e5342a', letterSpacing: '0.04em' }}>{countdown}</span>
+              </button>
+              {nextReminderOpen && (
+                <div style={{ position: 'fixed', top: 68, left: 16, zIndex: 9989, background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 14, padding: '14px 16px', minWidth: 220, maxWidth: 280, boxShadow: '0 8px 32px rgba(0,0,0,.6)', animation: 'dropDown .22s cubic-bezier(0.16,1,0.3,1)' }}>
+                  <div style={{ fontSize: 10, color: '#636366', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>Next Reminder</div>
+                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, fontWeight: 700, color: '#aeaeb2', marginBottom: 6, lineHeight: 1.3 }}>{nextItem.emoji} {nextItem.label}</div>
+                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 26, fontWeight: 900, color: '#e5342a', lineHeight: 1 }}>in {countdown}</div>
+                  <div style={{ fontSize: 11, color: '#636366', marginTop: 4 }}>at {fmtTime(nextItem.fireAt)}{nextTmrw ? ' · tomorrow' : ''}</div>
+                  <button onClick={() => setNextReminderOpen(false)} style={{ marginTop: 12, width: '100%', padding: '7px 0', background: 'transparent', border: '1px solid #3a3a3c', borderRadius: 8, color: '#636366', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Dismiss</button>
+                </div>
+              )}
+            </>
+          )
+        })()}
+
+        {/* Floating ADP button — always visible bottom right */}
+        <button
+          onClick={openADP}
+          style={{ position: 'fixed', bottom: 24, right: 16, zIndex: 9980, display: 'flex', alignItems: 'center', gap: 7, padding: '11px 18px', background: '#e5342a', color: '#fff', border: 'none', borderRadius: 28, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, fontWeight: 900, letterSpacing: '0.06em', cursor: 'pointer', boxShadow: '0 4px 18px rgba(229,52,42,0.45)', userSelect: 'none' }}
+        >
+          <span style={{ fontSize: 16 }}>📋</span> Open ADP ↗
         </button>
 
         <div
@@ -476,15 +537,13 @@ export default function App() {
         <div style={{ position: 'fixed', inset: 0, background: '#1c1c1ef5', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 9998, padding: 24 }}>
           <div style={{ fontSize: 72, animation: 'pop 1s ease infinite', marginBottom: 20 }}>{alert.emoji}</div>
           <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 28, fontWeight: 700, textAlign: 'center', maxWidth: 380, marginBottom: 12 }}>{alert.label}</div>
-          <div style={{ color: '#e5342a', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 20, fontWeight: 700, marginBottom: 28 }}>Clock in/out in ADP now!</div>
-          <a
-            href={s.adpUrl || 'https://workforcenow.adp.com'}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ display: 'inline-block', marginBottom: 16, padding: '10px 24px', background: '#e5342a', color: '#fff', borderRadius: 10, textDecoration: 'none', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 16, fontWeight: 700, letterSpacing: '0.06em' }}
+          <div style={{ color: '#e5342a', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 20, fontWeight: 700, marginBottom: 20 }}>Clock in/out in ADP now!</div>
+          <button
+            onClick={() => { setAlert(null); openADP() }}
+            style={{ display: 'inline-block', marginBottom: 20, padding: '13px 32px', background: '#e5342a', color: '#fff', border: 'none', borderRadius: 12, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, fontWeight: 700, letterSpacing: '0.06em', cursor: 'pointer' }}
           >
-            Open ADP ↗
-          </a>
+            📋 Open ADP ↗
+          </button>
           <button onClick={() => setAlert(null)} style={{ padding: '12px 32px', background: 'transparent', color: '#f2f2f7', border: '1.5px solid #3a3a3c', borderRadius: 12, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 17, fontWeight: 700, cursor: 'pointer' }}>Got it ✓</button>
         </div>
       )}
@@ -515,6 +574,7 @@ export default function App() {
           handleCancelClick={handleCancelClick} confirmCancel={confirmCancel}
           isDirty={isDirty} isOvernight={isOvernight}
           showLunch={showLunch} showDinner={showDinner} unpaidBreaks={unpaidBreaks}
+          nowMins={nowMins} nextItem={nextItem} nextTmrw={nextTmrw}
         />
 
         <div style={css.footer}>Crew Clock Reminder</div>
@@ -775,7 +835,7 @@ function CollapseCard({ css, title, summary, open, onToggle, className, children
   )
 }
 
-function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule, isSet, handleSet, handleCancel, handleCancelClick, confirmCancel, isDirty, isOvernight, showLunch, showDinner, unpaidBreaks }) {
+function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule, isSet, handleSet, handleCancel, handleCancelClick, confirmCancel, isDirty, isOvernight, showLunch, showDinner, unpaidBreaks, nowMins, nextItem, nextTmrw }) {
   const openCards = s.openCards || DEFAULT.openCards
   const cardOrder = s.cardOrder || DEFAULT.cardOrder
 
@@ -786,23 +846,6 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
   const endMin   = s.endMin ?? 0
   const endLabel = `${s.endHour}h${endMin ? ` ${String(endMin).padStart(2,'0')}m` : ''}`
   const start    = s.startHour * 60 + s.startMin
-
-  const [nowMins, setNowMins] = useState(() => {
-    const n = new Date(); return n.getHours() * 60 + n.getMinutes()
-  })
-  useEffect(() => {
-    const id = setInterval(() => {
-      const n = new Date(); setNowMins(n.getHours() * 60 + n.getMinutes())
-    }, 30000)
-    return () => clearInterval(id)
-  }, [])
-
-  const nextItem = [...schedule].sort((a, b) => {
-    const ae = a.fireAt < nowMins ? a.fireAt + 1440 : a.fireAt
-    const be = b.fireAt < nowMins ? b.fireAt + 1440 : b.fireAt
-    return ae - be
-  })[0]
-  const nextTmrw = nextItem && nextItem.fireAt < nowMins
 
   const cardDefs = {
     schedulePreview: {
