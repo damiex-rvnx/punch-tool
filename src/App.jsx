@@ -870,8 +870,8 @@ function AnimatedReveal({ show, style = {}, children }) {
 function LegalModal({ onClose }) {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 9993, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'flex-end', animation: 'sd .25s ease' }}>
-      <div style={{ width: '100%', maxHeight: '90vh', background: '#1c1c1e', borderRadius: '20px 20px 0 0', display: 'flex', flexDirection: 'column', overflow: 'hidden', animation: 'dropDown .42s cubic-bezier(0.16,1,0.3,1)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 14px', borderBottom: '1px solid #3a3a3c', flexShrink: 0 }}>
+      <div style={{ width: '100%', maxHeight: '90vh', background: 'var(--bg)', borderRadius: '20px 20px 0 0', display: 'flex', flexDirection: 'column', overflow: 'hidden', animation: 'dropDown .42s cubic-bezier(0.16,1,0.3,1)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 14px', borderBottom: '1px solid var(--bdr)', flexShrink: 0 }}>
           <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#8e8e93' }}>Terms of Service &amp; Privacy Policy</div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#8e8e93', fontSize: 28, cursor: 'pointer', padding: '0 2px', lineHeight: 1, fontWeight: 300, fontFamily: 'system-ui' }}>×</button>
         </div>
@@ -905,7 +905,7 @@ function LegalModal({ onClose }) {
               {section.body.map(([title, text]) => (
                 <div key={title} style={{ marginBottom: 14 }}>
                   <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700, color: '#f2f2f7', marginBottom: 4, letterSpacing: '0.04em' }}>{title}</div>
-                  <div style={{ fontSize: 13, color: '#8e8e93', lineHeight: 1.7 }}>{text}</div>
+                  <div style={{ fontSize: 13, color: 'var(--lbl)', lineHeight: 1.7 }}>{text}</div>
                 </div>
               ))}
             </div>
@@ -1389,7 +1389,7 @@ function EndOfShiftCard({ css, s, update, unpaidBreaks, isOvernight }) {
       {/* Duration display box — tap to open wheel */}
       <div
         onClick={() => setWheelOpen(o => !o)}
-        style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#1c1c1e', border: `1.5px solid ${wheelOpen ? '#e5342a' : '#3a3a3c'}`, borderRadius: 10, padding: '13px 14px', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 22, fontWeight: 700, color: '#f2f2f7', transition: 'border-color .15s', userSelect: 'none' }}
+        style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--inp)', border: `1.5px solid ${wheelOpen ? '#e5342a' : 'var(--bdr)'}`, borderRadius: 10, padding: '13px 14px', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 22, fontWeight: 700, color: '#f2f2f7', transition: 'border-color .15s', userSelect: 'none' }}
       >
         <span>
           {String(s.endHour).padStart(2, '0')}
@@ -1404,7 +1404,7 @@ function EndOfShiftCard({ css, s, update, unpaidBreaks, isOvernight }) {
 
       {/* Collapsible wheel */}
       <AnimatedReveal show={wheelOpen} style={{ marginTop: 8 }}>
-        <div style={{ background: '#1c1c1e', borderRadius: 14, padding: '6px 0', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ background: 'var(--inp)', borderRadius: 14, padding: '6px 0', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ position: 'absolute', left: 12, right: 12, top: '50%', transform: 'translateY(-50%)', height: 44, borderRadius: 10, border: '1.5px solid #e5342a33', background: '#e5342a08', pointerEvents: 'none' }} />
           <WheelCol items={SHIFT_HOURS} value={s.endHour} onChange={h => update({ endHour: h })} />
           <div style={{ fontSize: 22, fontWeight: 800, color: '#e5342a', padding: '0 4px', lineHeight: 1, userSelect: 'none' }}>h</div>
@@ -1511,12 +1511,12 @@ function DurDropdown({ value, onChange }) {
         </span>
       </div>
       <AnimatedReveal show={open}>
-        <div style={{ marginTop: 4, background: '#1c1c1e', border: '1.5px solid #e5342a', borderRadius: 10, overflow: 'hidden' }}>
+        <div style={{ marginTop: 4, background: 'var(--inp)', border: '1.5px solid #e5342a', borderRadius: 10, overflow: 'hidden' }}>
           {DUR_OPTS.map((o, i) => (
             <div
               key={o.v}
               onClick={() => { onChange(o.v); setOpen(false); navigator.vibrate?.(10) }}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', cursor: 'pointer', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 17, fontWeight: 700, color: o.v === value ? '#e5342a' : '#f2f2f7', background: o.v === value ? '#e5342a0f' : 'transparent', borderBottom: i < DUR_OPTS.length - 1 ? '1px solid #2c2c2e' : 'none' }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', cursor: 'pointer', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 17, fontWeight: 700, color: o.v === value ? '#e5342a' : '#f2f2f7', background: o.v === value ? '#e5342a0f' : 'transparent', borderBottom: i < DUR_OPTS.length - 1 ? '1px solid var(--bdr)' : 'none' }}
             >
               <span>{o.l}</span>
               {o.v === value && <span style={{ fontSize: 13 }}>✓</span>}
