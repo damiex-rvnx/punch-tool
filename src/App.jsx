@@ -869,7 +869,7 @@ function ShiftTimeline({ s, schedule, showLunch, showDinner, unpaidBreaks, updat
         return { text: fmtTime(t), pct: 0 }
       }
       case 'lo': {
-        const rel = Math.max(60, Math.min(8 * 60, s5(Math.round(abs - curStart))))
+        const rel = Math.max(4 * 60, Math.min(5 * 60, Math.round((abs - curStart) / 15) * 15))
         updRef.current({ lunchHour: rel / 60 })
         navigator.vibrate?.(5)
         return { text: fmtTime(curStart + rel), pct: p * 100 }
@@ -882,8 +882,7 @@ function ShiftTimeline({ s, schedule, showLunch, showDinner, unpaidBreaks, updat
         return { text: `${w}m warn`, pct: p * 100 }
       }
       case 'dout': {
-        const minD = h2m(cur.lunchHour) + cur.lunchDuration + 60
-        const rel  = Math.max(minD, Math.min(14 * 60, s5(Math.round(abs - curStart))))
+        const rel = Math.max(9 * 60, Math.min(10 * 60, Math.round((abs - curStart) / 15) * 15))
         updRef.current({ dinnerHour: rel / 60 })
         navigator.vibrate?.(5)
         return { text: fmtTime(curStart + rel), pct: p * 100 }
