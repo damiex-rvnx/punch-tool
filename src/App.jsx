@@ -249,9 +249,14 @@ export default function App() {
 
   function openADP() {
     const url = s.adpUrl || 'https://workforcenow.adp.com'
+    const isStandalone = window.navigator.standalone === true ||
+      window.matchMedia('(display-mode: standalone)').matches
     if (isIOS) {
       window.location.href = 'adpmobile://'
-      setTimeout(() => { window.location.href = url }, 1200)
+      if (!isStandalone) {
+        // In browser only: fall back to web tab if app isn't installed
+        setTimeout(() => { window.location.href = url }, 1200)
+      }
     } else {
       window.open(url, '_blank', 'noopener,noreferrer')
     }
