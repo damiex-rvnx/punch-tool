@@ -154,10 +154,11 @@ export default function App() {
 
   const update = useCallback(patch => setS(prev => ({ ...prev, ...patch })), [])
 
-  const endMin     = s.endMin ?? 0
-  const endTotal   = s.endHour * 60 + endMin
-  const showLunch  = endTotal > 300
-  const showDinner = endTotal > 720
+  const endMin      = s.endMin ?? 0
+  const endTotal    = s.endHour * 60 + endMin
+  const showLunch   = endTotal > 300
+  const showDinner  = endTotal > 720
+  const unpaidBreaks = (showLunch ? s.lunchDuration : 0) + (showDinner && s.dinnerEnabled ? s.dinnerDuration : 0)
 
   const schedule = (() => {
     const start     = s.startHour * 60 + s.startMin
@@ -165,7 +166,7 @@ export default function App() {
     const lunchIn   = lunchOut + s.lunchDuration
     const dinnerOut = start + h2m(s.dinnerHour)
     const dinnerIn  = dinnerOut + s.dinnerDuration
-    const endOut    = start + endTotal
+    const endOut    = start + endTotal + unpaidBreaks
     return [
       { id: 'ci',   emoji: '⏰', label: 'Clock In',                                        fireAt: start },
       ...(showLunch ? [
@@ -417,7 +418,7 @@ export default function App() {
           timeVal={timeVal} handleTimeChange={handleTimeChange}
           schedule={schedule} isSet={isSet}
           handleSet={handleSet} handleCancel={handleCancel}
-          showLunch={showLunch} showDinner={showDinner}
+          showLunch={showLunch} showDinner={showDinner} unpaidBreaks={unpaidBreaks}
         />
 
         <div style={css.footer}>Crew Clock Reminder</div>
@@ -571,7 +572,7 @@ function DesktopTimePicker({ startHour, startMin, onHourMin }) {
   )
 }
 
-function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule, isSet, handleSet, handleCancel, showLunch, showDinner }) {
+function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule, isSet, handleSet, handleCancel, showLunch, showDinner, unpaidBreaks }) {
   return (
     <div className="responsive-grid" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div className="card-full" style={css.card}>
@@ -590,7 +591,7 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
         <div style={css.hint}>&#x1F4A1; Set this the night before if you know your start time</div>
       </div>
 
-      <div style={css.card}><EndOfShiftCard css={css} s={s} update={update} /></div>
+      <div style={css.card}><EndOfShiftCard css={css} s={s} update={update} unpaidBreaks={unpaidBreaks} /></div>
       {showLunch  && <div style={css.card}><LunchCard  css={css} s={s} update={update} /></div>}
       {showDinner && <div style={css.card}><DinnerCard css={css} s={s} update={update} /></div>}
 
@@ -881,12 +882,12 @@ function Toggle({ on, onToggle, label }) {
   )
 }
 
-function EndOfShiftCard({ css, s, update }) {
+function EndOfShiftCard({ css, s, update, unpaidBreaks }) {
   const [wheelOpen, setWheelOpen] = useState(false)
   const endMin = s.endMin ?? 0
   const endLabel = `${s.endHour}h${endMin ? ` ${String(endMin).padStart(2, '0')}m` : ''}`
 
-  const clockOutTotal = (s.startHour * 60 + s.startMin + s.endHour * 60 + endMin) % 1440
+  const clockOutTotal = (s.startHour * 60 + s.startMin + s.endHour * 60 + endMin + unpaidBreaks) % 1440
   const clockOutH   = Math.floor(clockOutTotal / 60)
   const clockOutM   = clockOutTotal % 60
   const clockOutVal = `${pad2(clockOutH)}:${pad2(clockOutM)}`
@@ -895,9 +896,10 @@ function EndOfShiftCard({ css, s, update }) {
     const [h, m] = e.target.value.split(':').map(Number)
     if (isNaN(h) || isNaN(m)) return
     const startMins = s.startHour * 60 + s.startMin
-    let diff = h * 60 + m - startMins
-    if (diff <= 0) diff += 1440
-    update({ endHour: Math.min(24, Math.max(4, Math.floor(diff / 60))), endMin: diff % 60 })
+    let elapsed = h * 60 + m - startMins
+    if (elapsed <= 0) elapsed += 1440
+    const workedMins = Math.max(0, elapsed - unpaidBreaks)
+    update({ endHour: Math.min(24, Math.max(4, Math.floor(workedMins / 60))), endMin: workedMins % 60 })
   }
 
   return (
@@ -935,15 +937,16 @@ function EndOfShiftCard({ css, s, update }) {
       )}
 
       {/* Clock-out time input — always visible, stays in sync with wheel */}
-      <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 11, color: '#8e8e93', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Clock-out time</div>
-          <div style={{ overflow: 'hidden' }}>
-            <input type="time" value={clockOutVal} onChange={handleClockOutChange} />
-          </div>
+      <div style={{ marginTop: 12 }}>
+        <div style={{ fontSize: 11, color: '#8e8e93', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Clock-out time</div>
+        <div style={{ overflow: 'hidden' }}>
+          <input type="time" value={clockOutVal} onChange={handleClockOutChange} />
         </div>
-        <div style={{ fontSize: 11, color: '#636366', lineHeight: 1.5, paddingTop: 18 }}>
-          = <span style={{ color: '#e5342a', fontWeight: 700 }}>{endLabel}</span> shift
+        <div style={{ fontSize: 11, color: '#636366', marginTop: 6, lineHeight: 1.6 }}>
+          <span style={{ color: '#e5342a', fontWeight: 700 }}>{endLabel}</span> worked
+          {unpaidBreaks > 0 && (
+            <span> + <span style={{ color: '#8e8e93' }}>{unpaidBreaks}m unpaid break</span></span>
+          )}
         </div>
       </div>
 
