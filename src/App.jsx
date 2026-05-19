@@ -613,7 +613,7 @@ function CollapseCard({ css, title, summary, open, onToggle, className, children
             {title}
           </div>
           {!open && summary && (
-            <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, fontWeight: 700, color: '#aeaeb2', marginTop: 5, letterSpacing: '0.03em', lineHeight: 1.4 }}>
+            <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, fontWeight: 700, color: '#e5342a', marginTop: 5, letterSpacing: '0.03em', lineHeight: 1.4 }}>
               {summary}
             </div>
           )}
@@ -656,7 +656,7 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
     },
     shiftLength: {
       title: '🏁 SHIFT LENGTH',
-      summary: `${endLabel} shift  ·  clock out ${fmtTime(start + s.endHour * 60 + endMin + unpaidBreaks)}`,
+      summary: `clock out ${fmtTime(start + s.endHour * 60 + endMin + unpaidBreaks)}  ·  ${endLabel} shift`,
       visible: true,
       render: () => <EndOfShiftCard css={css} s={s} update={update} unpaidBreaks={unpaidBreaks} />,
     },
