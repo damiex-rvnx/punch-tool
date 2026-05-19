@@ -884,6 +884,13 @@ function ShiftTimeline({ s, schedule, showLunch, showDinner, unpaidBreaks, updat
         navigator.vibrate?.(5)
         return { text: `${w}m warn`, pct: p * 100 }
       }
+      case 'li': {
+        const lunchOut = curStart + h2m(cur.lunchHour)
+        const dur = Math.max(30, Math.min(60, Math.round((abs - lunchOut) / 15) * 15))
+        updRef.current({ lunchDuration: dur })
+        navigator.vibrate?.(5)
+        return { text: `${dur}m break`, pct: p * 100 }
+      }
       case 'dout': {
         const rel = Math.max(9 * 60, Math.min(10 * 60, Math.round((abs - curStart) / 15) * 15))
         updRef.current({ dinnerHour: rel / 60 })
@@ -896,6 +903,13 @@ function ShiftTimeline({ s, schedule, showLunch, showDinner, unpaidBreaks, updat
         updRef.current({ dinnerWarning: w })
         navigator.vibrate?.(5)
         return { text: `${w}m warn`, pct: p * 100 }
+      }
+      case 'din': {
+        const dinnerOut = curStart + h2m(cur.dinnerHour)
+        const dur = Math.max(30, Math.min(60, Math.round((abs - dinnerOut) / 15) * 15))
+        updRef.current({ dinnerDuration: dur })
+        navigator.vibrate?.(5)
+        return { text: `${dur}m break`, pct: p * 100 }
       }
       case 'eo': {
         const rel = Math.max(240, s5(Math.round(abs - curStart - curUnp)))
@@ -954,16 +968,16 @@ function ShiftTimeline({ s, schedule, showLunch, showDinner, unpaidBreaks, updat
     navigator.vibrate?.(10)
   }
 
-  const draggable = new Set(['ci', 'lo', 'lw', 'dout', 'dw', 'eo', 'ew'])
+  const draggable = new Set(['ci', 'lo', 'lw', 'li', 'dout', 'dw', 'din', 'eo', 'ew'])
   const dots = schedule.filter(i => ['ciw', 'ci', 'lw', 'lo', 'li', 'dw', 'dout', 'din', 'ew', 'eo', 'ef'].includes(i.id))
 
   const dotColor = id => {
-    if (id === 'ci')  return '#32d74b'
+    if (['ci', 'li', 'din'].includes(id)) return '#32d74b'
     if (id === 'eo')  return '#e5342a'
     if (id.endsWith('w')) return '#d97706'
     return 'var(--hint)'
   }
-  const dotSz = id => ['ci', 'lo', 'dout', 'eo'].includes(id) ? 13 : id.endsWith('w') ? 10 : 8
+  const dotSz = id => ['ci', 'lo', 'li', 'dout', 'din', 'eo'].includes(id) ? 13 : id.endsWith('w') ? 10 : 8
 
   return (
     <div style={{ marginBottom: 16 }}>
@@ -1789,16 +1803,20 @@ function ClockInCard({ css, s, update, timeVal, handleTimeChange }) {
 
       {/* Collapsible wheel */}
       <AnimatedReveal show={wheelOpen} style={{ marginTop: 8 }}>
-        <div style={{ background: 'var(--inp)', borderRadius: 14, padding: '6px 0', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ position: 'absolute', left: 12, right: 12, top: '50%', transform: 'translateY(-50%)', height: 44, borderRadius: 10, border: '1.5px solid #e5342a33', background: '#e5342a08', pointerEvents: 'none' }} />
-          <WheelCol items={WHEEL_HOURS} value={h12} onChange={h => update({ startHour: (h % 12) + (ampm === 'PM' ? 12 : 0) })} />
-          <div style={{ fontSize: 30, fontWeight: 800, color: '#e5342a', padding: '0 2px', lineHeight: 1, userSelect: 'none' }}>:</div>
-          <WheelCol items={WHEEL_MINS} value={s.startMin} onChange={m => update({ startMin: m })} fmt={v => String(v).padStart(2, '0')} />
-          <div style={{ marginLeft: 10, display: 'flex', flexDirection: 'column', gap: 6, paddingRight: 6 }}>
+        <div style={{ background: 'var(--inp)', borderRadius: 14, padding: '6px 0 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+          {/* Hour : Minute wheels */}
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ position: 'absolute', left: 12, right: 12, top: '50%', transform: 'translateY(-50%)', height: 44, borderRadius: 10, border: '1.5px solid #e5342a33', background: '#e5342a08', pointerEvents: 'none' }} />
+            <WheelCol items={WHEEL_HOURS} value={h12} onChange={h => update({ startHour: (h % 12) + (ampm === 'PM' ? 12 : 0) })} />
+            <div style={{ fontSize: 30, fontWeight: 800, color: '#e5342a', padding: '0 2px', lineHeight: 1, userSelect: 'none' }}>:</div>
+            <WheelCol items={WHEEL_MINS} value={s.startMin} onChange={m => update({ startMin: m })} fmt={v => String(v).padStart(2, '0')} />
+          </div>
+          {/* AM / PM below wheels — outside the selection box */}
+          <div style={{ display: 'flex', gap: 8 }}>
             {['AM', 'PM'].map(ap => (
               <button key={ap}
                 onClick={e => { e.stopPropagation(); ap !== ampm && update({ startHour: s.startHour < 12 ? s.startHour + 12 : s.startHour - 12 }) }}
-                style={{ padding: '6px 12px', borderRadius: 8, border: 'none', cursor: ap === ampm ? 'default' : 'pointer', background: ap === ampm ? '#e5342a' : 'transparent', color: ap === ampm ? '#fff' : 'var(--hint)', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, fontWeight: 700, letterSpacing: '0.06em', transition: 'all .15s', outline: 'none' }}>
+                style={{ padding: '6px 20px', borderRadius: 8, border: 'none', cursor: ap === ampm ? 'default' : 'pointer', background: ap === ampm ? '#e5342a' : 'var(--muted)', color: ap === ampm ? '#fff' : 'var(--fg2)', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, fontWeight: 700, letterSpacing: '0.06em', transition: 'all .15s', outline: 'none' }}>
                 {ap}
               </button>
             ))}
