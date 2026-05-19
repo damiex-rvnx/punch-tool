@@ -678,9 +678,9 @@ function WheelCol({ items, value, onChange, fmt = String }) {
     const s = st.current
     const track = trackRef.current
     if (!track) return
-    const offset = -s.idx * ITEM_H + s.dragY
+    // dragY is the sole offset — slots always render the 5 items around idx
     track.style.transition = animated ? 'transform 0.22s cubic-bezier(0.34,1.56,0.64,1)' : 'none'
-    track.style.transform  = `translateY(${offset}px)`
+    track.style.transform  = `translateY(${s.dragY}px)`
     elRefs.current.forEach((el, slot) => {
       if (!el) return
       const itemIdx = ((s.idx - 2 + slot) % N + N) % N
@@ -694,10 +694,11 @@ function WheelCol({ items, value, onChange, fmt = String }) {
     })
   }, [N])
 
+  // Used during touch drag only — advances idx and compensates dragY to keep items in view
   const step = useCallback((dir) => {
     const s = st.current
     s.idx   = ((s.idx + dir) % N + N) % N
-    s.dragY -= dir * ITEM_H
+    s.dragY += dir * ITEM_H   // compensate: slot shifts one position, so dragY offsets by +ITEM_H
     applyDOM(false)
     cbRef.current(itmRef.current[s.idx])
     if (navigator.vibrate) navigator.vibrate(6)
@@ -723,9 +724,11 @@ function WheelCol({ items, value, onChange, fmt = String }) {
     const onWheel = e => {
       e.preventDefault()
       if (st.current.raf) { cancelAnimationFrame(st.current.raf); st.current.raf = null }
+      const dir = e.deltaY > 0 ? 1 : -1
+      st.current.idx   = ((st.current.idx + dir) % N + N) % N
       st.current.dragY = 0
-      step(e.deltaY > 0 ? 1 : -1)
-      applyDOM(true)
+      applyDOM(false)
+      cbRef.current(itmRef.current[st.current.idx])
     }
 
     const onTouchStart = e => {
@@ -784,14 +787,14 @@ function WheelCol({ items, value, onChange, fmt = String }) {
   }, [N, step, applyDOM])
 
   const handleClick = e => {
-    const rect   = colRef.current.getBoundingClientRect()
-    const clickY = e.clientY - rect.top
-    const offset = Math.round((clickY - ITEM_H * 2) / ITEM_H)
-    if (offset !== 0) {
-      st.current.dragY = 0
-      step(offset)
-      applyDOM(true)
-    }
+    const rect     = colRef.current.getBoundingClientRect()
+    const clickY   = e.clientY - rect.top
+    const slotOff  = Math.round(clickY / ITEM_H) - 2  // slots 0-4, center = slot 2
+    if (slotOff === 0) return
+    st.current.idx   = ((st.current.idx + slotOff) % N + N) % N
+    st.current.dragY = 0
+    applyDOM(false)
+    cbRef.current(itmRef.current[st.current.idx])
   }
 
   return (
