@@ -54,7 +54,7 @@ function ClockIcon({ size = 96 }) {
   )
 }
 
-const STORAGE_KEY = 'qwik_crew_v12'
+const STORAGE_KEY = 'qwik_crew_v13'
 
 const DEFAULT = {
   startHour: 7,
@@ -66,9 +66,11 @@ const DEFAULT = {
   dinnerWarning: 5,
   dinnerDuration: 30,
   dinnerEnabled: true,
-  endHour: 8.00,
+  endHour: 8,
+  endMin: 0,
   endWarning: 15,
   endEnabled: true,
+  endFollowupEnabled: true,
 }
 
 const LUNCH_OPTS = [
@@ -87,7 +89,8 @@ const DINNER_OPTS = [
   { l: '10h 00m', v: 10.00 },
 ]
 
-const END_OPTS = Array.from({ length: 13 }, (_, i) => ({ l: `${i + 4}h`, v: i + 4 }))
+const SHIFT_HOURS = Array.from({ length: 13 }, (_, i) => i + 4)
+const SHIFT_MINS  = [0, 15, 30, 45]
 
 const DUR_OPTS = [
   { l: '30 min', v: 30 },
@@ -151,8 +154,10 @@ export default function App() {
 
   const update = useCallback(patch => setS(prev => ({ ...prev, ...patch })), [])
 
-  const showLunch  = s.endHour > 5
-  const showDinner = s.endHour > 12
+  const endMin     = s.endMin ?? 0
+  const endTotal   = s.endHour * 60 + endMin
+  const showLunch  = endTotal > 300
+  const showDinner = endTotal > 720
 
   const schedule = (() => {
     const start     = s.startHour * 60 + s.startMin
@@ -160,7 +165,7 @@ export default function App() {
     const lunchIn   = lunchOut + s.lunchDuration
     const dinnerOut = start + h2m(s.dinnerHour)
     const dinnerIn  = dinnerOut + s.dinnerDuration
-    const endOut    = start + h2m(s.endHour)
+    const endOut    = start + endTotal
     return [
       { id: 'ci',   emoji: '⏰', label: 'Clock In',                                        fireAt: start },
       ...(showLunch ? [
@@ -176,7 +181,9 @@ export default function App() {
       ...(s.endEnabled ? [
         { id: 'ew', emoji: '⚠️', label: `Shift ends in ${s.endWarning} min — heads up!`, fireAt: endOut - s.endWarning },
         { id: 'eo', emoji: '🏁', label: 'Clock Out — End of Shift',                      fireAt: endOut },
-        { id: 'ef', emoji: '❓', label: 'Still on the clock? Clock out now!',            fireAt: endOut + 30 },
+        ...(s.endFollowupEnabled ? [
+          { id: 'ef', emoji: '❓', label: 'Still on the clock? Clock out now!',          fireAt: endOut + 30 },
+        ] : []),
       ] : []),
     ]
   })()
@@ -459,13 +466,38 @@ function WheelCol({ items, value, onChange, fmt = String }) {
 
   useEffect(() => {
     const el = colRef.current
-    const handler = e => {
+    let touchStartY = 0
+    let touchAccum  = 0
+
+    const onWheel = e => {
       e.preventDefault()
       const next = (idxRef.current + (e.deltaY > 0 ? 1 : -1) + items.length) % items.length
       onChgRef.current(items[next])
     }
-    el.addEventListener('wheel', handler, { passive: false })
-    return () => el.removeEventListener('wheel', handler)
+    const onTouchStart = e => {
+      touchStartY = e.touches[0].clientY
+      touchAccum  = 0
+    }
+    const onTouchMove = e => {
+      e.preventDefault()
+      const dy = touchStartY - e.touches[0].clientY
+      touchAccum  += dy
+      touchStartY  = e.touches[0].clientY
+      if (Math.abs(touchAccum) >= 28) {
+        const next = (idxRef.current + (touchAccum > 0 ? 1 : -1) + items.length) % items.length
+        touchAccum = 0
+        onChgRef.current(items[next])
+      }
+    }
+
+    el.addEventListener('wheel',      onWheel,      { passive: false })
+    el.addEventListener('touchstart', onTouchStart, { passive: true })
+    el.addEventListener('touchmove',  onTouchMove,  { passive: false })
+    return () => {
+      el.removeEventListener('wheel',      onWheel)
+      el.removeEventListener('touchstart', onTouchStart)
+      el.removeEventListener('touchmove',  onTouchMove)
+    }
   }, [items])
 
   return (
@@ -837,18 +869,22 @@ function DebugPanel({ deviceId, lastSetError }) {
   )
 }
 
-function EndOfShiftCard({ css, s, update }) {
-  const endLabel = END_OPTS.find(o => o.v === s.endHour)?.l ?? `${s.endHour}h`
-  const [endFlash, setEndFlash] = useState(null)
-  const endFlashTimer = useRef(null)
+function Toggle({ on, onToggle, label }) {
+  return (
+    <button
+      onClick={onToggle}
+      aria-label={label}
+      style={{ width: 51, height: 31, borderRadius: 15.5, border: 'none', cursor: 'pointer', background: on ? '#32d74b' : '#3a3a3c', position: 'relative', transition: 'background .25s', flexShrink: 0 }}
+    >
+      <span style={{ position: 'absolute', top: 2, left: on ? 22 : 2, width: 27, height: 27, borderRadius: '50%', background: '#fff', transition: 'left .25s' }} />
+    </button>
+  )
+}
 
-  function pickEndHour(v) {
-    update({ endHour: v })
-    const t = fmtTime(s.startHour * 60 + s.startMin + h2m(v))
-    clearTimeout(endFlashTimer.current)
-    setEndFlash({ text: `Shift ends at ${t}`, k: Date.now() })
-    endFlashTimer.current = setTimeout(() => setEndFlash(null), 2500)
-  }
+function EndOfShiftCard({ css, s, update }) {
+  const endMin     = s.endMin ?? 0
+  const endLabel   = `${s.endHour}h${endMin ? ` ${endMin}m` : ''}`
+  const shiftEndAt = fmtTime(s.startHour * 60 + s.startMin + s.endHour * 60 + endMin)
 
   return (
     <>
@@ -856,19 +892,19 @@ function EndOfShiftCard({ css, s, update }) {
         &#x1F3C1; SHIFT LENGTH
         <span style={css.val}>{endLabel} shift</span>
       </div>
-      <div style={{ fontSize: 11, color: '#8e8e93', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Expected Shift Length:</div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-        {END_OPTS.map(o => (
-          <button key={o.v} style={{ ...css.segBase, flex: '1 1 calc(20% - 6px)', minWidth: 52, ...(s.endHour === o.v ? css.segActive : {}) }} onClick={() => pickEndHour(o.v)}>
-            {o.l}
-          </button>
-        ))}
+
+      {/* Duration wheel */}
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#1c1c1e', borderRadius: 14, padding: '6px 0' }}>
+        <div style={{ position: 'absolute', left: 12, right: 12, top: '50%', transform: 'translateY(-50%)', height: 44, borderRadius: 10, border: '1.5px solid #e5342a33', background: '#e5342a08', pointerEvents: 'none' }} />
+        <WheelCol items={SHIFT_HOURS} value={s.endHour} onChange={h => update({ endHour: h })} />
+        <div style={{ fontSize: 16, fontWeight: 700, color: '#636366', padding: '0 6px', userSelect: 'none', fontFamily: "'Barlow Condensed', sans-serif" }}>hr</div>
+        <WheelCol items={SHIFT_MINS} value={endMin} onChange={m => update({ endMin: m })} fmt={v => String(v).padStart(2, '0')} />
+        <div style={{ fontSize: 16, fontWeight: 700, color: '#636366', padding: '0 6px', userSelect: 'none', fontFamily: "'Barlow Condensed', sans-serif" }}>min</div>
       </div>
-      {endFlash && (
-        <div key={endFlash.k} style={{ textAlign: 'center', fontSize: 11, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.08em', color: '#e5342a', marginTop: 6, animation: 'fadeFlash 2.5s ease forwards' }}>
-          {endFlash.text}
-        </div>
-      )}
+      <div style={{ textAlign: 'center', fontSize: 12, color: '#636366', marginTop: 8 }}>
+        Shift ends at <span style={{ color: '#e5342a', fontWeight: 700 }}>{shiftEndAt}</span>
+      </div>
+
       <div style={css.divider} />
       <div style={css.lbl}>
         &#x1F514; HEADS-UP BEFORE SHIFT END
@@ -878,9 +914,7 @@ function EndOfShiftCard({ css, s, update }) {
         <input type="range" min={2} max={30} step={1} value={s.endWarning} onChange={e => update({ endWarning: Number(e.target.value) })} />
         <div style={css.sliderLabels}><span>2 min early</span><span>30 min early</span></div>
       </div>
-      <div style={{ fontSize: 11, color: '#636366', marginTop: 8 }}>
-        A follow-up reminder fires 30 min after shift end if you haven't clocked out.
-      </div>
+
       <div style={css.divider} />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
@@ -889,14 +923,23 @@ function EndOfShiftCard({ css, s, update }) {
             {s.endEnabled ? 'On — remind me to clock out' : 'Off — no end-of-shift alert'}
           </div>
         </div>
-        <button
-          onClick={() => update({ endEnabled: !s.endEnabled })}
-          style={{ width: 51, height: 31, borderRadius: 15.5, border: 'none', cursor: 'pointer', background: s.endEnabled ? '#32d74b' : '#3a3a3c', position: 'relative', transition: 'background .25s', flexShrink: 0 }}
-          aria-label="Toggle end-of-shift reminder"
-        >
-          <span style={{ position: 'absolute', top: 2, left: s.endEnabled ? 22 : 2, width: 27, height: 27, borderRadius: '50%', background: '#fff', transition: 'left .25s' }} />
-        </button>
+        <Toggle on={s.endEnabled} onToggle={() => update({ endEnabled: !s.endEnabled })} label="Toggle end-of-shift reminder" />
       </div>
+
+      {s.endEnabled && (
+        <>
+          <div style={css.divider} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ fontSize: 13, color: '#f2f2f7', fontWeight: 600 }}>❓ 30-min follow-up</div>
+              <div style={{ fontSize: 11, color: '#636366', marginTop: 2 }}>
+                {s.endFollowupEnabled ? 'On — "Still on the clock?" alert' : 'Off — no follow-up'}
+              </div>
+            </div>
+            <Toggle on={s.endFollowupEnabled} onToggle={() => update({ endFollowupEnabled: !s.endFollowupEnabled })} label="Toggle follow-up reminder" />
+          </div>
+        </>
+      )}
     </>
   )
 }
