@@ -463,12 +463,17 @@ export default function App() {
                 <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 900, color: '#e5342a', letterSpacing: '0.04em' }}>{countdown}</span>
               </button>
               <AnimatedReveal show={nextReminderOpen} style={{ position: 'fixed', top: 68, left: 16, zIndex: 9989 }}>
-                <div style={{ background: 'var(--card)', border: '1px solid var(--bdr)', borderRadius: 14, padding: '14px 16px', minWidth: 220, maxWidth: 280, boxShadow: '0 8px 32px rgba(0,0,0,.6)' }}>
-                  <div style={{ fontSize: 10, color: 'var(--hint)', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>Next Reminder</div>
-                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, fontWeight: 700, color: 'var(--fg2)', marginBottom: 6, lineHeight: 1.3 }}>{nextItem.emoji} {nextItem.label}</div>
-                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 26, fontWeight: 900, color: '#e5342a', lineHeight: 1 }}>in {countdown}</div>
-                  <div style={{ fontSize: 11, color: 'var(--hint)', marginTop: 4 }}>at {fmtTime(nextItem.fireAt)}{nextTmrw ? ' · tomorrow' : ''}</div>
-                  <button onClick={() => setNextReminderOpen(false)} style={{ marginTop: 12, width: '100%', padding: '7px 0', background: 'transparent', border: '1px solid var(--bdr)', borderRadius: 8, color: 'var(--hint)', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Dismiss</button>
+                <div style={{ background: 'var(--card)', border: '1px solid var(--bdr)', borderRadius: 14, padding: '14px 16px', minWidth: 230, maxWidth: 290, boxShadow: '0 8px 32px rgba(0,0,0,.6)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <div style={{ fontSize: 10, color: 'var(--hint)', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Next Alert</div>
+                    <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 700, color: 'var(--hint)' }}>{fmtTime(nextItem.fireAt)}{nextTmrw ? ' · tmrw' : ''}</div>
+                  </div>
+                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 26, fontWeight: 900, color: '#e5342a', lineHeight: 1 }}>fires in {countdown}</div>
+                  <div style={{ marginTop: 10, padding: '7px 9px', background: 'var(--inp)', borderRadius: 8, borderLeft: '3px solid var(--bdr)' }}>
+                    <div style={{ fontSize: 9, color: 'var(--hint)', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 2 }}>Notification</div>
+                    <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, fontWeight: 700, color: 'var(--fg2)', lineHeight: 1.3 }}>{nextItem.emoji} {nextItem.label}</div>
+                  </div>
+                  <button onClick={() => setNextReminderOpen(false)} style={{ marginTop: 10, width: '100%', padding: '7px 0', background: 'transparent', border: '1px solid var(--bdr)', borderRadius: 8, color: 'var(--hint)', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Dismiss</button>
                 </div>
               </AnimatedReveal>
 </>
@@ -586,7 +591,7 @@ export default function App() {
           <div style={css.rule} />
           <div style={css.tagline}>Crew Clock Reminder</div>
           {isSet && (
-            <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 6, padding: '5px 14px', borderRadius: 20, background: isDirty ? '#2a1e00' : '#0e2a14', border: `1px solid ${isDirty ? '#d97706' : '#32d74b'}` }}>
+            <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 6, padding: '5px 14px', borderRadius: 20, background: isDirty ? 'rgba(217,119,6,0.12)' : 'rgba(50,215,75,0.12)', border: `1.5px solid ${isDirty ? '#d97706' : '#32d74b'}` }}>
               <span style={{ fontSize: 10 }}>{isDirty ? '⚠️' : '✓'}</span>
               <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: isDirty ? '#d97706' : '#32d74b' }}>
                 {isDirty ? 'Update Needed' : 'Armed'}
@@ -1271,15 +1276,22 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
           const h = Math.floor(diff / 60), m = diff % 60
           const timeStr = h > 0 ? `${h}h${m > 0 ? ` ${m}m` : ''}` : `${m}m`
           return (
-            <div style={{ marginTop: 12, padding: '12px 16px', background: 'var(--card)', border: '1px solid var(--bdr)', borderRadius: 10, textAlign: 'center' }}>
-              <div style={{ fontSize: 10, color: 'var(--hint)', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>Next Reminder</div>
-              <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, fontWeight: 700, color: 'var(--fg2)' }}>
-                {nextItem.emoji} {nextItem.label}
+            <div style={{ marginTop: 12, padding: '14px 16px', background: 'var(--card)', border: '1px solid var(--bdr)', borderRadius: 12, boxShadow: '0 2px 10px rgba(0,0,0,.18)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <div style={{ fontSize: 10, color: 'var(--hint)', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}>Next Alert</div>
+                <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 700, color: 'var(--hint)' }}>
+                  {fmtTime(nextItem.fireAt)}{nextTmrw ? ' · tomorrow' : ''}
+                </div>
               </div>
-              <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 22, fontWeight: 900, color: '#e5342a', marginTop: 2 }}>
-                in {timeStr}
+              <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 26, fontWeight: 900, color: '#e5342a', lineHeight: 1 }}>
+                fires in {timeStr}
               </div>
-              <div style={{ fontSize: 11, color: 'var(--hint)', marginTop: 2 }}>at {fmtTime(nextItem.fireAt)}{nextTmrw ? ' tomorrow' : ''}</div>
+              <div style={{ marginTop: 10, padding: '8px 10px', background: 'var(--inp)', borderRadius: 8, borderLeft: '3px solid var(--bdr)' }}>
+                <div style={{ fontSize: 9, color: 'var(--hint)', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 3 }}>Notification</div>
+                <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, fontWeight: 700, color: 'var(--fg2)' }}>
+                  {nextItem.emoji} {nextItem.label}
+                </div>
+              </div>
             </div>
           )
         })()}
