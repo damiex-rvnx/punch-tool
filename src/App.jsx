@@ -1013,7 +1013,8 @@ function Toggle({ on, onToggle, label }) {
 
 function EndOfShiftCard({ css, s, update, unpaidBreaks }) {
   const [wheelOpen, setWheelOpen] = useState(false)
-  const endMin  = s.endMin ?? 0
+  const endMin   = s.endMin ?? 0
+  const endLabel = `${s.endHour}h${endMin ? ` ${String(endMin).padStart(2, '0')}m` : ''}`
 
   const clockOutTotal = (s.startHour * 60 + s.startMin + s.endHour * 60 + endMin + unpaidBreaks) % 1440
   const clockOutH   = Math.floor(clockOutTotal / 60)
