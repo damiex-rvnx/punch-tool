@@ -30,8 +30,8 @@ function ClockIcon({ size = 96 }) {
     <svg viewBox="0 0 120 120" width={size} height={size} xmlns="http://www.w3.org/2000/svg">
       <rect x="24" y="24" width="72" height="72" rx="14"
             transform="rotate(45 60 60)"
-            fill="#2c2c2e" stroke="#e5342a" strokeWidth="3"/>
-      <circle cx="60" cy="60" r="27" fill="none" stroke="#3a3a3c" strokeWidth="1.5"/>
+            style={{ fill: 'var(--card)', stroke: '#e5342a', strokeWidth: 3 }}/>
+      <circle cx="60" cy="60" r="27" style={{ fill: 'none', stroke: 'var(--bdr)', strokeWidth: 1.5 }}/>
       {ticks.map(deg => {
         const rad = (deg - 90) * Math.PI / 180
         const major = deg % 90 === 0
@@ -40,16 +40,14 @@ function ClockIcon({ size = 96 }) {
           <line key={deg}
             x1={60 + r1 * Math.cos(rad)}      y1={60 + r1 * Math.sin(rad)}
             x2={60 + 27 * Math.cos(rad)}       y2={60 + 27 * Math.sin(rad)}
-            stroke={major ? '#8e8e93' : '#3a3a3c'}
-            strokeWidth={major ? 2 : 1.2}
-            strokeLinecap="round"/>
+            style={{ stroke: major ? 'var(--lbl)' : 'var(--bdr)', strokeWidth: major ? 2 : 1.2, strokeLinecap: 'round' }}/>
         )
       })}
       <line x1="60" y1="60" x2="51" y2="73"
-            stroke="#f2f2f7" strokeWidth="3.5" strokeLinecap="round"/>
+            style={{ stroke: 'var(--fg)', strokeWidth: 3.5, strokeLinecap: 'round' }}/>
       <line x1="60" y1="60" x2="60" y2="37"
-            stroke="#e5342a" strokeWidth="2.5" strokeLinecap="round"/>
-      <circle cx="60" cy="60" r="3" fill="#e5342a"/>
+            style={{ stroke: '#e5342a', strokeWidth: 2.5, strokeLinecap: 'round' }}/>
+      <circle cx="60" cy="60" r="3" style={{ fill: '#e5342a' }}/>
     </svg>
   )
 }
@@ -409,7 +407,7 @@ export default function App() {
   }
 
   const css = {
-    page:        { background: 'var(--bg)', minHeight: '100vh', overflowX: 'hidden', padding: '28px 0 40px', fontFamily: "'Barlow', sans-serif", color: '#f2f2f7' },
+    page:        { background: 'var(--bg)', minHeight: '100vh', overflowX: 'hidden', padding: '28px 0 40px', fontFamily: "'Barlow', sans-serif", color: 'var(--fg)' },
     inner:       { maxWidth: 920, margin: '0 auto', padding: '0 16px' },
     headerWrap:  { display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 28 },
     rule:        { width: 40, height: 2, background: '#e5342a', borderRadius: 2, marginTop: 20 },
@@ -423,7 +421,7 @@ export default function App() {
     segBase:     { flex: 1, padding: '10px 1px', borderRadius: 8, border: '1.5px solid var(--bdr)', background: 'transparent', color: 'var(--fg)', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', overflow: 'hidden', transition: 'all .15s' },
     segActive:   { background: '#e5342a', borderColor: '#e5342a', color: '#fff' },
     durRow:      { display: 'flex', gap: 10, marginTop: 8 },
-    durBase:     { flex: 1, padding: 12, borderRadius: 10, border: '1.5px solid #3a3a3c', background: 'transparent', color: '#f2f2f7', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, fontWeight: 700, cursor: 'pointer', transition: 'all .15s' },
+    durBase:     { flex: 1, padding: 12, borderRadius: 10, border: '1.5px solid var(--bdr)', background: 'transparent', color: 'var(--fg)', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, fontWeight: 700, cursor: 'pointer', transition: 'all .15s' },
     durActive:   { background: '#1a2e1c', borderColor: '#32d74b', color: '#32d74b' },
     sliderWrap:  { marginTop: 10 },
     sliderLabels:{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--hint)', marginTop: 6 },
@@ -445,7 +443,7 @@ export default function App() {
           style={{ position: 'fixed', top: 16, right: 16, zIndex: 9990, width: 44, height: 44, borderRadius: 10, border: '1.5px solid var(--bdr)', background: 'var(--card)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5, cursor: 'pointer', padding: 0, boxShadow: '0 2px 12px rgba(0,0,0,.4)' }}
         >
           {[0,1,2].map(i => (
-            <span key={i} style={{ display: 'block', width: 18, height: 2, background: '#f2f2f7', borderRadius: 1 }} />
+            <span key={i} style={{ display: 'block', width: 18, height: 2, background: 'var(--fg)', borderRadius: 1 }} />
           ))}
         </button>
 
@@ -466,11 +464,11 @@ export default function App() {
               </button>
               <AnimatedReveal show={nextReminderOpen} style={{ position: 'fixed', top: 68, left: 16, zIndex: 9989 }}>
                 <div style={{ background: 'var(--card)', border: '1px solid var(--bdr)', borderRadius: 14, padding: '14px 16px', minWidth: 220, maxWidth: 280, boxShadow: '0 8px 32px rgba(0,0,0,.6)' }}>
-                  <div style={{ fontSize: 10, color: '#636366', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>Next Reminder</div>
-                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, fontWeight: 700, color: '#aeaeb2', marginBottom: 6, lineHeight: 1.3 }}>{nextItem.emoji} {nextItem.label}</div>
+                  <div style={{ fontSize: 10, color: 'var(--hint)', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>Next Reminder</div>
+                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, fontWeight: 700, color: 'var(--fg2)', marginBottom: 6, lineHeight: 1.3 }}>{nextItem.emoji} {nextItem.label}</div>
                   <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 26, fontWeight: 900, color: '#e5342a', lineHeight: 1 }}>in {countdown}</div>
-                  <div style={{ fontSize: 11, color: '#636366', marginTop: 4 }}>at {fmtTime(nextItem.fireAt)}{nextTmrw ? ' · tomorrow' : ''}</div>
-                  <button onClick={() => setNextReminderOpen(false)} style={{ marginTop: 12, width: '100%', padding: '7px 0', background: 'transparent', border: '1px solid #3a3a3c', borderRadius: 8, color: '#636366', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Dismiss</button>
+                  <div style={{ fontSize: 11, color: 'var(--hint)', marginTop: 4 }}>at {fmtTime(nextItem.fireAt)}{nextTmrw ? ' · tomorrow' : ''}</div>
+                  <button onClick={() => setNextReminderOpen(false)} style={{ marginTop: 12, width: '100%', padding: '7px 0', background: 'transparent', border: '1px solid var(--bdr)', borderRadius: 8, color: 'var(--hint)', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Dismiss</button>
                 </div>
               </AnimatedReveal>
 </>
@@ -494,62 +492,62 @@ export default function App() {
           style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(340px, 90vw)', background: 'var(--bg)', borderLeft: '1px solid var(--bdr)', zIndex: 9992, transform: settingsOpen ? 'translateX(0)' : 'translateX(100%)', transition: 'transform .3s cubic-bezier(0.4,0,0.2,1)', display: 'flex', flexDirection: 'column', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 16px', borderBottom: '1px solid var(--bdr)', flexShrink: 0 }}>
-            <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#8e8e93' }}>Settings</div>
+            <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--lbl)' }}>Settings</div>
             <button
               onClick={() => setSettingsOpen(false)}
               aria-label="Close settings"
-              style={{ background: 'none', border: 'none', color: '#8e8e93', fontSize: 28, cursor: 'pointer', padding: '0 2px', lineHeight: 1, fontWeight: 300, fontFamily: 'system-ui' }}
+              style={{ background: 'none', border: 'none', color: 'var(--lbl)', fontSize: 28, cursor: 'pointer', padding: '0 2px', lineHeight: 1, fontWeight: 300, fontFamily: 'system-ui' }}
             >×</button>
           </div>
           <div style={{ padding: 20, flex: 1 }}>
-            <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: '1px solid #3a3a3c' }}>
-              <div style={{ fontSize: 11, color: '#636366', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>Appearance</div>
+            <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: '1px solid var(--bdr)' }}>
+              <div style={{ fontSize: 11, color: 'var(--hint)', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>Appearance</div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <div style={{ fontSize: 13, color: '#f2f2f7', fontWeight: 600 }}>Light mode</div>
-                  <div style={{ fontSize: 11, color: '#636366', marginTop: 2 }}>{s.lightMode ? 'On — light background' : 'Off — dark background'}</div>
+                  <div style={{ fontSize: 13, color: 'var(--fg)', fontWeight: 600 }}>Light mode</div>
+                  <div style={{ fontSize: 11, color: 'var(--hint)', marginTop: 2 }}>{s.lightMode ? 'On — light background' : 'Off — dark background'}</div>
                 </div>
                 <Toggle on={s.lightMode} onToggle={() => update({ lightMode: !s.lightMode })} label="Toggle light mode" />
               </div>
             </div>
-            <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: '1px solid #3a3a3c' }}>
-              <div style={{ fontSize: 11, color: '#636366', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>Saved Defaults</div>
+            <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: '1px solid var(--bdr)' }}>
+              <div style={{ fontSize: 11, color: 'var(--hint)', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>Saved Defaults</div>
               <button
                 onClick={saveAsDefault}
-                style={{ width: '100%', padding: '10px 14px', background: '#1c1c1e', border: '1.5px solid #3a3a3c', borderRadius: 10, color: '#f2f2f7', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, fontWeight: 700, cursor: 'pointer', textAlign: 'left' }}
+                style={{ width: '100%', padding: '10px 14px', background: 'var(--inp)', border: '1.5px solid var(--bdr)', borderRadius: 10, color: 'var(--fg)', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, fontWeight: 700, cursor: 'pointer', textAlign: 'left' }}
               >
                 💾 Save current settings as default
               </button>
-              <div style={{ fontSize: 11, color: '#636366', marginTop: 6, lineHeight: 1.5 }}>
+              <div style={{ fontSize: 11, color: 'var(--hint)', marginTop: 6, lineHeight: 1.5 }}>
                 Restores these settings when you clear/reinstall the app.
               </div>
             </div>
             {isIOS && <NtfySetupCard css={css} deviceId={getDeviceId()} />}
             <CardOrderPanel s={s} update={update} />
-            <div style={{ borderTop: '1px solid #3a3a3c', paddingTop: 16, marginTop: 16 }}>
-              <div style={{ fontSize: 11, color: '#636366', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>ADP Link</div>
+            <div style={{ borderTop: '1px solid var(--bdr)', paddingTop: 16, marginTop: 16 }}>
+              <div style={{ fontSize: 11, color: 'var(--hint)', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>ADP Link</div>
               <input
                 type="url"
                 value={s.adpUrl || ''}
                 placeholder="https://workforcenow.adp.com"
                 onChange={e => update({ adpUrl: e.target.value })}
-                style={{ width: '100%', background: '#1c1c1e', border: '1.5px solid #3a3a3c', borderRadius: 10, padding: '10px 14px', color: '#f2f2f7', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+                style={{ width: '100%', background: 'var(--inp)', border: '1.5px solid var(--bdr)', borderRadius: 10, padding: '10px 14px', color: 'var(--fg)', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
               />
-              <div style={{ fontSize: 11, color: '#636366', marginTop: 6, lineHeight: 1.5 }}>
+              <div style={{ fontSize: 11, color: 'var(--hint)', marginTop: 6, lineHeight: 1.5 }}>
                 Custom URL for the "Open ADP" button in alerts.
               </div>
             </div>
             <DebugPanel deviceId={getDeviceId()} lastSetError={lastSetError} />
-            <div style={{ borderTop: '1px solid #3a3a3c', paddingTop: 16, marginTop: 16 }}>
+            <div style={{ borderTop: '1px solid var(--bdr)', paddingTop: 16, marginTop: 16 }}>
               <button
                 onClick={() => { setSettingsOpen(false); setLegalOpen(true) }}
-                style={{ background: 'none', border: 'none', color: '#636366', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer', padding: 0 }}
+                style={{ background: 'none', border: 'none', color: 'var(--hint)', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer', padding: 0 }}
               >
                 Terms of Service &amp; Privacy Policy ↗
               </button>
-              <div style={{ marginTop: 14, fontSize: 10, color: '#3a3a3c', lineHeight: 1.8 }}>
+              <div style={{ marginTop: 14, fontSize: 10, color: 'var(--bdr)', lineHeight: 1.8 }}>
                 Made by Damiex Solutions · Luis A. Brito<br />
-                <span style={{ fontSize: 9, color: '#2c2c2e' }}>Configured with Claude Code</span>
+                <span style={{ fontSize: 9, color: 'var(--muted)' }}>Configured with Claude Code</span>
               </div>
             </div>
           </div>
@@ -582,7 +580,7 @@ export default function App() {
       <div style={css.inner}>
         <div style={css.headerWrap}>
           <ClockIcon />
-          <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 26, fontWeight: 900, letterSpacing: '0.1em', color: '#f2f2f7', marginTop: 14, textTransform: 'uppercase' }}>
+          <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 26, fontWeight: 900, letterSpacing: '0.1em', color: 'var(--fg)', marginTop: 14, textTransform: 'uppercase' }}>
             <span style={{ color: '#e5342a' }}>CLOCK-BOT</span>
           </div>
           <div style={css.rule} />
@@ -609,9 +607,9 @@ export default function App() {
         />
 
         <div style={css.footer}>Crew Clock Reminder</div>
-        <div style={{ textAlign: 'center', fontSize: 10, color: '#3a3a3c', marginTop: 6, lineHeight: 1.8, fontFamily: "'Barlow', sans-serif" }}>
+        <div style={{ textAlign: 'center', fontSize: 10, color: 'var(--bdr)', marginTop: 6, lineHeight: 1.8, fontFamily: "'Barlow', sans-serif" }}>
           Made by Damiex Solutions &middot; Luis A. Brito<br />
-          <span style={{ fontSize: 9, color: '#2c2c2e' }}>Configured with Claude Code</span>
+          <span style={{ fontSize: 9, color: 'var(--muted)' }}>Configured with Claude Code</span>
         </div>
       </div>
 
@@ -744,7 +742,7 @@ function DesktopTimePicker({ startHour, startMin, onHourMin }) {
         <div style={{ marginLeft: 10, display: 'flex', flexDirection: 'column', gap: 6, paddingRight: 6 }}>
           {['AM', 'PM'].map(ap => (
             <button key={ap} onClick={() => ap !== ampm && toggleAMPM()}
-              style={{ padding: '6px 12px', borderRadius: 8, border: 'none', cursor: ap === ampm ? 'default' : 'pointer', background: ap === ampm ? '#e5342a' : 'transparent', color: ap === ampm ? '#fff' : '#636366', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, fontWeight: 700, letterSpacing: '0.06em', transition: 'all .15s', outline: 'none' }}>
+              style={{ padding: '6px 12px', borderRadius: 8, border: 'none', cursor: ap === ampm ? 'default' : 'pointer', background: ap === ampm ? '#e5342a' : 'transparent', color: ap === ampm ? '#fff' : 'var(--hint)', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, fontWeight: 700, letterSpacing: '0.06em', transition: 'all .15s', outline: 'none' }}>
               {ap}
             </button>
           ))}
@@ -761,7 +759,7 @@ function DesktopTimePicker({ startHour, startMin, onHourMin }) {
           }}
           style={{ flex: 1, appearance: 'none', WebkitAppearance: 'none', background: 'var(--inp)', border: '1.5px solid var(--bdr)', borderRadius: 10, padding: '10px 14px', color: 'var(--fg)', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 20, fontWeight: 700, outline: 'none', cursor: 'text', width: '100%' }}
         />
-        <span style={{ fontSize: 11, color: '#3a3a3c', whiteSpace: 'nowrap', fontWeight: 600, letterSpacing: '0.06em' }}>or type</span>
+        <span style={{ fontSize: 11, color: 'var(--bdr)', whiteSpace: 'nowrap', fontWeight: 600, letterSpacing: '0.06em' }}>or type</span>
       </div>
     </div>
   )
@@ -789,25 +787,25 @@ function ShiftTimeline({ s, schedule, showLunch, showDinner, unpaidBreaks }) {
 
   return (
     <div style={{ marginBottom: 16 }}>
-      <div style={{ position: 'relative', height: 4, background: '#3a3a3c', borderRadius: 2, margin: '24px 0 8px' }}>
+      <div style={{ position: 'relative', height: 4, background: 'var(--bdr)', borderRadius: 2, margin: '24px 0 8px' }}>
         {/* worked segments: red fill except during break zones */}
         <div style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, background: '#e5342a22', borderRadius: 2 }} />
         {showLunch && (() => {
           const lo = pct(start + h2m(s.lunchHour))
           const li = pct(start + h2m(s.lunchHour) + s.lunchDuration)
-          return <div style={{ position: 'absolute', left: `${lo}%`, width: `${li - lo}%`, top: 0, bottom: 0, background: '#1c1c1e', borderLeft: '1px solid #3a3a3c', borderRight: '1px solid #3a3a3c' }} />
+          return <div style={{ position: 'absolute', left: `${lo}%`, width: `${li - lo}%`, top: 0, bottom: 0, background: 'var(--bg)', borderLeft: '1px solid var(--bdr)', borderRight: '1px solid var(--bdr)' }} />
         })()}
         {showDinner && s.dinnerEnabled && (() => {
           const dout = pct(start + h2m(s.dinnerHour))
           const din  = pct(start + h2m(s.dinnerHour) + s.dinnerDuration)
-          return <div style={{ position: 'absolute', left: `${dout}%`, width: `${din - dout}%`, top: 0, bottom: 0, background: '#1c1c1e', borderLeft: '1px solid #3a3a3c', borderRight: '1px solid #3a3a3c' }} />
+          return <div style={{ position: 'absolute', left: `${dout}%`, width: `${din - dout}%`, top: 0, bottom: 0, background: 'var(--bg)', borderLeft: '1px solid var(--bdr)', borderRight: '1px solid var(--bdr)' }} />
         })()}
         {/* Event dots */}
         {dots.map(item => (
-          <div key={item.id} style={{ position: 'absolute', left: `${pct(item.fireAt)}%`, top: '50%', transform: 'translate(-50%, -50%)', width: 10, height: 10, borderRadius: '50%', background: dotColor(item.id), border: '2px solid #1c1c1e', zIndex: 1 }} />
+          <div key={item.id} style={{ position: 'absolute', left: `${pct(item.fireAt)}%`, top: '50%', transform: 'translate(-50%, -50%)', width: 10, height: 10, borderRadius: '50%', background: dotColor(item.id), border: '2px solid var(--bg)', zIndex: 1 }} />
         ))}
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#636366', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.06em' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--hint)', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.06em' }}>
         <span>{fmtTime(start)}</span>
         <span>{fmtTime(endOut)}</span>
       </div>
@@ -827,7 +825,7 @@ function SchedulePreviewContent({ css, schedule, s, showLunch, showDinner, unpai
   const tmrwItems  = sorted.filter(item => item.fireAt < nowMins)
 
   const sectionLabel = txt => (
-    <div style={{ fontSize: 10, color: '#636366', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>{txt}</div>
+    <div style={{ fontSize: 10, color: 'var(--hint)', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>{txt}</div>
   )
   const grid = (items, dim) => (
     <div style={{ ...css.previewGrid, opacity: dim ? 0.5 : 1 }}>
@@ -872,8 +870,8 @@ function LegalModal({ onClose }) {
     <div style={{ position: 'fixed', inset: 0, zIndex: 9993, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'flex-end', animation: 'sd .25s ease' }}>
       <div style={{ width: '100%', maxHeight: '90vh', background: 'var(--bg)', borderRadius: '20px 20px 0 0', display: 'flex', flexDirection: 'column', overflow: 'hidden', animation: 'dropDown .42s cubic-bezier(0.16,1,0.3,1)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 14px', borderBottom: '1px solid var(--bdr)', flexShrink: 0 }}>
-          <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#8e8e93' }}>Terms of Service &amp; Privacy Policy</div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#8e8e93', fontSize: 28, cursor: 'pointer', padding: '0 2px', lineHeight: 1, fontWeight: 300, fontFamily: 'system-ui' }}>×</button>
+          <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--lbl)' }}>Terms of Service &amp; Privacy Policy</div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--lbl)', fontSize: 28, cursor: 'pointer', padding: '0 2px', lineHeight: 1, fontWeight: 300, fontFamily: 'system-ui' }}>×</button>
         </div>
         <div style={{ overflowY: 'auto', padding: '20px 20px 40px', WebkitOverflowScrolling: 'touch' }}>
           {[
@@ -904,13 +902,13 @@ function LegalModal({ onClose }) {
               <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 17, fontWeight: 900, letterSpacing: '0.06em', color: '#e5342a', textTransform: 'uppercase', marginBottom: 14 }}>{section.heading}</div>
               {section.body.map(([title, text]) => (
                 <div key={title} style={{ marginBottom: 14 }}>
-                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700, color: '#f2f2f7', marginBottom: 4, letterSpacing: '0.04em' }}>{title}</div>
+                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700, color: 'var(--fg)', marginBottom: 4, letterSpacing: '0.04em' }}>{title}</div>
                   <div style={{ fontSize: 13, color: 'var(--lbl)', lineHeight: 1.7 }}>{text}</div>
                 </div>
               ))}
             </div>
           ))}
-          <div style={{ fontSize: 11, color: '#3a3a3c', textAlign: 'center', marginTop: 8 }}>Clock-Bot · Free app · No ads · No tracking</div>
+          <div style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'center', marginTop: 8 }}>Clock-Bot · Free app · No ads · No tracking</div>
         </div>
       </div>
     </div>
@@ -925,7 +923,7 @@ function CollapseCard({ css, title, summary, open, onToggle, className, children
         style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', cursor: 'pointer', userSelect: 'none' }}
       >
         <div style={{ flex: 1 }}>
-          <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#8e8e93' }}>
+          <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--lbl)' }}>
             {title}
           </div>
           {!open && summary && (
@@ -1040,20 +1038,20 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
           const h = Math.floor(diff / 60), m = diff % 60
           const timeStr = h > 0 ? `${h}h${m > 0 ? ` ${m}m` : ''}` : `${m}m`
           return (
-            <div style={{ marginTop: 12, padding: '12px 16px', background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 10, textAlign: 'center' }}>
-              <div style={{ fontSize: 10, color: '#636366', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>Next Reminder</div>
-              <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, fontWeight: 700, color: '#aeaeb2' }}>
+            <div style={{ marginTop: 12, padding: '12px 16px', background: 'var(--card)', border: '1px solid var(--bdr)', borderRadius: 10, textAlign: 'center' }}>
+              <div style={{ fontSize: 10, color: 'var(--hint)', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>Next Reminder</div>
+              <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, fontWeight: 700, color: 'var(--fg2)' }}>
                 {nextItem.emoji} {nextItem.label}
               </div>
               <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 22, fontWeight: 900, color: '#e5342a', marginTop: 2 }}>
                 in {timeStr}
               </div>
-              <div style={{ fontSize: 11, color: '#636366', marginTop: 2 }}>at {fmtTime(nextItem.fireAt)}{nextTmrw ? ' tomorrow' : ''}</div>
+              <div style={{ fontSize: 11, color: 'var(--hint)', marginTop: 2 }}>at {fmtTime(nextItem.fireAt)}{nextTmrw ? ' tomorrow' : ''}</div>
             </div>
           )
         })()}
         {notifPermission() === 'denied' && (
-          <div style={{ background: '#2a1a1a', border: '1px solid #e5342a', borderRadius: 10, padding: '12px 16px', marginTop: 14, fontSize: 13, color: '#f2f2f7', lineHeight: 1.6 }}>
+          <div style={{ background: '#2a1a1a', border: '1px solid #e5342a', borderRadius: 10, padding: '12px 16px', marginTop: 14, fontSize: 13, color: 'var(--fg)', lineHeight: 1.6 }}>
             &#x26A0;&#xFE0F; Notifications blocked.{' '}
             {isDesktop
               ? 'Click the 🔒 lock icon in your browser\'s address bar → set Notifications to Allow → refresh the page.'
@@ -1061,9 +1059,9 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
           </div>
         )}
         {isDesktop && notifPermission() !== 'denied' && (
-          <div style={{ marginTop: 12, fontSize: 12, color: '#636366', textAlign: 'center', lineHeight: 1.6 }}>
+          <div style={{ marginTop: 12, fontSize: 12, color: 'var(--hint)', textAlign: 'center', lineHeight: 1.6 }}>
             {notifPermission() === 'default' && 'You\'ll be asked to allow notifications when you tap Set Reminders.'}
-            {notifPermission() === 'granted' && <>✓ Notifications allowed. <span style={{ color: '#4a4a4e' }}>On Brave, also enable <strong>brave://settings/privacy → Use Google services for push messaging</strong> so reminders fire when the browser is in the background.</span></>}
+            {notifPermission() === 'granted' && <>✓ Notifications allowed. <span style={{ color: 'var(--muted)' }}>On Brave, also enable <strong>brave://settings/privacy → Use Google services for push messaging</strong> so reminders fire when the browser is in the background.</span></>}
           </div>
         )}
       </div>
@@ -1098,17 +1096,17 @@ function CardOrderPanel({ s, update }) {
   }
 
   const btn = active => ({
-    background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 6,
+    background: 'var(--card)', border: '1px solid var(--bdr)', borderRadius: 6,
     padding: '6px 11px', fontSize: 12, cursor: active ? 'pointer' : 'default',
-    color: active ? '#f2f2f7' : '#3a3a3c',
+    color: active ? 'var(--fg)' : 'var(--bdr)',
   })
 
   return (
-    <div style={{ borderTop: '1px solid #3a3a3c', paddingTop: 16, marginTop: 16 }}>
-      <div style={{ fontSize: 11, color: '#636366', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>Card Order</div>
+    <div style={{ borderTop: '1px solid var(--bdr)', paddingTop: 16, marginTop: 16 }}>
+      <div style={{ fontSize: 11, color: 'var(--hint)', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>Card Order</div>
       {visible.map((id, i) => (
-        <div key={id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: i < visible.length - 1 ? '1px solid #2c2c2e' : 'none' }}>
-          <div style={{ fontSize: 13, color: '#f2f2f7', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700 }}>{cardNames[id]}</div>
+        <div key={id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: i < visible.length - 1 ? '1px solid var(--deep)' : 'none' }}>
+          <div style={{ fontSize: 13, color: 'var(--fg)', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700 }}>{cardNames[id]}</div>
           <div style={{ display: 'flex', gap: 4 }}>
             <button onClick={() => move(id, -1)} disabled={i === 0} style={btn(i > 0)}>▲</button>
             <button onClick={() => move(id, 1)} disabled={i === visible.length - 1} style={btn(i < visible.length - 1)}>▼</button>
@@ -1133,8 +1131,8 @@ function NtfySetupCard({ css, deviceId }) {
   return (
     <div style={{ ...css.card, marginTop: 0 }}>
       <div style={css.lbl}>&#x1F514; BACKGROUND NOTIFICATIONS</div>
-      <div style={{ fontSize: 13, color: '#aeaeb2', lineHeight: 1.6, marginBottom: 16 }}>
-        iPhone requires the free <span style={{ color: '#f2f2f7', fontWeight: 700 }}>ntfy</span> app
+      <div style={{ fontSize: 13, color: 'var(--fg2)', lineHeight: 1.6, marginBottom: 16 }}>
+        iPhone requires the free <span style={{ color: 'var(--fg)', fontWeight: 700 }}>ntfy</span> app
         to deliver alerts when your screen is off.
       </div>
 
@@ -1147,25 +1145,25 @@ function NtfySetupCard({ css, deviceId }) {
         1 &nbsp;·&nbsp; DOWNLOAD NTFY — FREE ON APP STORE ↗
       </a>
 
-      <div style={{ fontSize: 11, color: '#8e8e93', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>
+      <div style={{ fontSize: 11, color: 'var(--lbl)', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>
         2 &nbsp;·&nbsp; Your notification code
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#1c1c1e', border: '1px solid #3a3a3c', borderRadius: 8, padding: '10px 14px', marginBottom: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--inp)', border: '1px solid var(--bdr)', borderRadius: 8, padding: '10px 14px', marginBottom: 14 }}>
         <span style={{ flex: 1, fontFamily: 'monospace', fontSize: 14, color: '#32d74b', letterSpacing: '0.04em', wordBreak: 'break-all' }}>{topic}</span>
         <button
           onClick={copyTopic}
-          style={{ background: 'none', border: '1px solid #3a3a3c', borderRadius: 6, padding: '5px 12px', color: copied ? '#32d74b' : '#8e8e93', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 700, cursor: 'pointer', transition: 'color .15s', whiteSpace: 'nowrap', flexShrink: 0 }}
+          style={{ background: 'none', border: '1px solid var(--bdr)', borderRadius: 6, padding: '5px 12px', color: copied ? '#32d74b' : 'var(--lbl)', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 700, cursor: 'pointer', transition: 'color .15s', whiteSpace: 'nowrap', flexShrink: 0 }}
         >
           {copied ? 'Copied ✓' : 'Copy'}
         </button>
       </div>
 
-      <div style={{ fontSize: 13, color: '#636366', lineHeight: 1.6 }}>
-        <span style={{ color: '#8e8e93' }}>3 &nbsp;·&nbsp;</span>
-        Open ntfy &rarr; tap <span style={{ color: '#aeaeb2', fontWeight: 700 }}>+</span> &rarr; paste code &rarr; <span style={{ color: '#aeaeb2', fontWeight: 700 }}>Subscribe</span>
+      <div style={{ fontSize: 13, color: 'var(--hint)', lineHeight: 1.6 }}>
+        <span style={{ color: 'var(--lbl)' }}>3 &nbsp;·&nbsp;</span>
+        Open ntfy &rarr; tap <span style={{ color: 'var(--fg2)', fontWeight: 700 }}>+</span> &rarr; paste code &rarr; <span style={{ color: 'var(--fg2)', fontWeight: 700 }}>Subscribe</span>
         <br />
-        <span style={{ color: '#8e8e93' }}>4 &nbsp;·&nbsp;</span>
-        Come back here and press <span style={{ color: '#aeaeb2', fontWeight: 700 }}>Set Reminders</span>
+        <span style={{ color: 'var(--lbl)' }}>4 &nbsp;·&nbsp;</span>
+        Come back here and press <span style={{ color: 'var(--fg2)', fontWeight: 700 }}>Set Reminders</span>
       </div>
     </div>
   )
@@ -1226,13 +1224,13 @@ function DebugPanel({ deviceId, lastSetError }) {
   }
 
   const mono = { fontFamily: 'monospace', fontSize: 10, whiteSpace: 'pre-wrap', wordBreak: 'break-all', margin: 0 }
-  const box  = { background: '#0a0a0b', border: '1px solid #3a3a3c', borderRadius: 8, padding: '10px 12px', marginTop: 8 }
-  const btn  = { background: '#1c1c1e', border: '1px solid #3a3a3c', borderRadius: 8, padding: '10px 14px', color: '#f2f2f7', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700, cursor: 'pointer', textAlign: 'left', width: '100%' }
+  const box  = { background: 'var(--deep)', border: '1px solid var(--bdr)', borderRadius: 8, padding: '10px 12px', marginTop: 8 }
+  const btn  = { background: 'var(--inp)', border: '1px solid var(--bdr)', borderRadius: 8, padding: '10px 14px', color: 'var(--fg)', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700, cursor: 'pointer', textAlign: 'left', width: '100%' }
 
   if (!unlocked) {
     return (
-      <div style={{ marginTop: 16, borderTop: '1px solid #3a3a3c', paddingTop: 16 }}>
-        <div style={{ fontSize: 11, color: '#636366', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>🔒 Debug</div>
+      <div style={{ marginTop: 16, borderTop: '1px solid var(--bdr)', paddingTop: 16 }}>
+        <div style={{ fontSize: 11, color: 'var(--hint)', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>🔒 Debug</div>
         <div style={{ display: 'flex', gap: 8 }}>
           <input
             type="password"
@@ -1240,9 +1238,9 @@ function DebugPanel({ deviceId, lastSetError }) {
             placeholder="Password"
             onChange={e => { setPw(e.target.value); setPwError(false) }}
             onKeyDown={e => e.key === 'Enter' && tryUnlock()}
-            style={{ flex: 1, background: '#1c1c1e', border: `1.5px solid ${pwError ? '#e5342a' : '#3a3a3c'}`, borderRadius: 8, padding: '9px 12px', color: '#f2f2f7', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, outline: 'none' }}
+            style={{ flex: 1, background: 'var(--inp)', border: `1.5px solid ${pwError ? '#e5342a' : 'var(--bdr)'}`, borderRadius: 8, padding: '9px 12px', color: 'var(--fg)', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, outline: 'none' }}
           />
-          <button onClick={tryUnlock} style={{ background: '#3a3a3c', border: 'none', borderRadius: 8, padding: '9px 16px', color: '#f2f2f7', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+          <button onClick={tryUnlock} style={{ background: 'var(--bdr)', border: 'none', borderRadius: 8, padding: '9px 16px', color: 'var(--fg)', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
             Unlock
           </button>
         </div>
@@ -1252,7 +1250,7 @@ function DebugPanel({ deviceId, lastSetError }) {
   }
 
   return (
-    <div style={{ marginTop: 16, borderTop: '1px solid #3a3a3c', paddingTop: 16 }}>
+    <div style={{ marginTop: 16, borderTop: '1px solid var(--bdr)', paddingTop: 16 }}>
       <div style={{ fontSize: 11, color: '#32d74b', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>🔓 Debug</div>
       {lastSetError && (
         <div style={{ background: '#2a1010', border: '1px solid #e5342a', borderRadius: 8, padding: '8px 12px', marginBottom: 12, fontSize: 11, color: '#e5342a', fontFamily: 'monospace', wordBreak: 'break-all' }}>
@@ -1275,8 +1273,8 @@ function DebugPanel({ deviceId, lastSetError }) {
         return (
           <div style={{ ...box, marginTop: 0, marginBottom: 14 }}>
             {rows.map(([label, val, ok]) => (
-              <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: '1px solid #1c1c1e' }}>
-                <span style={{ fontSize: 10, color: '#636366', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</span>
+              <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: '1px solid var(--inp)' }}>
+                <span style={{ fontSize: 10, color: 'var(--hint)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</span>
                 <span style={{ fontSize: 10, fontFamily: 'monospace', color: ok ? '#32d74b' : '#e5342a' }}>{val}</span>
               </div>
             ))}
@@ -1346,7 +1344,7 @@ function Toggle({ on, onToggle, label }) {
     <button
       onClick={onToggle}
       aria-label={label}
-      style={{ width: 51, height: 31, borderRadius: 15.5, border: 'none', cursor: 'pointer', background: on ? '#32d74b' : '#3a3a3c', position: 'relative', transition: 'background .25s', flexShrink: 0 }}
+      style={{ width: 51, height: 31, borderRadius: 15.5, border: 'none', cursor: 'pointer', background: on ? '#32d74b' : 'var(--muted)', position: 'relative', transition: 'background .25s', flexShrink: 0 }}
     >
       <span style={{ position: 'absolute', top: 2, left: on ? 22 : 2, width: 27, height: 27, borderRadius: '50%', background: '#fff', transition: 'left .25s' }} />
     </button>
@@ -1389,7 +1387,7 @@ function EndOfShiftCard({ css, s, update, unpaidBreaks, isOvernight }) {
       {/* Duration display box — tap to open wheel */}
       <div
         onClick={() => setWheelOpen(o => !o)}
-        style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--inp)', border: `1.5px solid ${wheelOpen ? '#e5342a' : 'var(--bdr)'}`, borderRadius: 10, padding: '13px 14px', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 22, fontWeight: 700, color: '#f2f2f7', transition: 'border-color .15s', userSelect: 'none' }}
+        style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--inp)', border: `1.5px solid ${wheelOpen ? '#e5342a' : 'var(--bdr)'}`, borderRadius: 10, padding: '13px 14px', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 22, fontWeight: 700, color: 'var(--fg)', transition: 'border-color .15s', userSelect: 'none' }}
       >
         <span>
           {String(s.endHour).padStart(2, '0')}
@@ -1397,7 +1395,7 @@ function EndOfShiftCard({ css, s, update, unpaidBreaks, isOvernight }) {
           {String(endMin).padStart(2, '0')}
           <span style={{ color: '#e5342a', margin: '0 3px' }}>m</span>
         </span>
-        <span style={{ fontSize: 11, color: '#636366', fontWeight: 700, letterSpacing: '0.1em' }}>
+        <span style={{ fontSize: 11, color: 'var(--hint)', fontWeight: 700, letterSpacing: '0.1em' }}>
           {wheelOpen ? 'DONE ▲' : 'EDIT ▼'}
         </span>
       </div>
@@ -1415,11 +1413,11 @@ function EndOfShiftCard({ css, s, update, unpaidBreaks, isOvernight }) {
 
       {/* Clock-out time input — always visible, stays in sync with wheel */}
       <div style={{ marginTop: 12 }}>
-        <div style={{ fontSize: 11, color: '#8e8e93', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Clock-out time</div>
+        <div style={{ fontSize: 11, color: 'var(--lbl)', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Clock-out time</div>
         <div style={{ overflow: 'hidden' }}>
           <input type="time" value={clockOutVal} onChange={handleClockOutChange} />
         </div>
-        <div style={{ fontSize: 11, color: '#636366', marginTop: 6, lineHeight: 1.6 }}>
+        <div style={{ fontSize: 11, color: 'var(--hint)', marginTop: 6, lineHeight: 1.6 }}>
           <span style={{ color: '#e5342a', fontWeight: 700 }}>{endLabel}</span> worked
           {unpaidBreaks > 0 && (
             <span> + <span style={{ color: '#8e8e93' }}>{unpaidBreaks}m unpaid break</span></span>
@@ -1451,8 +1449,8 @@ function EndOfShiftCard({ css, s, update, unpaidBreaks, isOvernight }) {
       <div style={css.divider} />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <div style={{ fontSize: 13, color: '#f2f2f7', fontWeight: 600 }}>End-of-shift reminder</div>
-          <div style={{ fontSize: 11, color: '#636366', marginTop: 2 }}>
+          <div style={{ fontSize: 13, color: 'var(--fg)', fontWeight: 600 }}>End-of-shift reminder</div>
+          <div style={{ fontSize: 11, color: 'var(--hint)', marginTop: 2 }}>
             {s.endEnabled ? 'On — remind me to clock out' : 'Off — no end-of-shift alert'}
           </div>
         </div>
@@ -1464,8 +1462,8 @@ function EndOfShiftCard({ css, s, update, unpaidBreaks, isOvernight }) {
           <div style={css.divider} />
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
-              <div style={{ fontSize: 13, color: '#f2f2f7', fontWeight: 600 }}>❓ 30-min follow-up</div>
-              <div style={{ fontSize: 11, color: '#636366', marginTop: 2 }}>
+              <div style={{ fontSize: 13, color: 'var(--fg)', fontWeight: 600 }}>❓ 30-min follow-up</div>
+              <div style={{ fontSize: 11, color: 'var(--hint)', marginTop: 2 }}>
                 {s.endFollowupEnabled ? 'On — "Still on the clock?" alert' : 'Off — no follow-up'}
               </div>
             </div>
@@ -1506,7 +1504,7 @@ function DurDropdown({ value, onChange }) {
         style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--inp)', border: `1.5px solid ${open ? '#e5342a' : 'var(--bdr)'}`, borderRadius: 10, padding: '11px 14px', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 19, fontWeight: 700, color: 'var(--fg)', transition: 'border-color .15s', userSelect: 'none' }}
       >
         <span>{value} min</span>
-        <span style={{ fontSize: 11, color: '#636366', fontWeight: 700, letterSpacing: '0.1em' }}>
+        <span style={{ fontSize: 11, color: 'var(--hint)', fontWeight: 700, letterSpacing: '0.1em' }}>
           {open ? 'DONE ▲' : 'EDIT ▼'}
         </span>
       </div>
@@ -1516,7 +1514,7 @@ function DurDropdown({ value, onChange }) {
             <div
               key={o.v}
               onClick={() => { onChange(o.v); setOpen(false); navigator.vibrate?.(10) }}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', cursor: 'pointer', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 17, fontWeight: 700, color: o.v === value ? '#e5342a' : '#f2f2f7', background: o.v === value ? '#e5342a0f' : 'transparent', borderBottom: i < DUR_OPTS.length - 1 ? '1px solid var(--bdr)' : 'none' }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', cursor: 'pointer', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 17, fontWeight: 700, color: o.v === value ? '#e5342a' : 'var(--fg)', background: o.v === value ? '#e5342a0f' : 'transparent', borderBottom: i < DUR_OPTS.length - 1 ? '1px solid var(--bdr)' : 'none' }}
             >
               <span>{o.l}</span>
               {o.v === value && <span style={{ fontSize: 13 }}>✓</span>}
@@ -1581,7 +1579,7 @@ function ClockInCard({ css, s, update, timeVal, handleTimeChange }) {
       <div style={css.divider} />
       <button
         onClick={sendTestNotif}
-        style={{ width: '100%', padding: '10px 14px', background: 'transparent', color: '#636366', border: '1.5px solid #3a3a3c', borderRadius: 10, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.06em' }}
+        style={{ width: '100%', padding: '10px 14px', background: 'transparent', color: 'var(--hint)', border: '1.5px solid var(--bdr)', borderRadius: 10, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.06em' }}
       >
         🧪 Send Test Notification
       </button>
@@ -1615,7 +1613,7 @@ function LunchCard({ css, s, update }) {
 
   return (
     <>
-      <div style={{ fontSize: 11, color: '#8e8e93', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Clock Out at Hour Mark:</div>
+      <div style={{ fontSize: 11, color: 'var(--lbl)', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Clock Out at Hour Mark:</div>
       <div style={css.segRow}>
         {LUNCH_OPTS.map(o => (
           <button key={o.v} style={{ ...css.segBase, ...(s.lunchHour === o.v ? css.segActive : {}) }} onClick={() => pickLunchHour(o.v)}>
@@ -1629,7 +1627,7 @@ function LunchCard({ css, s, update }) {
         </div>
       )}
       <div style={css.divider} />
-      <div style={{ fontSize: 11, color: '#8e8e93', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>&#x23F1; Lunch Duration</div>
+      <div style={{ fontSize: 11, color: 'var(--lbl)', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>&#x23F1; Lunch Duration</div>
       <DurDropdown value={s.lunchDuration} onChange={v => update({ lunchDuration: v })} />
       <div style={css.divider} />
       <div style={css.lbl}>
@@ -1676,7 +1674,7 @@ function DinnerCard({ css, s, update }) {
 
   return (
     <>
-      <div style={{ fontSize: 11, color: '#8e8e93', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Clock Out at Hour Mark:</div>
+      <div style={{ fontSize: 11, color: 'var(--lbl)', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Clock Out at Hour Mark:</div>
       <div style={css.segRow}>
         {DINNER_OPTS.map(o => (
           <button key={o.v} style={{ ...css.segBase, ...(s.dinnerHour === o.v ? css.segActive : {}) }} onClick={() => pickDinnerHour(o.v)}>
@@ -1690,7 +1688,7 @@ function DinnerCard({ css, s, update }) {
         </div>
       )}
       <div style={css.divider} />
-      <div style={{ fontSize: 11, color: '#8e8e93', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>&#x23F1; Dinner Duration</div>
+      <div style={{ fontSize: 11, color: 'var(--lbl)', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>&#x23F1; Dinner Duration</div>
       <DurDropdown value={s.dinnerDuration} onChange={v => update({ dinnerDuration: v })} />
       <div style={css.divider} />
       <div style={css.lbl}>
@@ -1710,8 +1708,8 @@ function DinnerCard({ css, s, update }) {
       <div style={css.divider} />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <div style={{ fontSize: 13, color: '#f2f2f7', fontWeight: 600 }}>Dinner reminders</div>
-          <div style={{ fontSize: 11, color: '#636366', marginTop: 2 }}>
+          <div style={{ fontSize: 13, color: 'var(--fg)', fontWeight: 600 }}>Dinner reminders</div>
+          <div style={{ fontSize: 11, color: 'var(--hint)', marginTop: 2 }}>
             {s.dinnerEnabled ? 'On — working a long day' : 'Off — no dinner break today'}
           </div>
         </div>
