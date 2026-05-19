@@ -89,7 +89,7 @@ const DINNER_OPTS = [
   { l: '10h 00m', v: 10.00 },
 ]
 
-const SHIFT_HOURS = Array.from({ length: 13 }, (_, i) => i + 4)
+const SHIFT_HOURS = Array.from({ length: 21 }, (_, i) => i + 4)
 const SHIFT_MINS  = Array.from({ length: 60 }, (_, i) => i)
 
 const DUR_OPTS = [
@@ -897,7 +897,7 @@ function EndOfShiftCard({ css, s, update }) {
     const startMins = s.startHour * 60 + s.startMin
     let diff = h * 60 + m - startMins
     if (diff <= 0) diff += 1440
-    update({ endHour: Math.min(16, Math.max(4, Math.floor(diff / 60))), endMin: diff % 60 })
+    update({ endHour: Math.min(24, Math.max(4, Math.floor(diff / 60))), endMin: diff % 60 })
   }
 
   return (
