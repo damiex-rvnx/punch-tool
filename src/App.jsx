@@ -90,7 +90,7 @@ const DINNER_OPTS = [
 ]
 
 const SHIFT_HOURS = Array.from({ length: 13 }, (_, i) => i + 4)
-const SHIFT_MINS  = [0, 15, 30, 45]
+const SHIFT_MINS  = Array.from({ length: 60 }, (_, i) => i)
 
 const DUR_OPTS = [
   { l: '30 min', v: 30 },
@@ -882,8 +882,9 @@ function Toggle({ on, onToggle, label }) {
 }
 
 function EndOfShiftCard({ css, s, update }) {
+  const [wheelOpen, setWheelOpen] = useState(false)
   const endMin     = s.endMin ?? 0
-  const endLabel   = `${s.endHour}h${endMin ? ` ${endMin}m` : ''}`
+  const endLabel   = `${s.endHour}h${endMin ? ` ${String(endMin).padStart(2,'0')}m` : ''}`
   const shiftEndAt = fmtTime(s.startHour * 60 + s.startMin + s.endHour * 60 + endMin)
 
   return (
@@ -893,15 +894,34 @@ function EndOfShiftCard({ css, s, update }) {
         <span style={css.val}>{endLabel} shift</span>
       </div>
 
-      {/* Duration wheel */}
-      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#1c1c1e', borderRadius: 14, padding: '6px 0' }}>
-        <div style={{ position: 'absolute', left: 12, right: 12, top: '50%', transform: 'translateY(-50%)', height: 44, borderRadius: 10, border: '1.5px solid #e5342a33', background: '#e5342a08', pointerEvents: 'none' }} />
-        <WheelCol items={SHIFT_HOURS} value={s.endHour} onChange={h => update({ endHour: h })} />
-        <div style={{ fontSize: 16, fontWeight: 700, color: '#636366', padding: '0 6px', userSelect: 'none', fontFamily: "'Barlow Condensed', sans-serif" }}>hr</div>
-        <WheelCol items={SHIFT_MINS} value={endMin} onChange={m => update({ endMin: m })} fmt={v => String(v).padStart(2, '0')} />
-        <div style={{ fontSize: 16, fontWeight: 700, color: '#636366', padding: '0 6px', userSelect: 'none', fontFamily: "'Barlow Condensed', sans-serif" }}>min</div>
+      {/* Tappable display box — same size/style as start-time input */}
+      <div
+        onClick={() => setWheelOpen(o => !o)}
+        style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#1c1c1e', border: `1.5px solid ${wheelOpen ? '#e5342a' : '#3a3a3c'}`, borderRadius: 10, padding: '13px 14px', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 22, fontWeight: 700, color: '#f2f2f7', transition: 'border-color .15s', userSelect: 'none' }}
+      >
+        <span>
+          {String(s.endHour).padStart(2, '0')}
+          <span style={{ color: '#e5342a', margin: '0 3px' }}>h</span>
+          {String(endMin).padStart(2, '0')}
+          <span style={{ color: '#e5342a', margin: '0 3px' }}>m</span>
+        </span>
+        <span style={{ fontSize: 11, color: '#636366', fontWeight: 700, letterSpacing: '0.1em' }}>
+          {wheelOpen ? 'DONE ▲' : 'EDIT ▼'}
+        </span>
       </div>
-      <div style={{ textAlign: 'center', fontSize: 12, color: '#636366', marginTop: 8 }}>
+
+      {/* Collapsible wheel — same layout as clock-in picker, no AM/PM */}
+      {wheelOpen && (
+        <div style={{ marginTop: 8, background: '#1c1c1e', borderRadius: 14, padding: '6px 0', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ position: 'absolute', left: 12, right: 12, top: '50%', transform: 'translateY(-50%)', height: 44, borderRadius: 10, border: '1.5px solid #e5342a33', background: '#e5342a08', pointerEvents: 'none' }} />
+          <WheelCol items={SHIFT_HOURS} value={s.endHour} onChange={h => update({ endHour: h })} />
+          <div style={{ fontSize: 22, fontWeight: 800, color: '#e5342a', padding: '0 4px', lineHeight: 1, userSelect: 'none' }}>h</div>
+          <WheelCol items={SHIFT_MINS} value={endMin} onChange={m => update({ endMin: m })} fmt={v => String(v).padStart(2, '0')} />
+          <div style={{ fontSize: 22, fontWeight: 800, color: '#e5342a', padding: '0 4px', lineHeight: 1, userSelect: 'none' }}>m</div>
+        </div>
+      )}
+
+      <div style={{ fontSize: 12, color: '#636366', marginTop: 8 }}>
         Shift ends at <span style={{ color: '#e5342a', fontWeight: 700 }}>{shiftEndAt}</span>
       </div>
 
