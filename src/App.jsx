@@ -463,7 +463,7 @@ export default function App() {
                 <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 900, color: '#e5342a', letterSpacing: '0.04em' }}>{countdown}</span>
               </button>
               {nextReminderOpen && (
-                <div style={{ position: 'fixed', top: 68, left: 16, zIndex: 9989, background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 14, padding: '14px 16px', minWidth: 220, maxWidth: 280, boxShadow: '0 8px 32px rgba(0,0,0,.6)', animation: 'dropDown .22s cubic-bezier(0.16,1,0.3,1)' }}>
+                <div style={{ position: 'fixed', top: 68, left: 16, zIndex: 9989, background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 14, padding: '14px 16px', minWidth: 220, maxWidth: 280, boxShadow: '0 8px 32px rgba(0,0,0,.6)', animation: 'dropDown .38s cubic-bezier(0.16,1,0.3,1)' }}>
                   <div style={{ fontSize: 10, color: '#636366', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>Next Reminder</div>
                   <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, fontWeight: 700, color: '#aeaeb2', marginBottom: 6, lineHeight: 1.3 }}>{nextItem.emoji} {nextItem.label}</div>
                   <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 26, fontWeight: 900, color: '#e5342a', lineHeight: 1 }}>in {countdown}</div>
@@ -603,7 +603,7 @@ export default function App() {
         @keyframes sd        { from{opacity:0;transform:translateY(-10px);}to{opacity:1;transform:translateY(0);} }
         @keyframes pop       { 0%,100%{transform:scale(1);}50%{transform:scale(1.08);} }
         @keyframes fadeFlash { 0%{opacity:1;}70%{opacity:1;}100%{opacity:0;} }
-        @keyframes dropDown { from{opacity:0;transform:translateY(-10px);}to{opacity:1;transform:translateY(0);} }
+        @keyframes dropDown { from{opacity:0;transform:translateY(-16px);}to{opacity:1;transform:translateY(0);} }
         @supports (backdrop-filter: blur(1px)) { .settings-backdrop { backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); } }
         @media (min-width: 800px) {
           .responsive-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 16px !important; }
@@ -835,7 +835,7 @@ function CollapseCard({ css, title, summary, open, onToggle, className, children
         </div>
         <span style={{ fontSize: 10, color: '#4a4a4e', marginLeft: 10, marginTop: 2, flexShrink: 0 }}>{open ? '▲' : '▼'}</span>
       </div>
-      {open && <div style={{ marginTop: 14, animation: 'dropDown .26s cubic-bezier(0.16,1,0.3,1)' }}>{children}</div>}
+      {open && <div style={{ marginTop: 14, animation: 'dropDown .42s cubic-bezier(0.16,1,0.3,1)' }}>{children}</div>}
     </div>
   )
 }
@@ -1303,7 +1303,7 @@ function EndOfShiftCard({ css, s, update, unpaidBreaks, isOvernight }) {
 
       {/* Collapsible wheel */}
       {wheelOpen && (
-        <div style={{ marginTop: 8, background: '#1c1c1e', borderRadius: 14, padding: '6px 0', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'dropDown .26s cubic-bezier(0.16,1,0.3,1)' }}>
+        <div style={{ marginTop: 8, background: '#1c1c1e', borderRadius: 14, padding: '6px 0', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'dropDown .42s cubic-bezier(0.16,1,0.3,1)' }}>
           <div style={{ position: 'absolute', left: 12, right: 12, top: '50%', transform: 'translateY(-50%)', height: 44, borderRadius: 10, border: '1.5px solid #e5342a33', background: '#e5342a08', pointerEvents: 'none' }} />
           <WheelCol items={SHIFT_HOURS} value={s.endHour} onChange={h => update({ endHour: h })} />
           <div style={{ fontSize: 22, fontWeight: 800, color: '#e5342a', padding: '0 4px', lineHeight: 1, userSelect: 'none' }}>h</div>
@@ -1410,7 +1410,7 @@ function DurDropdown({ value, onChange }) {
         </span>
       </div>
       {open && (
-        <div style={{ marginTop: 4, background: '#1c1c1e', border: '1.5px solid #e5342a', borderRadius: 10, overflow: 'hidden', animation: 'dropDown .26s cubic-bezier(0.16,1,0.3,1)' }}>
+        <div style={{ marginTop: 4, background: '#1c1c1e', border: '1.5px solid #e5342a', borderRadius: 10, overflow: 'hidden', animation: 'dropDown .42s cubic-bezier(0.16,1,0.3,1)' }}>
           {DUR_OPTS.map((o, i) => (
             <div
               key={o.v}
