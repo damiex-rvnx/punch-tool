@@ -445,6 +445,7 @@ export default function App() {
         @keyframes sd        { from{opacity:0;transform:translateY(-10px);}to{opacity:1;transform:translateY(0);} }
         @keyframes pop       { 0%,100%{transform:scale(1);}50%{transform:scale(1.08);} }
         @keyframes fadeFlash { 0%{opacity:1;}70%{opacity:1;}100%{opacity:0;} }
+        @keyframes dropDown { from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);} }
         @supports (backdrop-filter: blur(1px)) { .settings-backdrop { backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); } }
         @media (min-width: 800px) {
           .responsive-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 16px !important; }
@@ -605,17 +606,19 @@ function CollapseCard({ css, title, summary, open, onToggle, className, children
     <div className={className || ''} style={css.card}>
       <div
         onClick={onToggle}
-        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}
+        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', cursor: 'pointer', userSelect: 'none' }}
       >
-        <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#8e8e93' }}>
-          {title}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#8e8e93' }}>
+            {title}
+          </div>
           {!open && summary && (
-            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 700, color: '#e5342a', letterSpacing: '0.04em' }}>{summary}</span>
+            <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, fontWeight: 700, color: '#aeaeb2', marginTop: 5, letterSpacing: '0.03em', lineHeight: 1.4 }}>
+              {summary}
+            </div>
           )}
-          <span style={{ fontSize: 10, color: '#4a4a4e' }}>{open ? '▲' : '▼'}</span>
         </div>
+        <span style={{ fontSize: 10, color: '#4a4a4e', marginLeft: 10, marginTop: 2, flexShrink: 0 }}>{open ? '▲' : '▼'}</span>
       </div>
       {open && <div style={{ marginTop: 14 }}>{children}</div>}
     </div>
@@ -634,29 +637,38 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
   const endLabel = `${s.endHour}h${endMin ? ` ${String(endMin).padStart(2,'0')}m` : ''}`
   const start    = s.startHour * 60 + s.startMin
 
+  const nowMins  = new Date().getHours() * 60 + new Date().getMinutes()
+  const nextItem = [...schedule].sort((a, b) => {
+    const ae = a.fireAt < nowMins ? a.fireAt + 1440 : a.fireAt
+    const be = b.fireAt < nowMins ? b.fireAt + 1440 : b.fireAt
+    return ae - be
+  })[0]
+
   const cardDefs = {
     schedulePreview: {
       title: '📋 SCHEDULE PREVIEW',
-      summary: `${schedule.length} reminder${schedule.length !== 1 ? 's' : ''}`,
+      summary: schedule.length === 0
+        ? 'no reminders set'
+        : `${schedule.length} reminders · next ${nextItem ? fmtTime(nextItem.fireAt) : ''}`,
       className: 'card-full',
       visible: true,
       render: () => <SchedulePreviewContent css={css} schedule={schedule} />,
     },
     shiftLength: {
       title: '🏁 SHIFT LENGTH',
-      summary: `${endLabel} · out ${fmtTime(start + s.endHour * 60 + endMin + unpaidBreaks)}`,
+      summary: `${endLabel} shift  ·  clock out ${fmtTime(start + s.endHour * 60 + endMin + unpaidBreaks)}`,
       visible: true,
       render: () => <EndOfShiftCard css={css} s={s} update={update} unpaidBreaks={unpaidBreaks} />,
     },
     lunch: {
       title: '🍽️ LUNCH BREAK',
-      summary: `out ${fmtTime(start + h2m(s.lunchHour))} · ${s.lunchDuration}m`,
+      summary: `clock out ${fmtTime(start + h2m(s.lunchHour))}  ·  ${s.lunchDuration} min break`,
       visible: showLunch,
       render: () => <LunchCard css={css} s={s} update={update} />,
     },
     dinner: {
       title: '🌙 DINNER BREAK',
-      summary: `out ${fmtTime(start + h2m(s.dinnerHour))} · ${s.dinnerDuration}m`,
+      summary: `clock out ${fmtTime(start + h2m(s.dinnerHour))}  ·  ${s.dinnerDuration} min break`,
       visible: showDinner,
       render: () => <DinnerCard css={css} s={s} update={update} />,
     },
@@ -1051,7 +1063,7 @@ function EndOfShiftCard({ css, s, update, unpaidBreaks }) {
 
       {/* Collapsible wheel */}
       {wheelOpen && (
-        <div style={{ marginTop: 8, background: '#1c1c1e', borderRadius: 14, padding: '6px 0', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ marginTop: 8, background: '#1c1c1e', borderRadius: 14, padding: '6px 0', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'dropDown .18s ease' }}>
           <div style={{ position: 'absolute', left: 12, right: 12, top: '50%', transform: 'translateY(-50%)', height: 44, borderRadius: 10, border: '1.5px solid #e5342a33', background: '#e5342a08', pointerEvents: 'none' }} />
           <WheelCol items={SHIFT_HOURS} value={s.endHour} onChange={h => update({ endHour: h })} />
           <div style={{ fontSize: 22, fontWeight: 800, color: '#e5342a', padding: '0 4px', lineHeight: 1, userSelect: 'none' }}>h</div>
@@ -1127,7 +1139,7 @@ function DurDropdown({ value, onChange }) {
         </span>
       </div>
       {open && (
-        <div style={{ marginTop: 4, background: '#1c1c1e', border: '1.5px solid #e5342a', borderRadius: 10, overflow: 'hidden' }}>
+        <div style={{ marginTop: 4, background: '#1c1c1e', border: '1.5px solid #e5342a', borderRadius: 10, overflow: 'hidden', animation: 'dropDown .18s ease' }}>
           {DUR_OPTS.map((o, i) => (
             <div
               key={o.v}
