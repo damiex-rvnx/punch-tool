@@ -75,6 +75,7 @@ const DEFAULT = {
   endFollowupEnabled: true,
   endFollowupDelay: 30,
   adpUrl: 'https://workforcenow.adp.com',
+  lightMode: false,
   cardOrder: ['shiftLength', 'lunch', 'dinner', 'schedulePreview'],
   openCards: { schedulePreview: false, shiftLength: true, lunch: true, dinner: true, clockIn: true },
 }
@@ -408,40 +409,40 @@ export default function App() {
   }
 
   const css = {
-    page:        { background: '#1c1c1e', minHeight: '100vh', overflowX: 'hidden', padding: '28px 0 40px', fontFamily: "'Barlow', sans-serif", color: '#f2f2f7' },
+    page:        { background: 'var(--bg)', minHeight: '100vh', overflowX: 'hidden', padding: '28px 0 40px', fontFamily: "'Barlow', sans-serif", color: '#f2f2f7' },
     inner:       { maxWidth: 920, margin: '0 auto', padding: '0 16px' },
     headerWrap:  { display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 28 },
     rule:        { width: 40, height: 2, background: '#e5342a', borderRadius: 2, marginTop: 20 },
     tagline:     { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: '0.24em', textTransform: 'uppercase', color: '#636366', marginTop: 8 },
-    card:        { background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 16, padding: 20, overflow: 'hidden' },
-    lbl:         { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#8e8e93', marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+    card:        { background: 'var(--card)', border: '1px solid var(--bdr)', borderRadius: 16, padding: 20, overflow: 'hidden' },
+    lbl:         { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--lbl)', marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
     val:         { color: '#e5342a', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700, textTransform: 'none', letterSpacing: 0 },
-    divider:     { height: 1, background: '#3a3a3c', margin: '18px 0' },
-    hint:        { fontSize: 12, color: '#636366', marginTop: 10 },
+    divider:     { height: 1, background: 'var(--bdr)', margin: '18px 0' },
+    hint:        { fontSize: 12, color: 'var(--hint)', marginTop: 10 },
     segRow:      { display: 'flex', gap: 6, marginTop: 8 },
-    segBase:     { flex: 1, padding: '10px 1px', borderRadius: 8, border: '1.5px solid #3a3a3c', background: 'transparent', color: '#f2f2f7', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', overflow: 'hidden', transition: 'all .15s' },
+    segBase:     { flex: 1, padding: '10px 1px', borderRadius: 8, border: '1.5px solid var(--bdr)', background: 'transparent', color: 'var(--fg)', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', overflow: 'hidden', transition: 'all .15s' },
     segActive:   { background: '#e5342a', borderColor: '#e5342a', color: '#fff' },
     durRow:      { display: 'flex', gap: 10, marginTop: 8 },
     durBase:     { flex: 1, padding: 12, borderRadius: 10, border: '1.5px solid #3a3a3c', background: 'transparent', color: '#f2f2f7', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, fontWeight: 700, cursor: 'pointer', transition: 'all .15s' },
     durActive:   { background: '#1a2e1c', borderColor: '#32d74b', color: '#32d74b' },
     sliderWrap:  { marginTop: 10 },
-    sliderLabels:{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#636366', marginTop: 6 },
+    sliderLabels:{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--hint)', marginTop: 6 },
     previewGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 24px', marginTop: 14 },
-    previewLabel:{ color: '#aeaeb2', fontSize: 13 },
+    previewLabel:{ color: 'var(--fg2)', fontSize: 13 },
     previewTime: { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, fontWeight: 900, color: '#e5342a', whiteSpace: 'nowrap', textAlign: 'right' },
     btnSet:      { width: '100%', padding: 15, background: '#e5342a', color: '#fff', border: 'none', borderRadius: 12, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 19, fontWeight: 900, letterSpacing: '0.08em', cursor: 'pointer', marginTop: 4, textTransform: 'uppercase' },
-    btnCancel:   { width: '100%', padding: 12, background: 'transparent', color: '#8e8e93', border: '1.5px solid #3a3a3c', borderRadius: 12, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 16, fontWeight: 700, cursor: 'pointer', marginTop: 10 },
-    footer:      { textAlign: 'center', fontSize: 11, color: '#3a3a3c', marginTop: 28 },
+    btnCancel:   { width: '100%', padding: 12, background: 'transparent', color: 'var(--lbl)', border: '1.5px solid var(--bdr)', borderRadius: 12, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 16, fontWeight: 700, cursor: 'pointer', marginTop: 10 },
+    footer:      { textAlign: 'center', fontSize: 11, color: 'var(--bdr)', marginTop: 28 },
   }
 
   return (
-    <div style={css.page}>
+    <div style={css.page} className={s.lightMode ? 'qc-light' : ''}>
       <>
         {/* Hamburger — top right */}
         <button
           onClick={() => setSettingsOpen(true)}
           aria-label="Settings"
-          style={{ position: 'fixed', top: 16, right: 16, zIndex: 9990, width: 44, height: 44, borderRadius: 10, border: '1.5px solid #3a3a3c', background: '#2c2c2e', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5, cursor: 'pointer', padding: 0, boxShadow: '0 2px 12px rgba(0,0,0,.4)' }}
+          style={{ position: 'fixed', top: 16, right: 16, zIndex: 9990, width: 44, height: 44, borderRadius: 10, border: '1.5px solid var(--bdr)', background: 'var(--card)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5, cursor: 'pointer', padding: 0, boxShadow: '0 2px 12px rgba(0,0,0,.4)' }}
         >
           {[0,1,2].map(i => (
             <span key={i} style={{ display: 'block', width: 18, height: 2, background: '#f2f2f7', borderRadius: 1 }} />
@@ -458,13 +459,13 @@ export default function App() {
             <>
               <button
                 onClick={() => setNextReminderOpen(o => !o)}
-                style={{ position: 'fixed', top: 16, left: 16, zIndex: 9990, display: 'flex', alignItems: 'center', gap: 6, padding: '0 12px', height: 44, borderRadius: 10, border: `1.5px solid ${nextReminderOpen ? '#e5342a' : '#3a3a3c'}`, background: '#2c2c2e', cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,.4)', transition: 'border-color .15s' }}
+                style={{ position: 'fixed', top: 16, left: 16, zIndex: 9990, display: 'flex', alignItems: 'center', gap: 6, padding: '0 12px', height: 44, borderRadius: 10, border: `1.5px solid ${nextReminderOpen ? '#e5342a' : 'var(--bdr)'}`, background: 'var(--card)', cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,.4)', transition: 'border-color .15s' }}
               >
                 <span style={{ fontSize: 14 }}>{nextItem.emoji}</span>
                 <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 900, color: '#e5342a', letterSpacing: '0.04em' }}>{countdown}</span>
               </button>
               <AnimatedReveal show={nextReminderOpen} style={{ position: 'fixed', top: 68, left: 16, zIndex: 9989 }}>
-                <div style={{ background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 14, padding: '14px 16px', minWidth: 220, maxWidth: 280, boxShadow: '0 8px 32px rgba(0,0,0,.6)' }}>
+                <div style={{ background: 'var(--card)', border: '1px solid var(--bdr)', borderRadius: 14, padding: '14px 16px', minWidth: 220, maxWidth: 280, boxShadow: '0 8px 32px rgba(0,0,0,.6)' }}>
                   <div style={{ fontSize: 10, color: '#636366', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>Next Reminder</div>
                   <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, fontWeight: 700, color: '#aeaeb2', marginBottom: 6, lineHeight: 1.3 }}>{nextItem.emoji} {nextItem.label}</div>
                   <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 26, fontWeight: 900, color: '#e5342a', lineHeight: 1 }}>in {countdown}</div>
@@ -490,9 +491,9 @@ export default function App() {
         />
 
         <div
-          style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(340px, 90vw)', background: '#1c1c1e', borderLeft: '1px solid #3a3a3c', zIndex: 9992, transform: settingsOpen ? 'translateX(0)' : 'translateX(100%)', transition: 'transform .3s cubic-bezier(0.4,0,0.2,1)', display: 'flex', flexDirection: 'column', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}
+          style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(340px, 90vw)', background: 'var(--bg)', borderLeft: '1px solid var(--bdr)', zIndex: 9992, transform: settingsOpen ? 'translateX(0)' : 'translateX(100%)', transition: 'transform .3s cubic-bezier(0.4,0,0.2,1)', display: 'flex', flexDirection: 'column', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 16px', borderBottom: '1px solid #3a3a3c', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 16px', borderBottom: '1px solid var(--bdr)', flexShrink: 0 }}>
             <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#8e8e93' }}>Settings</div>
             <button
               onClick={() => setSettingsOpen(false)}
@@ -501,6 +502,16 @@ export default function App() {
             >×</button>
           </div>
           <div style={{ padding: 20, flex: 1 }}>
+            <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: '1px solid #3a3a3c' }}>
+              <div style={{ fontSize: 11, color: '#636366', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>Appearance</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontSize: 13, color: '#f2f2f7', fontWeight: 600 }}>Light mode</div>
+                  <div style={{ fontSize: 11, color: '#636366', marginTop: 2 }}>{s.lightMode ? 'On — light background' : 'Off — dark background'}</div>
+                </div>
+                <Toggle on={s.lightMode} onToggle={() => update({ lightMode: !s.lightMode })} label="Toggle light mode" />
+              </div>
+            </div>
             <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: '1px solid #3a3a3c' }}>
               <div style={{ fontSize: 11, color: '#636366', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>Saved Defaults</div>
               <button
@@ -536,6 +547,10 @@ export default function App() {
               >
                 Terms of Service &amp; Privacy Policy ↗
               </button>
+              <div style={{ marginTop: 14, fontSize: 10, color: '#3a3a3c', lineHeight: 1.8 }}>
+                Made by Damiex Solutions · Luis A. Brito<br />
+                <span style={{ fontSize: 9, color: '#2c2c2e' }}>Configured with Claude Code</span>
+              </div>
             </div>
           </div>
         </div>
@@ -594,21 +609,27 @@ export default function App() {
         />
 
         <div style={css.footer}>Crew Clock Reminder</div>
+        <div style={{ textAlign: 'center', fontSize: 10, color: '#3a3a3c', marginTop: 6, lineHeight: 1.8, fontFamily: "'Barlow', sans-serif" }}>
+          Made by Damiex Solutions &middot; Luis A. Brito<br />
+          <span style={{ fontSize: 9, color: '#2c2c2e' }}>Configured with Claude Code</span>
+        </div>
       </div>
 
       <style>{`
+        :root{--bg:#1c1c1e;--card:#2c2c2e;--bdr:#3a3a3c;--fg:#f2f2f7;--fg2:#aeaeb2;--lbl:#8e8e93;--hint:#636366;--muted:#4a4a4e;--inp:#1c1c1e;--deep:#0a0a0b;}
+        .qc-light{--bg:#f5f5f7;--card:#ffffff;--bdr:#d1d1d6;--fg:#1c1c1e;--fg2:#48484a;--lbl:#636366;--hint:#8e8e93;--muted:#c7c7cc;--inp:#f0f0f5;--deep:#e8e8ef;}
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #1c1c1e; }
+        body { background: var(--bg); }
         button { outline: none; -webkit-tap-highlight-color: transparent; }
         input[type=time] {
           appearance: none; -webkit-appearance: none;
-          background: #1c1c1e; border: 1.5px solid #3a3a3c; border-radius: 10px;
-          padding: 13px 14px; color: #f2f2f7; width: 100%; max-width: 100%; min-width: 0;
+          background: var(--inp); border: 1.5px solid var(--bdr); border-radius: 10px;
+          padding: 13px 14px; color: var(--fg); width: 100%; max-width: 100%; min-width: 0;
           display: block; font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 700;
         }
         input[type=time]::-webkit-date-and-time-value { text-align: left; }
         input[type=time]::-webkit-calendar-picker-indicator { filter: invert(1); }
-        input[type=range] { -webkit-appearance: none; width: 100%; height: 4px; background: #3a3a3c; border-radius: 2px; outline: none; }
+        input[type=range] { -webkit-appearance: none; width: 100%; height: 4px; background: var(--bdr); border-radius: 2px; outline: none; }
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #e5342a; cursor: pointer; border: 2px solid #1c1c1e; }
         input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: #e5342a; cursor: pointer; border: 2px solid #1c1c1e; }
         @keyframes sd        { from{opacity:0;transform:translateY(-10px);}to{opacity:1;transform:translateY(0);} }
@@ -689,7 +710,7 @@ function WheelCol({ items, value, onChange, fmt = String }) {
               height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize:   sel ? 30 : d === 1 ? 20 : 14,
               fontWeight: sel ? 800 : 400,
-              color:      sel ? '#e5342a' : d === 1 ? '#aeaeb2' : '#3a3a3c',
+              color:      sel ? '#e5342a' : d === 1 ? 'var(--fg2)' : 'var(--bdr)',
               cursor:     sel ? 'default' : 'pointer',
               fontFamily: "'Barlow Condensed', sans-serif",
               transition: 'font-size .12s, color .12s',
@@ -714,7 +735,7 @@ function DesktopTimePicker({ startHour, startMin, onHourMin }) {
 
   return (
     <div>
-      <div style={{ background: '#1c1c1e', borderRadius: 14, padding: '6px 0', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ background: 'var(--inp)', borderRadius: 14, padding: '6px 0', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {/* Selection highlight band */}
         <div style={{ position: 'absolute', left: 12, right: 12, top: '50%', transform: 'translateY(-50%)', height: 44, borderRadius: 10, border: '1.5px solid #e5342a33', background: '#e5342a08', pointerEvents: 'none' }} />
         <WheelCol items={WHEEL_HOURS} value={h12}      onChange={setH} />
@@ -738,7 +759,7 @@ function DesktopTimePicker({ startHour, startMin, onHourMin }) {
             const [h, m] = e.target.value.split(':').map(Number)
             if (!isNaN(h) && !isNaN(m)) onHourMin(h, m)
           }}
-          style={{ flex: 1, appearance: 'none', WebkitAppearance: 'none', background: '#1c1c1e', border: '1.5px solid #3a3a3c', borderRadius: 10, padding: '10px 14px', color: '#f2f2f7', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 20, fontWeight: 700, outline: 'none', cursor: 'text', width: '100%' }}
+          style={{ flex: 1, appearance: 'none', WebkitAppearance: 'none', background: 'var(--inp)', border: '1.5px solid var(--bdr)', borderRadius: 10, padding: '10px 14px', color: 'var(--fg)', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 20, fontWeight: 700, outline: 'none', cursor: 'text', width: '100%' }}
         />
         <span style={{ fontSize: 11, color: '#3a3a3c', whiteSpace: 'nowrap', fontWeight: 600, letterSpacing: '0.06em' }}>or type</span>
       </div>
@@ -913,7 +934,7 @@ function CollapseCard({ css, title, summary, open, onToggle, className, children
             </div>
           )}
         </div>
-        <span style={{ fontSize: 10, color: '#4a4a4e', marginLeft: 10, marginTop: 2, flexShrink: 0 }}>{open ? '▲' : '▼'}</span>
+        <span style={{ fontSize: 10, color: 'var(--muted)', marginLeft: 10, marginTop: 2, flexShrink: 0 }}>{open ? '▲' : '▼'}</span>
       </div>
       <AnimatedReveal show={open} style={{ marginTop: 14 }}>{children}</AnimatedReveal>
     </div>
@@ -1482,7 +1503,7 @@ function DurDropdown({ value, onChange }) {
     <>
       <div
         onClick={() => setOpen(o => !o)}
-        style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#1c1c1e', border: `1.5px solid ${open ? '#e5342a' : '#3a3a3c'}`, borderRadius: 10, padding: '11px 14px', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 19, fontWeight: 700, color: '#f2f2f7', transition: 'border-color .15s', userSelect: 'none' }}
+        style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--inp)', border: `1.5px solid ${open ? '#e5342a' : 'var(--bdr)'}`, borderRadius: 10, padding: '11px 14px', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 19, fontWeight: 700, color: 'var(--fg)', transition: 'border-color .15s', userSelect: 'none' }}
       >
         <span>{value} min</span>
         <span style={{ fontSize: 11, color: '#636366', fontWeight: 700, letterSpacing: '0.1em' }}>
