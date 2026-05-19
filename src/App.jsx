@@ -989,6 +989,37 @@ function EndOfShiftCard({ css, s, update, unpaidBreaks }) {
   )
 }
 
+function DurDropdown({ value, onChange }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <div
+        onClick={() => setOpen(o => !o)}
+        style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#1c1c1e', border: `1.5px solid ${open ? '#e5342a' : '#3a3a3c'}`, borderRadius: 10, padding: '11px 14px', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 19, fontWeight: 700, color: '#f2f2f7', transition: 'border-color .15s', userSelect: 'none' }}
+      >
+        <span>{value} min</span>
+        <span style={{ fontSize: 11, color: '#636366', fontWeight: 700, letterSpacing: '0.1em' }}>
+          {open ? 'DONE ▲' : 'EDIT ▼'}
+        </span>
+      </div>
+      {open && (
+        <div style={{ marginTop: 4, background: '#1c1c1e', border: '1.5px solid #e5342a', borderRadius: 10, overflow: 'hidden' }}>
+          {DUR_OPTS.map((o, i) => (
+            <div
+              key={o.v}
+              onClick={() => { onChange(o.v); setOpen(false) }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', cursor: 'pointer', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 17, fontWeight: 700, color: o.v === value ? '#e5342a' : '#f2f2f7', background: o.v === value ? '#e5342a0f' : 'transparent', borderBottom: i < DUR_OPTS.length - 1 ? '1px solid #2c2c2e' : 'none' }}
+            >
+              <span>{o.l}</span>
+              {o.v === value && <span style={{ fontSize: 13 }}>✓</span>}
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  )
+}
+
 function LunchCard({ css, s, update }) {
   const lunchLabel = LUNCH_OPTS.find(o => o.v === s.lunchHour)?.l ?? `${s.lunchHour}h`
   const [lunchFlash, setLunchFlash] = useState(null)
@@ -1022,17 +1053,8 @@ function LunchCard({ css, s, update }) {
         </div>
       )}
       <div style={css.divider} />
-      <div style={css.lbl}>
-        &#x23F1; LUNCH DURATION
-        <span style={css.val}>{s.lunchDuration} min</span>
-      </div>
-      <div style={css.durRow}>
-        {DUR_OPTS.map(o => (
-          <button key={o.v} style={{ ...css.durBase, ...(s.lunchDuration === o.v ? css.durActive : {}) }} onClick={() => update({ lunchDuration: o.v })}>
-            {o.l}
-          </button>
-        ))}
-      </div>
+      <div style={{ fontSize: 11, color: '#8e8e93', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>&#x23F1; Lunch Duration</div>
+      <DurDropdown value={s.lunchDuration} onChange={v => update({ lunchDuration: v })} />
       <div style={css.divider} />
       <div style={css.lbl}>
         &#x1F514; HEADS-UP BEFORE LUNCH
@@ -1079,17 +1101,8 @@ function DinnerCard({ css, s, update }) {
         </div>
       )}
       <div style={css.divider} />
-      <div style={css.lbl}>
-        &#x23F1; DINNER DURATION
-        <span style={css.val}>{s.dinnerDuration} min</span>
-      </div>
-      <div style={css.durRow}>
-        {DUR_OPTS.map(o => (
-          <button key={o.v} style={{ ...css.durBase, ...(s.dinnerDuration === o.v ? css.durActive : {}) }} onClick={() => update({ dinnerDuration: o.v })}>
-            {o.l}
-          </button>
-        ))}
-      </div>
+      <div style={{ fontSize: 11, color: '#8e8e93', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>&#x23F1; Dinner Duration</div>
+      <DurDropdown value={s.dinnerDuration} onChange={v => update({ dinnerDuration: v })} />
       <div style={css.divider} />
       <div style={css.lbl}>
         &#x1F514; HEADS-UP BEFORE DINNER
