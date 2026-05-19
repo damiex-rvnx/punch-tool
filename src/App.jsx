@@ -54,7 +54,7 @@ function ClockIcon({ size = 96 }) {
   )
 }
 
-const STORAGE_KEY = 'qwik_crew_v14'
+const STORAGE_KEY = 'qwik_crew_v15'
 
 const DEFAULT = {
   startHour: 7,
@@ -71,7 +71,7 @@ const DEFAULT = {
   endWarning: 15,
   endEnabled: true,
   endFollowupEnabled: true,
-  cardOrder: ['schedulePreview', 'shiftLength', 'lunch', 'dinner'],
+  cardOrder: ['shiftLength', 'lunch', 'dinner', 'schedulePreview'],
   openCards: { schedulePreview: false, shiftLength: true, lunch: true, dinner: true },
 }
 
