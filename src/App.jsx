@@ -385,6 +385,7 @@ export default function App() {
           </div>
           <div style={{ padding: 20, flex: 1 }}>
             {isIOS && <NtfySetupCard css={css} deviceId={getDeviceId()} />}
+            <CardOrderPanel s={s} update={update} />
             <DebugPanel deviceId={getDeviceId()} lastSetError={lastSetError} />
           </div>
         </div>
@@ -599,34 +600,21 @@ function SchedulePreviewContent({ css, schedule }) {
   )
 }
 
-function CollapseCard({ css, title, summary, open, onToggle, canUp, canDown, onUp, onDown, className, children }) {
+function CollapseCard({ css, title, summary, open, onToggle, className, children }) {
   return (
     <div className={className || ''} style={css.card}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        {/* Reorder buttons */}
-        <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-          <button
-            onClick={e => { e.stopPropagation(); onUp() }}
-            disabled={!canUp}
-            style={{ background: 'none', border: 'none', padding: '3px 5px', color: canUp ? '#636366' : '#2c2c2e', cursor: canUp ? 'pointer' : 'default', fontSize: 13, lineHeight: 1 }}
-          >▴</button>
-          <button
-            onClick={e => { e.stopPropagation(); onDown() }}
-            disabled={!canDown}
-            style={{ background: 'none', border: 'none', padding: '3px 5px', color: canDown ? '#636366' : '#2c2c2e', cursor: canDown ? 'pointer' : 'default', fontSize: 13, lineHeight: 1 }}
-          >▾</button>
+      <div
+        onClick={onToggle}
+        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}
+      >
+        <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#8e8e93' }}>
+          {title}
         </div>
-        {/* Collapse toggle */}
-        <div onClick={onToggle} style={{ flex: 1, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', userSelect: 'none' }}>
-          <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#8e8e93' }}>
-            {title}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            {!open && summary && (
-              <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 700, color: '#e5342a', letterSpacing: '0.04em' }}>{summary}</span>
-            )}
-            <span style={{ fontSize: 10, color: '#4a4a4e' }}>{open ? '▲' : '▼'}</span>
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {!open && summary && (
+            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 700, color: '#e5342a', letterSpacing: '0.04em' }}>{summary}</span>
+          )}
+          <span style={{ fontSize: 10, color: '#4a4a4e' }}>{open ? '▲' : '▼'}</span>
         </div>
       </div>
       {open && <div style={{ marginTop: 14 }}>{children}</div>}
@@ -642,21 +630,9 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
     update({ openCards: { ...openCards, [id]: !openCards[id] } })
   }
 
-  function moveCard(id, dir) {
-    const order    = [...cardOrder]
-    const visible  = order.filter(cid => cardDefs[cid]?.visible)
-    const visIdx   = visible.indexOf(id)
-    const target   = visible[visIdx + dir]
-    if (!target) return
-    const ai = order.indexOf(id), bi = order.indexOf(target)
-    ;[order[ai], order[bi]] = [order[bi], order[ai]]
-    update({ cardOrder: order })
-  }
-
-  const endMin     = s.endMin ?? 0
-  const endLabel   = `${s.endHour}h${endMin ? ` ${String(endMin).padStart(2,'0')}m` : ''}`
-  const lunchLabel = LUNCH_OPTS.find(o => o.v === s.lunchHour)?.l ?? `${s.lunchHour}h`
-  const dinnerLabel = DINNER_OPTS.find(o => o.v === s.dinnerHour)?.l ?? `${s.dinnerHour}h`
+  const endMin   = s.endMin ?? 0
+  const endLabel = `${s.endHour}h${endMin ? ` ${String(endMin).padStart(2,'0')}m` : ''}`
+  const start    = s.startHour * 60 + s.startMin
 
   const cardDefs = {
     schedulePreview: {
@@ -668,19 +644,19 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
     },
     shiftLength: {
       title: '🏁 SHIFT LENGTH',
-      summary: endLabel,
+      summary: `${endLabel} · out ${fmtTime(start + s.endHour * 60 + endMin + unpaidBreaks)}`,
       visible: true,
       render: () => <EndOfShiftCard css={css} s={s} update={update} unpaidBreaks={unpaidBreaks} />,
     },
     lunch: {
       title: '🍽️ LUNCH BREAK',
-      summary: `${lunchLabel} · ${s.lunchDuration} min`,
+      summary: `out ${fmtTime(start + h2m(s.lunchHour))} · ${s.lunchDuration}m`,
       visible: showLunch,
       render: () => <LunchCard css={css} s={s} update={update} />,
     },
     dinner: {
       title: '🌙 DINNER BREAK',
-      summary: `${dinnerLabel} · ${s.dinnerDuration} min`,
+      summary: `out ${fmtTime(start + h2m(s.dinnerHour))} · ${s.dinnerDuration}m`,
       visible: showDinner,
       render: () => <DinnerCard css={css} s={s} update={update} />,
     },
@@ -719,10 +695,6 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
             summary={def.summary}
             open={openCards[id] ?? true}
             onToggle={() => toggleCard(id)}
-            canUp={visIdx > 0}
-            canDown={visIdx < visibleOrder.length - 1}
-            onUp={() => moveCard(id, -1)}
-            onDown={() => moveCard(id, 1)}
             className={def.className || ''}
           >
             {def.render()}
@@ -753,6 +725,54 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+function CardOrderPanel({ s, update }) {
+  const cardNames = {
+    schedulePreview: '📋 Schedule Preview',
+    shiftLength:     '🏁 Shift Length',
+    lunch:           '🍽️ Lunch Break',
+    dinner:          '🌙 Dinner Break',
+  }
+  const endTotal   = (s.endHour || 8) * 60 + (s.endMin ?? 0)
+  const showLunch  = endTotal > 300
+  const showDinner = endTotal > 720
+  const order      = s.cardOrder || DEFAULT.cardOrder
+  const visible    = order.filter(id => {
+    if (id === 'lunch'  && !showLunch)  return false
+    if (id === 'dinner' && !showDinner) return false
+    return true
+  })
+
+  function move(id, dir) {
+    const next   = [...order]
+    const target = visible[visible.indexOf(id) + dir]
+    if (!target) return
+    const ai = next.indexOf(id), bi = next.indexOf(target)
+    ;[next[ai], next[bi]] = [next[bi], next[ai]]
+    update({ cardOrder: next })
+  }
+
+  const btn = active => ({
+    background: '#2c2c2e', border: '1px solid #3a3a3c', borderRadius: 6,
+    padding: '6px 11px', fontSize: 12, cursor: active ? 'pointer' : 'default',
+    color: active ? '#f2f2f7' : '#3a3a3c',
+  })
+
+  return (
+    <div style={{ borderTop: '1px solid #3a3a3c', paddingTop: 16, marginTop: 16 }}>
+      <div style={{ fontSize: 11, color: '#636366', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>Card Order</div>
+      {visible.map((id, i) => (
+        <div key={id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: i < visible.length - 1 ? '1px solid #2c2c2e' : 'none' }}>
+          <div style={{ fontSize: 13, color: '#f2f2f7', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700 }}>{cardNames[id]}</div>
+          <div style={{ display: 'flex', gap: 4 }}>
+            <button onClick={() => move(id, -1)} disabled={i === 0} style={btn(i > 0)}>▲</button>
+            <button onClick={() => move(id, 1)} disabled={i === visible.length - 1} style={btn(i < visible.length - 1)}>▼</button>
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
