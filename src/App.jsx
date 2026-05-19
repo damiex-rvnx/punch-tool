@@ -651,73 +651,175 @@ const WHEEL_HOURS = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
 const WHEEL_MINS  = Array.from({ length: 60 }, (_, i) => i)
 
 function WheelCol({ items, value, onChange, fmt = String }) {
-  const idx       = items.indexOf(value)
-  const colRef    = useRef(null)
-  const onChgRef  = useRef(onChange)
-  const idxRef    = useRef(idx)
-  onChgRef.current = onChange
-  idxRef.current   = idx
+  const ITEM_H = 44
+  const N      = items.length
 
+  const colRef   = useRef(null)
+  const trackRef = useRef(null)
+  const elRefs   = useRef([])
+
+  const st = useRef({
+    idx:   Math.max(0, items.indexOf(value)),
+    dragY: 0,
+    vel:   0,
+    raf:   null,
+    lastY: 0,
+    lastT: 0,
+  })
+
+  const cbRef  = useRef(onChange)
+  const itmRef = useRef(items)
+  const fmtRef = useRef(fmt)
+  cbRef.current  = onChange
+  itmRef.current = items
+  fmtRef.current = fmt
+
+  const applyDOM = useCallback((animated) => {
+    const s = st.current
+    const track = trackRef.current
+    if (!track) return
+    const offset = -s.idx * ITEM_H + s.dragY
+    track.style.transition = animated ? 'transform 0.22s cubic-bezier(0.34,1.56,0.64,1)' : 'none'
+    track.style.transform  = `translateY(${offset}px)`
+    elRefs.current.forEach((el, slot) => {
+      if (!el) return
+      const itemIdx = ((s.idx - 2 + slot) % N + N) % N
+      const off     = slot - 2
+      const sel     = off === 0
+      const d       = Math.abs(off)
+      el.textContent      = fmtRef.current(itmRef.current[itemIdx])
+      el.style.fontSize   = sel ? '30px' : d === 1 ? '20px' : '14px'
+      el.style.fontWeight = sel ? '800' : '400'
+      el.style.color      = sel ? '#e5342a' : d === 1 ? 'var(--fg2)' : 'var(--bdr)'
+    })
+  }, [N])
+
+  const step = useCallback((dir) => {
+    const s = st.current
+    s.idx   = ((s.idx + dir) % N + N) % N
+    s.dragY -= dir * ITEM_H
+    applyDOM(false)
+    cbRef.current(itmRef.current[s.idx])
+    if (navigator.vibrate) navigator.vibrate(6)
+  }, [N, applyDOM])
+
+  // Sync external value changes
+  useEffect(() => {
+    const newIdx = items.indexOf(value)
+    if (newIdx === -1 || newIdx === st.current.idx) return
+    st.current.idx   = newIdx
+    st.current.dragY = 0
+    applyDOM(true)
+  }, [value, items, applyDOM])
+
+  // Initial render
+  useEffect(() => { applyDOM(false) }, [applyDOM])
+
+  // Input event listeners
   useEffect(() => {
     const el = colRef.current
-    let touchStartY = 0
-    let touchAccum  = 0
+    if (!el) return
 
     const onWheel = e => {
       e.preventDefault()
-      const next = (idxRef.current + (e.deltaY > 0 ? 1 : -1) + items.length) % items.length
-      onChgRef.current(items[next])
+      if (st.current.raf) { cancelAnimationFrame(st.current.raf); st.current.raf = null }
+      st.current.dragY = 0
+      step(e.deltaY > 0 ? 1 : -1)
+      applyDOM(true)
     }
+
     const onTouchStart = e => {
-      touchStartY = e.touches[0].clientY
-      touchAccum  = 0
+      if (st.current.raf) { cancelAnimationFrame(st.current.raf); st.current.raf = null }
+      st.current.vel   = 0
+      st.current.lastY = e.touches[0].clientY
+      st.current.lastT = performance.now()
     }
+
     const onTouchMove = e => {
       e.preventDefault()
-      const dy = touchStartY - e.touches[0].clientY
-      touchAccum  += dy
-      touchStartY  = e.touches[0].clientY
-      if (Math.abs(touchAccum) >= 28) {
-        const next = (idxRef.current + (touchAccum > 0 ? 1 : -1) + items.length) % items.length
-        touchAccum = 0
-        onChgRef.current(items[next])
+      const now = performance.now()
+      const dy  = st.current.lastY - e.touches[0].clientY
+      const dt  = Math.max(now - st.current.lastT, 1)
+      st.current.vel   = dy / dt
+      st.current.lastY = e.touches[0].clientY
+      st.current.lastT = now
+      st.current.dragY -= dy
+      while (st.current.dragY >  ITEM_H / 2) step(-1)
+      while (st.current.dragY < -ITEM_H / 2) step(1)
+      applyDOM(false)
+    }
+
+    const onTouchEnd = () => {
+      let vel = st.current.vel * 16
+      const DECEL   = 0.88
+      const MIN_VEL = 0.4
+      const tick = () => {
+        vel *= DECEL
+        if (Math.abs(vel) < MIN_VEL) {
+          st.current.dragY = 0
+          applyDOM(true)
+          st.current.raf = null
+          return
+        }
+        st.current.dragY -= vel
+        while (st.current.dragY >  ITEM_H / 2) step(-1)
+        while (st.current.dragY < -ITEM_H / 2) step(1)
+        applyDOM(false)
+        st.current.raf = requestAnimationFrame(tick)
       }
+      st.current.raf = requestAnimationFrame(tick)
     }
 
     el.addEventListener('wheel',      onWheel,      { passive: false })
     el.addEventListener('touchstart', onTouchStart, { passive: true })
     el.addEventListener('touchmove',  onTouchMove,  { passive: false })
+    el.addEventListener('touchend',   onTouchEnd,   { passive: true })
     return () => {
       el.removeEventListener('wheel',      onWheel)
       el.removeEventListener('touchstart', onTouchStart)
       el.removeEventListener('touchmove',  onTouchMove)
+      el.removeEventListener('touchend',   onTouchEnd)
+      if (st.current.raf) cancelAnimationFrame(st.current.raf)
     }
-  }, [items])
+  }, [N, step, applyDOM])
+
+  const handleClick = e => {
+    const rect   = colRef.current.getBoundingClientRect()
+    const clickY = e.clientY - rect.top
+    const offset = Math.round((clickY - ITEM_H * 2) / ITEM_H)
+    if (offset !== 0) {
+      st.current.dragY = 0
+      step(offset)
+      applyDOM(true)
+    }
+  }
 
   return (
-    <div ref={colRef} style={{ width: 64, cursor: 'ns-resize', userSelect: 'none' }}>
-      {[-2, -1, 0, 1, 2].map(offset => {
-        const i   = (idx + offset + items.length) % items.length
-        const sel = offset === 0
-        const d   = Math.abs(offset)
-        return (
+    <div
+      ref={colRef}
+      onClick={handleClick}
+      style={{
+        width: 64, height: ITEM_H * 5, overflow: 'hidden',
+        cursor: 'ns-resize', userSelect: 'none', touchAction: 'none',
+        position: 'relative',
+      }}
+    >
+      <div
+        ref={trackRef}
+        style={{ willChange: 'transform', position: 'absolute', top: 0, left: 0, right: 0 }}
+      >
+        {[0, 1, 2, 3, 4].map(slot => (
           <div
-            key={offset}
-            onClick={() => !sel && onChgRef.current(items[i])}
+            key={slot}
+            ref={el => { elRefs.current[slot] = el }}
             style={{
-              height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize:   sel ? 30 : d === 1 ? 20 : 14,
-              fontWeight: sel ? 800 : 400,
-              color:      sel ? '#e5342a' : d === 1 ? 'var(--fg2)' : 'var(--bdr)',
-              cursor:     sel ? 'default' : 'pointer',
+              height: ITEM_H, display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontFamily: "'Barlow Condensed', sans-serif",
-              transition: 'font-size .12s, color .12s',
+              pointerEvents: 'none',
             }}
-          >
-            {fmt(items[i])}
-          </div>
-        )
-      })}
+          />
+        ))}
+      </div>
     </div>
   )
 }
@@ -1701,13 +1803,6 @@ function ClockInCard({ css, s, update, timeVal, handleTimeChange }) {
           </div>
         </div>
       </AnimatedReveal>
-
-      {/* Clock-in time input — stays in sync with wheel */}
-      <div style={{ marginTop: 10 }}>
-        <div style={{ overflow: 'hidden' }}>
-          <input type="time" value={timeVal} onChange={handleTimeChange} />
-        </div>
-      </div>
 
       <div style={css.hint}>&#x1F4A1; Set this the night before if you know your start time</div>
       <div style={css.divider} />
