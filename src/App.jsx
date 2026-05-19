@@ -74,6 +74,7 @@ const DEFAULT = {
   endEnabled: true,
   endFollowupEnabled: true,
   endFollowupDelay: 30,
+  adpUrl: 'https://workforcenow.adp.com',
   cardOrder: ['shiftLength', 'lunch', 'dinner', 'schedulePreview'],
   openCards: { schedulePreview: false, shiftLength: true, lunch: true, dinner: true, clockIn: true },
 }
@@ -140,6 +141,9 @@ export default function App() {
   const [alert, setAlert]   = useState(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [lastSetError, setLastSetError] = useState(null)
+  const [setSnapshot, setSetSnapshot] = useState(null)
+  const [confirmCancel, setConfirmCancel] = useState(false)
+  const cancelConfirmTimer = useRef(null)
   const timerIds   = useRef([])
   const toastTimer = useRef(null)
   const swReg      = useRef(null)
@@ -160,6 +164,13 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(s))
   }, [s])
+
+  useEffect(() => {
+    fetch(`${WORKER_URL}/status?deviceId=${getDeviceId()}`)
+      .then(r => r.json())
+      .then(data => { if (data.exists) setIsSet(true) })
+      .catch(() => {})
+  }, [])
 
   const update = useCallback(patch => setS(prev => ({ ...prev, ...patch })), [])
 
@@ -198,6 +209,18 @@ export default function App() {
       ] : []),
     ]
   })()
+
+  function scheduleKey(st) {
+    return JSON.stringify({
+      startHour: st.startHour, startMin: st.startMin, startWarning: st.startWarning,
+      lunchHour: st.lunchHour, lunchWarning: st.lunchWarning, lunchDuration: st.lunchDuration,
+      dinnerHour: st.dinnerHour, dinnerWarning: st.dinnerWarning, dinnerDuration: st.dinnerDuration, dinnerEnabled: st.dinnerEnabled,
+      endHour: st.endHour, endMin: st.endMin, endWarning: st.endWarning, endEnabled: st.endEnabled,
+      endFollowupEnabled: st.endFollowupEnabled, endFollowupDelay: st.endFollowupDelay,
+    })
+  }
+  const isDirty = isSet && setSnapshot !== null && scheduleKey(s) !== scheduleKey(setSnapshot)
+  const isOvernight = (s.startHour * 60 + s.startMin + s.endHour * 60 + (s.endMin ?? 0) + unpaidBreaks) >= 1440
 
   function showToast(msg, color) {
     clearTimeout(toastTimer.current)
@@ -273,7 +296,7 @@ export default function App() {
 
       timerIds.current.push(setTimeout(() => setAlert({ emoji: item.emoji, label: item.label }), ms))
       swItems.push({ id: item.id, ms, label: item.label, emoji: item.emoji })
-      workerItems.push({ id: item.id, fireAtISO: new Date(Date.now() + ms).toISOString(), label: item.label, emoji: item.emoji })
+      workerItems.push({ id: item.id, fireAtISO: new Date(Date.now() + ms).toISOString(), label: item.label, emoji: item.emoji, urgency: 'high', requireInteraction: true })
     })
 
     let workerOk = false
@@ -310,6 +333,7 @@ export default function App() {
     }
 
     setIsSet(true)
+    setSetSnapshot({ ...s })
     const swActive = !!(swReg.current?.active)
     if (subscribeErr) {
       // Local SW timer still works — notifications fire while browser is open
@@ -331,7 +355,20 @@ export default function App() {
   function handleCancel() {
     clearTimers()
     setIsSet(false)
+    setSetSnapshot(null)
+    setConfirmCancel(false)
     showToast('Reminders cancelled', '#374151')
+  }
+
+  function handleCancelClick() {
+    if (!confirmCancel) {
+      setConfirmCancel(true)
+      clearTimeout(cancelConfirmTimer.current)
+      cancelConfirmTimer.current = setTimeout(() => setConfirmCancel(false), 3000)
+    } else {
+      clearTimeout(cancelConfirmTimer.current)
+      handleCancel()
+    }
   }
 
   const timeVal = `${pad2(s.startHour)}:${pad2(s.startMin)}`
@@ -411,6 +448,19 @@ export default function App() {
             </div>
             {isIOS && <NtfySetupCard css={css} deviceId={getDeviceId()} />}
             <CardOrderPanel s={s} update={update} />
+            <div style={{ borderTop: '1px solid #3a3a3c', paddingTop: 16, marginTop: 16 }}>
+              <div style={{ fontSize: 11, color: '#636366', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>ADP Link</div>
+              <input
+                type="url"
+                value={s.adpUrl || ''}
+                placeholder="https://workforcenow.adp.com"
+                onChange={e => update({ adpUrl: e.target.value })}
+                style={{ width: '100%', background: '#1c1c1e', border: '1.5px solid #3a3a3c', borderRadius: 10, padding: '10px 14px', color: '#f2f2f7', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+              />
+              <div style={{ fontSize: 11, color: '#636366', marginTop: 6, lineHeight: 1.5 }}>
+                Custom URL for the "Open ADP" button in alerts.
+              </div>
+            </div>
             <DebugPanel deviceId={getDeviceId()} lastSetError={lastSetError} />
           </div>
         </div>
@@ -427,6 +477,14 @@ export default function App() {
           <div style={{ fontSize: 72, animation: 'pop 1s ease infinite', marginBottom: 20 }}>{alert.emoji}</div>
           <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 28, fontWeight: 700, textAlign: 'center', maxWidth: 380, marginBottom: 12 }}>{alert.label}</div>
           <div style={{ color: '#e5342a', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 20, fontWeight: 700, marginBottom: 28 }}>Clock in/out in ADP now!</div>
+          <a
+            href={s.adpUrl || 'https://workforcenow.adp.com'}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ display: 'inline-block', marginBottom: 16, padding: '10px 24px', background: '#e5342a', color: '#fff', borderRadius: 10, textDecoration: 'none', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 16, fontWeight: 700, letterSpacing: '0.06em' }}
+          >
+            Open ADP ↗
+          </a>
           <button onClick={() => setAlert(null)} style={{ padding: '12px 32px', background: 'transparent', color: '#f2f2f7', border: '1.5px solid #3a3a3c', borderRadius: 12, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 17, fontWeight: 700, cursor: 'pointer' }}>Got it ✓</button>
         </div>
       )}
@@ -439,6 +497,14 @@ export default function App() {
           </div>
           <div style={css.rule} />
           <div style={css.tagline}>Crew Clock Reminder</div>
+          {isSet && (
+            <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 6, padding: '5px 14px', borderRadius: 20, background: isDirty ? '#2a1e00' : '#0e2a14', border: `1px solid ${isDirty ? '#d97706' : '#32d74b'}` }}>
+              <span style={{ fontSize: 10 }}>{isDirty ? '⚠️' : '✓'}</span>
+              <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: isDirty ? '#d97706' : '#32d74b' }}>
+                {isDirty ? 'Update Needed' : 'Armed'}
+              </span>
+            </div>
+          )}
         </div>
 
         <ResponsiveLayout
@@ -446,6 +512,8 @@ export default function App() {
           timeVal={timeVal} handleTimeChange={handleTimeChange}
           schedule={schedule} isSet={isSet}
           handleSet={handleSet} handleCancel={handleCancel}
+          handleCancelClick={handleCancelClick} confirmCancel={confirmCancel}
+          isDirty={isDirty} isOvernight={isOvernight}
           showLunch={showLunch} showDinner={showDinner} unpaidBreaks={unpaidBreaks}
         />
 
@@ -601,7 +669,55 @@ function DesktopTimePicker({ startHour, startMin, onHourMin }) {
   )
 }
 
-function SchedulePreviewContent({ css, schedule }) {
+function ShiftTimeline({ s, schedule, showLunch, showDinner, unpaidBreaks }) {
+  const start    = s.startHour * 60 + s.startMin
+  const endOut   = start + s.endHour * 60 + (s.endMin ?? 0) + unpaidBreaks
+  const span     = Math.max(endOut - start, 60)
+
+  const pct = mins => {
+    let pos = mins - start
+    if (pos < 0) pos += 1440
+    return Math.min(100, Math.max(0, (pos / span) * 100))
+  }
+
+  const dots = schedule.filter(i => ['ciw', 'ci', 'lw', 'lo', 'li', 'dw', 'dout', 'din', 'ew', 'eo', 'ef'].includes(i.id))
+
+  const dotColor = id => {
+    if (id === 'ci')  return '#32d74b'
+    if (id === 'eo')  return '#e5342a'
+    if (id.endsWith('w')) return '#d97706'
+    return '#636366'
+  }
+
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ position: 'relative', height: 4, background: '#3a3a3c', borderRadius: 2, margin: '24px 0 8px' }}>
+        {/* worked segments: red fill except during break zones */}
+        <div style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, background: '#e5342a22', borderRadius: 2 }} />
+        {showLunch && (() => {
+          const lo = pct(start + h2m(s.lunchHour))
+          const li = pct(start + h2m(s.lunchHour) + s.lunchDuration)
+          return <div style={{ position: 'absolute', left: `${lo}%`, width: `${li - lo}%`, top: 0, bottom: 0, background: '#1c1c1e', borderLeft: '1px solid #3a3a3c', borderRight: '1px solid #3a3a3c' }} />
+        })()}
+        {showDinner && s.dinnerEnabled && (() => {
+          const dout = pct(start + h2m(s.dinnerHour))
+          const din  = pct(start + h2m(s.dinnerHour) + s.dinnerDuration)
+          return <div style={{ position: 'absolute', left: `${dout}%`, width: `${din - dout}%`, top: 0, bottom: 0, background: '#1c1c1e', borderLeft: '1px solid #3a3a3c', borderRight: '1px solid #3a3a3c' }} />
+        })()}
+        {/* Event dots */}
+        {dots.map(item => (
+          <div key={item.id} style={{ position: 'absolute', left: `${pct(item.fireAt)}%`, top: '50%', transform: 'translate(-50%, -50%)', width: 10, height: 10, borderRadius: '50%', background: dotColor(item.id), border: '2px solid #1c1c1e', zIndex: 1 }} />
+        ))}
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#636366', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.06em' }}>
+        <span>{fmtTime(start)}</span>
+        <span>{fmtTime(endOut)}</span>
+      </div>
+    </div>
+  )
+}
+
+function SchedulePreviewContent({ css, schedule, s, showLunch, showDinner, unpaidBreaks }) {
   const now = new Date()
   const nowMins = now.getHours() * 60 + now.getMinutes()
   const sorted = [...schedule].sort((a, b) => {
@@ -628,6 +744,7 @@ function SchedulePreviewContent({ css, schedule }) {
 
   return (
     <div>
+      <ShiftTimeline s={s} schedule={schedule} showLunch={showLunch} showDinner={showDinner} unpaidBreaks={unpaidBreaks} />
       {todayItems.length > 0 && <>{sectionLabel('Today')}{grid(todayItems, false)}</>}
       {tmrwItems.length > 0 && <div style={{ marginTop: todayItems.length > 0 ? 16 : 0 }}>{sectionLabel('Tomorrow')}{grid(tmrwItems, true)}</div>}
     </div>
@@ -658,7 +775,7 @@ function CollapseCard({ css, title, summary, open, onToggle, className, children
   )
 }
 
-function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule, isSet, handleSet, handleCancel, showLunch, showDinner, unpaidBreaks }) {
+function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule, isSet, handleSet, handleCancel, handleCancelClick, confirmCancel, isDirty, isOvernight, showLunch, showDinner, unpaidBreaks }) {
   const openCards = s.openCards || DEFAULT.openCards
   const cardOrder = s.cardOrder || DEFAULT.cardOrder
 
@@ -695,13 +812,13 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
         : `${schedule.length} reminders · next ${nextItem ? fmtTime(nextItem.fireAt) + (nextTmrw ? ' (tmrw)' : '') : ''}`,
       className: 'card-full',
       visible: true,
-      render: () => <SchedulePreviewContent css={css} schedule={schedule} />,
+      render: () => <SchedulePreviewContent css={css} schedule={schedule} s={s} showLunch={showLunch} showDinner={showDinner} unpaidBreaks={unpaidBreaks} />,
     },
     shiftLength: {
       title: '🏁 SHIFT LENGTH',
       summary: `clock out ${fmtTime(start + s.endHour * 60 + endMin + unpaidBreaks)}  ·  ${endLabel} shift`,
       visible: true,
-      render: () => <EndOfShiftCard css={css} s={s} update={update} unpaidBreaks={unpaidBreaks} />,
+      render: () => <EndOfShiftCard css={css} s={s} update={update} unpaidBreaks={unpaidBreaks} isOvernight={isOvernight} />,
     },
     lunch: {
       title: '🍽️ LUNCH BREAK',
@@ -754,11 +871,19 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
 
       {/* Set Reminders — fixed at bottom */}
       <div className="card-full">
-        <button style={css.btnSet} onClick={handleSet}>
-          {isSet ? '✓ UPDATE REMINDERS' : 'SET REMINDERS'}
+        <button
+          style={{ ...css.btnSet, ...(isDirty ? { background: '#d97706' } : {}) }}
+          onClick={handleSet}
+        >
+          {isDirty ? '⚠ SETTINGS CHANGED — UPDATE' : isSet ? '✓ UPDATE REMINDERS' : 'SET REMINDERS'}
         </button>
         {isSet && (
-          <button style={css.btnCancel} onClick={handleCancel}>Cancel Reminders</button>
+          <button
+            style={{ ...css.btnCancel, ...(confirmCancel ? { borderColor: '#e5342a', color: '#e5342a' } : {}) }}
+            onClick={handleCancelClick}
+          >
+            {confirmCancel ? '⚠ Tap again to confirm cancel' : 'Cancel Reminders'}
+          </button>
         )}
         {isSet && nextItem && (() => {
           const eff = nextItem.fireAt < nowMins ? nextItem.fireAt + 1440 : nextItem.fireAt
@@ -1079,7 +1204,7 @@ function Toggle({ on, onToggle, label }) {
   )
 }
 
-function EndOfShiftCard({ css, s, update, unpaidBreaks }) {
+function EndOfShiftCard({ css, s, update, unpaidBreaks, isOvernight }) {
   const [wheelOpen, setWheelOpen] = useState(false)
   const [warnFlash, setWarnFlash]   = useState(null)
   const warnTimer                   = useRef(null)
@@ -1151,6 +1276,11 @@ function EndOfShiftCard({ css, s, update, unpaidBreaks }) {
             <span> + <span style={{ color: '#8e8e93' }}>{unpaidBreaks}m unpaid break</span></span>
           )}
         </div>
+        {isOvernight && (
+          <div style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 10, background: '#1a1a2e', border: '1px solid #5a5aff', fontSize: 11, color: '#8888ff', fontWeight: 700, fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: '0.08em' }}>
+            🌙 Overnight — clock-out next day
+          </div>
+        )}
       </div>
 
       <div style={css.divider} />
@@ -1236,7 +1366,7 @@ function DurDropdown({ value, onChange }) {
           {DUR_OPTS.map((o, i) => (
             <div
               key={o.v}
-              onClick={() => { onChange(o.v); setOpen(false) }}
+              onClick={() => { onChange(o.v); setOpen(false); navigator.vibrate?.(10) }}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', cursor: 'pointer', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 17, fontWeight: 700, color: o.v === value ? '#e5342a' : '#f2f2f7', background: o.v === value ? '#e5342a0f' : 'transparent', borderBottom: i < DUR_OPTS.length - 1 ? '1px solid #2c2c2e' : 'none' }}
             >
               <span>{o.l}</span>
