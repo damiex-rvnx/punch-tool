@@ -1641,12 +1641,14 @@ function Toggle({ on, onToggle, label }) {
       onClick={onToggle}
       aria-label={label}
       style={{
-        padding: '4px 10px', borderRadius: 6, border: `1.5px solid ${on ? '#32d74b' : 'var(--bdr)'}`,
-        background: on ? 'rgba(50,215,75,0.1)' : 'transparent',
-        color: on ? '#32d74b' : 'var(--hint)',
-        fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 800,
+        padding: '7px 14px', borderRadius: 8,
+        border: `2px solid ${on ? '#32d74b' : 'var(--fg)'}`,
+        background: on ? 'rgba(50,215,75,0.13)' : 'rgba(128,128,128,0.12)',
+        color: on ? '#32d74b' : 'var(--fg)',
+        fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 800,
         letterSpacing: '0.12em', textTransform: 'uppercase',
         cursor: 'pointer', transition: 'all .15s', flexShrink: 0, whiteSpace: 'nowrap',
+        minWidth: 56, textAlign: 'center',
       }}
     >
       {on ? '✓ ON' : 'OFF'}
