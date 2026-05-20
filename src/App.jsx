@@ -586,7 +586,7 @@ export default function App() {
                 Custom URL for the "Open ADP" button in alerts.
               </div>
             </div>
-            <DebugPanel deviceId={getDeviceId()} lastSetError={lastSetError} />
+            <DebugPanel deviceId={getDeviceId()} lastSetError={lastSetError} schedule={schedule} nowMins={nowMins} />
             <div style={{ borderTop: '1px solid var(--bdr)', paddingTop: 16, marginTop: 16 }}>
               <button
                 onClick={() => { setSettingsOpen(false); setLegalOpen(true) }}
@@ -1540,7 +1540,7 @@ function NtfySetupCard({ css, deviceId }) {
   )
 }
 
-function DebugPanel({ deviceId, lastSetError }) {
+function DebugPanel({ deviceId, lastSetError, schedule, nowMins }) {
   const [pw, setPw]             = useState('')
   const [unlocked, setUnlocked] = useState(false)
   const [pwError, setPwError]   = useState(false)
@@ -1551,6 +1551,9 @@ function DebugPanel({ deviceId, lastSetError }) {
   const [cronLog, setCronLog]   = useState(null)
   const [loading, setLoading]   = useState('')
   const [subInfo, setSubInfo]   = useState(null)
+  const [swState, setSwState]   = useState(null)
+  const [battery, setBattery]   = useState(null)
+  const [clearDone, setClearDone] = useState(false)
 
   useEffect(() => {
     if (!unlocked) return
@@ -1558,6 +1561,7 @@ function DebugPanel({ deviceId, lastSetError }) {
       if (!('serviceWorker' in navigator)) { setSubInfo({ error: 'No service worker support' }); return }
       try {
         const reg = await navigator.serviceWorker.ready
+        setSwState(reg.active ? 'active' : reg.waiting ? 'waiting' : reg.installing ? 'installing' : 'unknown')
         const sub = await reg.pushManager.getSubscription()
         if (sub) {
           setSubInfo({ exists: true, endpoint: new URL(sub.endpoint).host })
@@ -1575,11 +1579,14 @@ function DebugPanel({ deviceId, lastSetError }) {
       } catch (e) {
         setSubInfo({ error: e.message || String(e) })
       }
+      if ('getBattery' in navigator) {
+        try { const b = await navigator.getBattery(); setBattery(`${Math.round(b.level * 100)}% ${b.charging ? '⚡ charging' : '🔋'}`) } catch {}
+      }
     })()
   }, [unlocked])
 
   function tryUnlock() {
-    if (pw === '25896211') { setUnlocked(true); setPwError(false) }
+    if (pw === '25896211##') { setUnlocked(true); setPwError(false) }
     else setPwError(true)
   }
 
@@ -1620,6 +1627,16 @@ function DebugPanel({ deviceId, lastSetError }) {
     )
   }
 
+  const sectionHdr = lbl => (
+    <div style={{ fontSize: 10, color: 'var(--hint)', marginBottom: 4, marginTop: 14, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>{lbl}</div>
+  )
+  const infoRow = (label, val, ok) => (
+    <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '5px 0', borderBottom: '1px solid var(--inp)', gap: 8 }}>
+      <span style={{ fontSize: 10, color: 'var(--hint)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', flexShrink: 0 }}>{label}</span>
+      <span style={{ fontSize: 10, fontFamily: 'monospace', color: ok === true ? '#32d74b' : ok === false ? '#e5342a' : '#aeaeb2', textAlign: 'right', wordBreak: 'break-all' }}>{val}</span>
+    </div>
+  )
+
   return (
     <div style={{ marginTop: 16, borderTop: '1px solid var(--bdr)', paddingTop: 16 }}>
       <div style={{ fontSize: 11, color: '#32d74b', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>🔓 Debug</div>
@@ -1629,40 +1646,59 @@ function DebugPanel({ deviceId, lastSetError }) {
         </div>
       )}
 
-      {(() => {
-        const standalone   = window.navigator.standalone === true
-        const permission   = notifPermission()
-        const swOk         = 'serviceWorker' in navigator
-        const pushOk       = 'PushManager' in window
-        const rows = [
-          ['Installed PWA',    standalone ? '✅ Yes' : '❌ No — add to home screen',    standalone],
-          ['Notifications',    permission === 'granted' ? '✅ Granted' : `❌ ${permission}`, permission === 'granted'],
-          ['Service Worker',   swOk ? '✅ Supported' : '❌ Not supported',               swOk],
-          ['Push API',         pushOk ? '✅ Supported' : '❌ Not supported',             pushOk],
-          ['Push Sub',         subInfo == null ? '⏳ Checking...' : subInfo.exists ? `✅ ${subInfo.endpoint}` : `❌ ${subInfo.subscribeError ?? subInfo.error ?? 'None'}`, subInfo?.exists ?? true],
-        ]
-        return (
-          <div style={{ ...box, marginTop: 0, marginBottom: 14 }}>
-            {rows.map(([label, val, ok]) => (
-              <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: '1px solid var(--inp)' }}>
-                <span style={{ fontSize: 10, color: 'var(--hint)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</span>
-                <span style={{ fontSize: 10, fontFamily: 'monospace', color: ok ? '#32d74b' : '#e5342a' }}>{val}</span>
-              </div>
-            ))}
-          </div>
-        )
-      })()}
-
-      <div style={{ fontSize: 10, color: '#636366', marginBottom: 3, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Device ID</div>
-      <div style={{ ...box, marginTop: 0, marginBottom: 10 }}>
-        <pre style={{ ...mono, color: '#8e8e93' }}>{deviceId}</pre>
+      {/* Environment */}
+      {sectionHdr('Environment')}
+      <div style={{ ...box, marginTop: 0 }}>
+        {[
+          ['Installed PWA',  window.navigator.standalone === true ? 'Yes' : 'No — add to home screen', window.navigator.standalone === true],
+          ['Notifications',  notifPermission() === 'granted' ? 'Granted' : notifPermission(), notifPermission() === 'granted'],
+          ['Service Worker', 'serviceWorker' in navigator ? `Supported · ${swState ?? '…'}` : 'Not supported', 'serviceWorker' in navigator],
+          ['Push API',       'PushManager' in window ? 'Supported' : 'Not supported', 'PushManager' in window],
+          ['Push Sub',       subInfo == null ? '…' : subInfo.exists ? subInfo.endpoint : subInfo.subscribeError ?? subInfo.error ?? 'None', subInfo?.exists ?? null],
+          ['Network',        navigator.onLine ? 'Online' : 'Offline', navigator.onLine],
+          ['Battery',        battery ?? 'N/A', null],
+          ['Time Zone',      Intl.DateTimeFormat().resolvedOptions().timeZone, null],
+          ['Local Time',     new Date().toLocaleTimeString(), null],
+          ['Platform',       navigator.userAgentData?.platform ?? navigator.platform ?? 'Unknown', null],
+          ['Browser',        (() => { const ua = navigator.userAgent; const m = ua.match(/(Chrome|Firefox|Safari|Edge|OPR)\/[\d.]+/g); return m ? m[m.length - 1] : ua.slice(0, 40) })(), null],
+        ].map(([l, v, ok]) => infoRow(l, v, ok))}
       </div>
 
-      <div style={{ fontSize: 10, color: '#636366', marginBottom: 3, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>ntfy Topic</div>
-      <div style={{ ...box, marginTop: 0, marginBottom: 14 }}>
-        <pre style={{ ...mono, color: '#32d74b' }}>{getNtfyTopic(deviceId)}</pre>
+      {/* IDs */}
+      {sectionHdr('Device ID')}
+      <div style={{ ...box, marginTop: 0 }}><pre style={{ ...mono, color: '#8e8e93' }}>{deviceId}</pre></div>
+      {sectionHdr('ntfy Topic')}
+      <div style={{ ...box, marginTop: 0 }}><pre style={{ ...mono, color: '#32d74b' }}>{getNtfyTopic(deviceId)}</pre></div>
+
+      {/* Current Schedule */}
+      {sectionHdr('Active Schedule')}
+      <div style={{ ...box, marginTop: 0 }}>
+        {schedule && schedule.length > 0 ? schedule.slice().sort((a, b) => a.fireAt - b.fireAt).map(item => {
+          const eff = item.fireAt < nowMins ? item.fireAt + 1440 : item.fireAt
+          const diff = eff - nowMins
+          const h = Math.floor(diff / 60), m = diff % 60
+          const rel = diff <= 0 ? 'now' : h > 0 ? `in ${h}h ${m}m` : `in ${m}m`
+          const past = item.fireAt < nowMins
+          return (
+            <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: '1px solid var(--inp)', opacity: past ? 0.45 : 1 }}>
+              <span style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--fg2)' }}>{item.emoji} {item.id}</span>
+              <span style={{ fontSize: 10, fontFamily: 'monospace', color: past ? 'var(--hint)' : '#32d74b' }}>{fmtTime(item.fireAt)} · {rel}</span>
+            </div>
+          )
+        }) : <span style={{ fontSize: 10, color: 'var(--hint)', fontFamily: 'monospace' }}>No schedule set</span>}
       </div>
 
+      {/* LocalStorage */}
+      {sectionHdr('Local Storage')}
+      <div style={{ ...box, marginTop: 0 }}>
+        {[STORAGE_KEY, 'qwik_crew_isset', 'qwik_crew_user_default', 'qwik_crew_device'].map(k => {
+          const v = localStorage.getItem(k)
+          return infoRow(k.replace('qwik_crew_', ''), v == null ? '—' : v.length > 40 ? `${v.length} chars` : v, v != null)
+        })}
+      </div>
+
+      {/* Actions */}
+      {sectionHdr('Actions')}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <button style={{ ...btn, borderColor: '#32d74b', color: '#32d74b' }} disabled={loading === 'reg'} onClick={async () => {
           setLoading('reg')
@@ -1705,6 +1741,16 @@ function DebugPanel({ deviceId, lastSetError }) {
           {loading === 'log' ? '⏳ Loading...' : '📋 Cron Log'}
         </button>
         {cronLog && <div style={box}><pre style={{ ...mono, color: '#aeaeb2' }}>{JSON.stringify(cronLog.slice(0, 5), null, 2)}</pre></div>}
+
+        <button style={{ ...btn, borderColor: '#e5342a', color: clearDone ? '#32d74b' : '#e5342a' }} onClick={() => {
+          if (!clearDone) {
+            [STORAGE_KEY, 'qwik_crew_isset', 'qwik_crew_user_default'].forEach(k => localStorage.removeItem(k))
+            setClearDone(true)
+            setTimeout(() => window.location.reload(), 800)
+          }
+        }}>
+          {clearDone ? '✓ Cleared — reloading…' : '🗑 Clear App Storage & Reset'}
+        </button>
       </div>
     </div>
   )
