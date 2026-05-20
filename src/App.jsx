@@ -630,14 +630,19 @@ export default function App() {
           </div>
           <div style={css.rule} />
           <div style={css.tagline}>Crew Clock Reminder</div>
-          {isSet && (
-            <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 6, padding: '5px 14px', borderRadius: 20, background: isDirty ? 'rgba(217,119,6,0.12)' : 'rgba(50,215,75,0.12)', border: `1.5px solid ${isDirty ? '#d97706' : '#32d74b'}` }}>
-              <span style={{ fontSize: 10 }}>{isDirty ? '⚠️' : '✓'}</span>
-              <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: isDirty ? '#d97706' : '#32d74b' }}>
-                {isDirty ? 'Update Needed' : 'Armed'}
-              </span>
-            </div>
-          )}
+          {(() => {
+            const [bg, border, color, icon, text] = !isSet
+              ? ['rgba(229,52,42,0.1)', '#e5342a', '#e5342a', '○', 'NOT SET']
+              : isDirty
+                ? ['rgba(217,119,6,0.12)', '#d97706', '#d97706', '⚠', 'UPDATE REMINDERS']
+                : ['rgba(50,215,75,0.12)', '#32d74b', '#32d74b', '✓', 'ARMED']
+            return (
+              <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 6, padding: '5px 14px', borderRadius: 20, background: bg, border: `1.5px solid ${border}` }}>
+                <span style={{ fontSize: 10, color }}>{icon}</span>
+                <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color }}>{text}</span>
+              </div>
+            )
+          })()}
         </div>
 
         <ResponsiveLayout
