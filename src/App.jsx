@@ -80,7 +80,6 @@ const DEFAULT = {
   endEnabled: true,
   endFollowupEnabled: true,
   endFollowupDelay: 30,
-  allHeadsUpOn: true,
   adpUrl: 'https://workforcenow.adp.com',
   lightMode: false,
   cardOrder: ['shiftLength', 'lunch', 'dinner', 'schedulePreview'],
@@ -203,34 +202,33 @@ export default function App() {
     const dinnerOut = start + h2m(s.dinnerHour)
     const dinnerIn  = dinnerOut + s.dinnerDuration
     const endOut    = start + endTotal + unpaidBreaks
-    const wu = s.allHeadsUpOn !== false
     return [
-      ...(wu && s.ciWarnOn !== false ? [
+      ...(s.ciWarnOn !== false ? [
         { id: 'ciw', emoji: '🔔', label: `Clock in in ${s.startWarning} min — heads up!`, fireAt: start - s.startWarning },
       ] : []),
       { id: 'ci', emoji: '⏰', label: 'Clock In', fireAt: start },
       ...(showLunch ? [
-        ...(wu && s.lwOn !== false ? [
+        ...(s.lwOn !== false ? [
           { id: 'lw', emoji: '🔔', label: `Lunch in ${s.lunchWarning} min — heads up!`, fireAt: lunchOut - s.lunchWarning },
         ] : []),
         { id: 'lo', emoji: '🍽️', label: 'Clock Out — Lunch Break', fireAt: lunchOut },
-        ...(wu && s.liWarnOn !== false ? [
+        ...(s.liWarnOn !== false ? [
           { id: 'liw', emoji: '🔔', label: `Back from lunch in ${s.liWarning ?? 5} min — heads up!`, fireAt: lunchIn - (s.liWarning ?? 5) },
         ] : []),
         { id: 'li', emoji: '✅', label: `Clock Back In — Lunch (${s.lunchDuration} min)`, fireAt: lunchIn },
       ] : []),
       ...(showDinner && s.dinnerEnabled ? [
-        ...(wu && s.dwOn !== false ? [
+        ...(s.dwOn !== false ? [
           { id: 'dw', emoji: '🔔', label: `Dinner in ${s.dinnerWarning} min — heads up!`, fireAt: dinnerOut - s.dinnerWarning },
         ] : []),
         { id: 'dout', emoji: '🌙', label: 'Clock Out — Dinner Break', fireAt: dinnerOut },
-        ...(wu && s.dinWarnOn !== false ? [
+        ...(s.dinWarnOn !== false ? [
           { id: 'dinw', emoji: '🔔', label: `Back from dinner in ${s.dinWarning ?? 5} min — heads up!`, fireAt: dinnerIn - (s.dinWarning ?? 5) },
         ] : []),
         { id: 'din', emoji: '🔁', label: `Clock Back In — Dinner (${s.dinnerDuration} min)`, fireAt: dinnerIn },
       ] : []),
       ...(s.endEnabled ? [
-        ...(wu && s.ewOn !== false ? [
+        ...(s.ewOn !== false ? [
           { id: 'ew', emoji: '⚠️', label: `Shift ends in ${s.endWarning} min — heads up!`, fireAt: endOut - s.endWarning },
         ] : []),
         { id: 'eo', emoji: '🏁', label: 'Clock Out — End of Shift', fireAt: endOut },
@@ -247,7 +245,7 @@ export default function App() {
       lunchHour: st.lunchHour, lunchWarning: st.lunchWarning, lwOn: st.lwOn, liWarning: st.liWarning, liWarnOn: st.liWarnOn, lunchDuration: st.lunchDuration,
       dinnerHour: st.dinnerHour, dinnerWarning: st.dinnerWarning, dwOn: st.dwOn, dinWarning: st.dinWarning, dinWarnOn: st.dinWarnOn, dinnerDuration: st.dinnerDuration, dinnerEnabled: st.dinnerEnabled,
       endHour: st.endHour, endMin: st.endMin, endWarning: st.endWarning, ewOn: st.ewOn, endEnabled: st.endEnabled,
-      endFollowupEnabled: st.endFollowupEnabled, endFollowupDelay: st.endFollowupDelay, allHeadsUpOn: st.allHeadsUpOn,
+      endFollowupEnabled: st.endFollowupEnabled, endFollowupDelay: st.endFollowupDelay,
     })
   }
   const isDirty = isSet && setSnapshot !== null && scheduleKey(s) !== scheduleKey(setSnapshot)
@@ -541,16 +539,22 @@ export default function App() {
                 <Toggle on={s.lightMode} onToggle={() => update({ lightMode: !s.lightMode })} label="Toggle light mode" />
               </div>
             </div>
-            <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: '1px solid var(--bdr)' }}>
-              <div style={{ fontSize: 11, color: 'var(--hint)', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>Heads-Up Notifications</div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div>
-                  <div style={{ fontSize: 13, color: 'var(--fg)', fontWeight: 600 }}>All heads-up alerts</div>
-                  <div style={{ fontSize: 11, color: 'var(--hint)', marginTop: 2 }}>{s.allHeadsUpOn !== false ? 'On — advance warnings active' : 'Off — no advance warnings'}</div>
+            {(() => {
+              const warnKeys = ['ciWarnOn','lwOn','liWarnOn','dwOn','dinWarnOn','ewOn']
+              const anyWarnOn = warnKeys.some(k => s[k] !== false)
+              return (
+                <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: '1px solid var(--bdr)' }}>
+                  <div style={{ fontSize: 11, color: 'var(--hint)', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>Heads-Up Notifications</div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ fontSize: 13, color: 'var(--fg)', fontWeight: 600 }}>All heads-up alerts</div>
+                      <div style={{ fontSize: 11, color: 'var(--hint)', marginTop: 2 }}>{anyWarnOn ? 'On — advance warnings active' : 'Off — no advance warnings'}</div>
+                    </div>
+                    <Toggle on={anyWarnOn} onToggle={() => update(Object.fromEntries(warnKeys.map(k => [k, !anyWarnOn])))} label="Toggle all heads-up" />
+                  </div>
                 </div>
-                <Toggle on={s.allHeadsUpOn !== false} onToggle={() => update({ allHeadsUpOn: s.allHeadsUpOn === false })} label="Toggle all heads-up" />
-              </div>
-            </div>
+              )
+            })()}
             <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: '1px solid var(--bdr)' }}>
               <div style={{ fontSize: 11, color: 'var(--hint)', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>Saved Defaults</div>
               <button
@@ -1017,7 +1021,7 @@ function ShiftTimeline({ s, schedule, showLunch, showDinner, unpaidBreaks, updat
 
   return (
     <div style={{ marginBottom: 16 }}>
-      <div style={{ position: 'relative', margin: '32px 0 10px' }}>
+      <div style={{ position: 'relative', margin: '24px 0 48px' }}>
         {tooltip && (
           <div style={{
             position: 'absolute',
@@ -1042,7 +1046,8 @@ function ShiftTimeline({ s, schedule, showLunch, showDinner, unpaidBreaks, updat
             const din  = pct(start + h2m(s.dinnerHour) + s.dinnerDuration)
             return <div style={{ position: 'absolute', left: `${dout}%`, width: `${din - dout}%`, top: 0, bottom: 0, background: 'var(--bg)', borderLeft: '2px solid var(--bdr)', borderRight: '2px solid var(--bdr)' }} />
           })()}
-          {dots.map(item => {
+          {[...dots].sort((a, b) => a.id.endsWith('w') ? 1 : b.id.endsWith('w') ? -1 : 0).map(item => {
+            const isWarn = item.id.endsWith('w')
             const isDr = draggable.has(item.id)
             const isAc = activeDot === item.id
             const sz   = dotSz(item.id)
@@ -1054,7 +1059,7 @@ function ShiftTimeline({ s, schedule, showLunch, showDinner, unpaidBreaks, updat
                 style={{
                   position: 'absolute',
                   left: `${pct(item.fireAt)}%`,
-                  top: item.id.endsWith('w') ? 'calc(50% - 14px)' : '50%',
+                  top: isWarn ? 'calc(50% + 28px)' : '50%',
                   transform: 'translate(-50%, -50%)',
                   width: HIT,
                   height: HIT,
@@ -1063,7 +1068,7 @@ function ShiftTimeline({ s, schedule, showLunch, showDinner, unpaidBreaks, updat
                   justifyContent: 'center',
                   cursor: isDr ? (isAc ? 'grabbing' : 'grab') : 'default',
                   touchAction: isDr ? 'none' : 'auto',
-                  zIndex: isAc ? 4 : isDr ? 2 : 1,
+                  zIndex: isAc ? 5 : isWarn ? 3 : isDr ? 2 : 1,
                 }}
               >
                 <div
@@ -1635,9 +1640,16 @@ function Toggle({ on, onToggle, label }) {
     <button
       onClick={onToggle}
       aria-label={label}
-      style={{ width: 51, height: 31, borderRadius: 15.5, border: 'none', cursor: 'pointer', background: on ? '#32d74b' : 'var(--muted)', position: 'relative', transition: 'background .25s', flexShrink: 0 }}
+      style={{
+        padding: '4px 10px', borderRadius: 6, border: `1.5px solid ${on ? '#32d74b' : 'var(--bdr)'}`,
+        background: on ? 'rgba(50,215,75,0.1)' : 'transparent',
+        color: on ? '#32d74b' : 'var(--hint)',
+        fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 800,
+        letterSpacing: '0.12em', textTransform: 'uppercase',
+        cursor: 'pointer', transition: 'all .15s', flexShrink: 0, whiteSpace: 'nowrap',
+      }}
     >
-      <span style={{ position: 'absolute', top: 2, left: on ? 22 : 2, width: 27, height: 27, borderRadius: '50%', background: '#fff', transition: 'left .25s' }} />
+      {on ? '✓ ON' : 'OFF'}
     </button>
   )
 }
@@ -1725,18 +1737,18 @@ function EndOfShiftCard({ css, s, update, unpaidBreaks, isOvernight }) {
       <div style={{ ...css.lbl, alignItems: 'center' }}>
         &#x1F514; HEADS-UP BEFORE SHIFT END
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {s.ewOn !== false && s.allHeadsUpOn !== false && <span style={css.val}>{s.endWarning} min</span>}
+          {s.ewOn !== false && <span style={css.val}>{s.endWarning} min</span>}
           <Toggle on={s.ewOn !== false} onToggle={() => update({ ewOn: s.ewOn === false })} label="Toggle shift-end heads-up" />
         </div>
       </div>
-      {s.ewOn !== false && s.allHeadsUpOn !== false && (
+      {s.ewOn !== false && (
         <div style={css.sliderWrap}>
           <input type="range" min={2} max={30} step={1} value={s.endWarning}
             onChange={e => handleEndWarning(Number(e.target.value))} />
           <div style={css.sliderLabels}><span>2 min early</span><span>30 min early</span></div>
         </div>
       )}
-      {warnFlash && s.ewOn !== false && s.allHeadsUpOn !== false && (
+      {warnFlash && s.ewOn !== false && (
         <div key={warnFlash.k} style={{ textAlign: 'center', fontSize: 11, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.08em', color: '#e5342a', marginTop: 6, animation: 'fadeFlash 2.5s ease forwards' }}>
           {warnFlash.text}
         </div>
@@ -1892,11 +1904,11 @@ function ClockInCard({ css, s, update, timeVal, handleTimeChange }) {
       <div style={{ ...css.lbl, alignItems: 'center' }}>
         &#x1F514; HEADS-UP BEFORE CLOCK-IN
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {s.ciWarnOn !== false && s.allHeadsUpOn !== false && <span style={css.val}>{s.startWarning} min</span>}
+          {s.ciWarnOn !== false && <span style={css.val}>{s.startWarning} min</span>}
           <Toggle on={s.ciWarnOn !== false} onToggle={() => update({ ciWarnOn: s.ciWarnOn === false })} label="Toggle clock-in heads-up" />
         </div>
       </div>
-      {s.ciWarnOn !== false && s.allHeadsUpOn !== false && (
+      {s.ciWarnOn !== false && (
         <div style={css.sliderWrap}>
           <input type="range" min={2} max={15} step={1} value={s.startWarning}
             onChange={e => handleStartWarning(Number(e.target.value))} />
@@ -1965,18 +1977,18 @@ function LunchCard({ css, s, update }) {
       <div style={{ ...css.lbl, alignItems: 'center' }}>
         &#x1F514; HEADS-UP BEFORE LUNCH
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {s.lwOn !== false && s.allHeadsUpOn !== false && <span style={css.val}>{s.lunchWarning} min</span>}
+          {s.lwOn !== false && <span style={css.val}>{s.lunchWarning} min</span>}
           <Toggle on={s.lwOn !== false} onToggle={() => update({ lwOn: s.lwOn === false })} label="Toggle lunch heads-up" />
         </div>
       </div>
-      {s.lwOn !== false && s.allHeadsUpOn !== false && (
+      {s.lwOn !== false && (
         <div style={css.sliderWrap}>
           <input type="range" min={2} max={15} step={1} value={s.lunchWarning}
             onChange={e => handleLunchWarning(Number(e.target.value))} />
           <div style={css.sliderLabels}><span>2 min early</span><span>15 min early</span></div>
         </div>
       )}
-      {warnFlash && s.lwOn !== false && s.allHeadsUpOn !== false && (
+      {warnFlash && s.lwOn !== false && (
         <div key={warnFlash.k} style={{ textAlign: 'center', fontSize: 11, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.08em', color: '#e5342a', marginTop: 6, animation: 'fadeFlash 2.5s ease forwards' }}>
           {warnFlash.text}
         </div>
@@ -1985,11 +1997,11 @@ function LunchCard({ css, s, update }) {
       <div style={{ ...css.lbl, alignItems: 'center' }}>
         &#x1F514; HEADS-UP BEFORE CLOCK BACK IN
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {s.liWarnOn !== false && s.allHeadsUpOn !== false && <span style={css.val}>{s.liWarning ?? 5} min</span>}
+          {s.liWarnOn !== false && <span style={css.val}>{s.liWarning ?? 5} min</span>}
           <Toggle on={s.liWarnOn !== false} onToggle={() => update({ liWarnOn: s.liWarnOn === false })} label="Toggle clock-back-in heads-up" />
         </div>
       </div>
-      {s.liWarnOn !== false && s.allHeadsUpOn !== false && (
+      {s.liWarnOn !== false && (
         <div style={css.sliderWrap}>
           <input type="range" min={2} max={15} step={1} value={s.liWarning ?? 5}
             onChange={e => update({ liWarning: Number(e.target.value) })} />
@@ -2046,18 +2058,18 @@ function DinnerCard({ css, s, update }) {
       <div style={{ ...css.lbl, alignItems: 'center' }}>
         &#x1F514; HEADS-UP BEFORE DINNER
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {s.dwOn !== false && s.allHeadsUpOn !== false && <span style={css.val}>{s.dinnerWarning} min</span>}
+          {s.dwOn !== false && <span style={css.val}>{s.dinnerWarning} min</span>}
           <Toggle on={s.dwOn !== false} onToggle={() => update({ dwOn: s.dwOn === false })} label="Toggle dinner heads-up" />
         </div>
       </div>
-      {s.dwOn !== false && s.allHeadsUpOn !== false && (
+      {s.dwOn !== false && (
         <div style={css.sliderWrap}>
           <input type="range" min={2} max={15} step={1} value={s.dinnerWarning}
             onChange={e => handleDinnerWarning(Number(e.target.value))} />
           <div style={css.sliderLabels}><span>2 min early</span><span>15 min early</span></div>
         </div>
       )}
-      {warnFlash && s.dwOn !== false && s.allHeadsUpOn !== false && (
+      {warnFlash && s.dwOn !== false && (
         <div key={warnFlash.k} style={{ textAlign: 'center', fontSize: 11, fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, letterSpacing: '0.08em', color: '#e5342a', marginTop: 6, animation: 'fadeFlash 2.5s ease forwards' }}>
           {warnFlash.text}
         </div>
@@ -2066,11 +2078,11 @@ function DinnerCard({ css, s, update }) {
       <div style={{ ...css.lbl, alignItems: 'center' }}>
         &#x1F514; HEADS-UP BEFORE CLOCK BACK IN
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {s.dinWarnOn !== false && s.allHeadsUpOn !== false && <span style={css.val}>{s.dinWarning ?? 5} min</span>}
+          {s.dinWarnOn !== false && <span style={css.val}>{s.dinWarning ?? 5} min</span>}
           <Toggle on={s.dinWarnOn !== false} onToggle={() => update({ dinWarnOn: s.dinWarnOn === false })} label="Toggle dinner clock-back-in heads-up" />
         </div>
       </div>
-      {s.dinWarnOn !== false && s.allHeadsUpOn !== false && (
+      {s.dinWarnOn !== false && (
         <div style={css.sliderWrap}>
           <input type="range" min={2} max={15} step={1} value={s.dinWarning ?? 5}
             onChange={e => update({ dinWarning: Number(e.target.value) })} />
