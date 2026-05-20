@@ -669,6 +669,7 @@ export default function App() {
           isDirty={isDirty} isOvernight={isOvernight}
           showLunch={showLunch} showDinner={showDinner} unpaidBreaks={unpaidBreaks}
           nowMins={nowMins} nextItem={nextItem} nextTmrw={nextTmrw}
+          showToast={showToast}
         />
 
       </div>
@@ -1300,7 +1301,7 @@ function CollapseCard({ css, title, summary, open, onToggle, className, children
   )
 }
 
-function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule, isSet, handleSet, handleCancel, handleCancelClick, confirmCancel, isDirty, isOvernight, showLunch, showDinner, unpaidBreaks, nowMins, nextItem, nextTmrw }) {
+function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule, isSet, handleSet, handleCancel, handleCancelClick, confirmCancel, isDirty, isOvernight, showLunch, showDinner, unpaidBreaks, nowMins, nextItem, nextTmrw, showToast }) {
   const openCards = s.openCards || DEFAULT.openCards
   const cardOrder = s.cardOrder || DEFAULT.cardOrder
 
