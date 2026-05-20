@@ -984,39 +984,40 @@ function ShiftTimeline({ s, schedule, showLunch, showDinner, unpaidBreaks, updat
     if (id.endsWith('w')) return '#d97706'
     return 'var(--hint)'
   }
-  const dotSz = id => ['ci', 'lo', 'li', 'dout', 'din', 'eo'].includes(id) ? 13 : id.endsWith('w') ? 10 : 8
+  const dotSz = id => ['ci', 'lo', 'li', 'dout', 'din', 'eo'].includes(id) ? 22 : id.endsWith('w') ? 16 : 12
 
   return (
     <div style={{ marginBottom: 16 }}>
-      <div style={{ position: 'relative', margin: '28px 0 8px' }}>
+      <div style={{ position: 'relative', margin: '32px 0 10px' }}>
         {tooltip && (
           <div style={{
             position: 'absolute',
             left: `${Math.max(8, Math.min(92, tooltip.pct))}%`,
-            bottom: 'calc(100% + 6px)',
+            bottom: 'calc(100% + 8px)',
             transform: 'translateX(-50%)',
             background: '#e5342a', color: '#fff',
-            padding: '2px 8px', borderRadius: 6,
-            fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700,
+            padding: '3px 10px', borderRadius: 6,
+            fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 700,
             pointerEvents: 'none', whiteSpace: 'nowrap', zIndex: 10,
           }}>{tooltip.text}</div>
         )}
-        <div ref={barRef} style={{ position: 'relative', height: 4, background: 'var(--bdr)', borderRadius: 2 }}>
-          <div style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, background: '#e5342a22', borderRadius: 2 }} />
+        <div ref={barRef} style={{ position: 'relative', height: 8, background: 'var(--bdr)', borderRadius: 4 }}>
+          <div style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, background: '#e5342a22', borderRadius: 4 }} />
           {showLunch && (() => {
             const lo = pct(start + h2m(s.lunchHour))
             const li = pct(start + h2m(s.lunchHour) + s.lunchDuration)
-            return <div style={{ position: 'absolute', left: `${lo}%`, width: `${li - lo}%`, top: 0, bottom: 0, background: 'var(--bg)', borderLeft: '1px solid var(--bdr)', borderRight: '1px solid var(--bdr)' }} />
+            return <div style={{ position: 'absolute', left: `${lo}%`, width: `${li - lo}%`, top: 0, bottom: 0, background: 'var(--bg)', borderLeft: '2px solid var(--bdr)', borderRight: '2px solid var(--bdr)' }} />
           })()}
           {showDinner && s.dinnerEnabled && (() => {
             const dout = pct(start + h2m(s.dinnerHour))
             const din  = pct(start + h2m(s.dinnerHour) + s.dinnerDuration)
-            return <div style={{ position: 'absolute', left: `${dout}%`, width: `${din - dout}%`, top: 0, bottom: 0, background: 'var(--bg)', borderLeft: '1px solid var(--bdr)', borderRight: '1px solid var(--bdr)' }} />
+            return <div style={{ position: 'absolute', left: `${dout}%`, width: `${din - dout}%`, top: 0, bottom: 0, background: 'var(--bg)', borderLeft: '2px solid var(--bdr)', borderRight: '2px solid var(--bdr)' }} />
           })()}
           {dots.map(item => {
             const isDr = draggable.has(item.id)
             const isAc = activeDot === item.id
             const sz   = dotSz(item.id)
+            const HIT  = isDr ? 44 : sz
             return (
               <div
                 key={item.id}
@@ -1026,18 +1027,29 @@ function ShiftTimeline({ s, schedule, showLunch, showDinner, unpaidBreaks, updat
                   left: `${pct(item.fireAt)}%`,
                   top: '50%',
                   transform: 'translate(-50%, -50%)',
-                  width: isAc ? sz + 4 : sz,
-                  height: isAc ? sz + 4 : sz,
-                  borderRadius: '50%',
-                  background: dotColor(item.id),
-                  border: '2px solid var(--bg)',
-                  zIndex: isAc ? 3 : 1,
+                  width: HIT,
+                  height: HIT,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   cursor: isDr ? (isAc ? 'grabbing' : 'grab') : 'default',
                   touchAction: isDr ? 'none' : 'auto',
-                  transition: isAc ? 'none' : 'width .1s, height .1s',
-                  boxShadow: isAc ? `0 0 0 3px ${dotColor(item.id)}55` : 'none',
+                  zIndex: isAc ? 4 : isDr ? 2 : 1,
                 }}
-              />
+              >
+                <div
+                  style={{
+                    width: isAc ? sz + 6 : sz,
+                    height: isAc ? sz + 6 : sz,
+                    borderRadius: '50%',
+                    background: dotColor(item.id),
+                    border: `${isAc ? 3 : 2}px solid var(--bg)`,
+                    transition: isAc ? 'none' : 'width .1s, height .1s',
+                    boxShadow: isAc ? `0 0 0 4px ${dotColor(item.id)}55` : 'none',
+                    pointerEvents: 'none',
+                  }}
+                />
+              </div>
             )
           })}
         </div>
@@ -1155,7 +1167,7 @@ function LegalModal({ onClose }) {
   )
 }
 
-function CollapseCard({ css, title, summary, open, onToggle, className, children }) {
+function CollapseCard({ css, title, summary, open, onToggle, className, children, peek }) {
   return (
     <div className={className || ''} style={css.card}>
       <div
@@ -1174,6 +1186,7 @@ function CollapseCard({ css, title, summary, open, onToggle, className, children
         </div>
         <span style={{ fontSize: 10, color: 'var(--muted)', marginLeft: 10, marginTop: 2, flexShrink: 0 }}>{open ? '▲' : '▼'}</span>
       </div>
+      {!open && peek && <div style={{ marginTop: 10 }}>{peek}</div>}
       <AnimatedReveal show={open} style={{ marginTop: 14 }}>{children}</AnimatedReveal>
     </div>
   )
@@ -1199,6 +1212,7 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
         : `${schedule.length} reminders · next ${nextItem ? fmtTime(nextItem.fireAt) + (nextTmrw ? ' (tmrw)' : '') : ''}`,
       className: 'card-full',
       visible: true,
+      peek: <ShiftTimeline s={s} schedule={schedule} showLunch={showLunch} showDinner={showDinner} unpaidBreaks={unpaidBreaks} update={update} />,
       render: () => <SchedulePreviewContent css={css} schedule={schedule} s={s} showLunch={showLunch} showDinner={showDinner} unpaidBreaks={unpaidBreaks} update={update} />,
     },
     shiftLength: {
@@ -1250,6 +1264,7 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
             open={openCards[id] ?? true}
             onToggle={() => toggleCard(id)}
             className={def.className || ''}
+            peek={def.peek}
           >
             {def.render()}
           </CollapseCard>
