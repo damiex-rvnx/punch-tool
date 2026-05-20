@@ -1643,8 +1643,8 @@ function Toggle({ on, onToggle, label }) {
       style={{
         padding: '7px 14px', borderRadius: 8,
         border: `2px solid ${on ? '#32d74b' : 'var(--fg)'}`,
-        background: on ? 'rgba(50,215,75,0.13)' : 'rgba(128,128,128,0.12)',
-        color: on ? '#32d74b' : 'var(--fg)',
+        background: on ? 'rgba(50,215,75,0.13)' : 'rgba(128,128,128,0.1)',
+        color: on ? '#32d74b' : 'var(--hint)',
         fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 800,
         letterSpacing: '0.12em', textTransform: 'uppercase',
         cursor: 'pointer', transition: 'all .15s', flexShrink: 0, whiteSpace: 'nowrap',
@@ -1658,10 +1658,24 @@ function Toggle({ on, onToggle, label }) {
 
 function EndOfShiftCard({ css, s, update, unpaidBreaks, isOvernight }) {
   const [wheelOpen, setWheelOpen] = useState(false)
-  const [warnFlash, setWarnFlash]   = useState(null)
-  const warnTimer                   = useRef(null)
+  const [warnFlash, setWarnFlash] = useState(null)
+  const warnTimer = useRef(null)
   const endMin   = s.endMin ?? 0
   const endLabel = `${s.endHour}h${endMin ? ` ${String(endMin).padStart(2, '0')}m` : ''}`
+
+  const clockOutTotal = (s.startHour * 60 + s.startMin + s.endHour * 60 + endMin + unpaidBreaks) % 1440
+  const coH24  = Math.floor(clockOutTotal / 60)
+  const coM    = clockOutTotal % 60
+  const coH12  = coH24 % 12 === 0 ? 12 : coH24 % 12
+  const coAmpm = coH24 < 12 ? 'AM' : 'PM'
+
+  function recalcFromTime(h24, m) {
+    const startMins = s.startHour * 60 + s.startMin
+    let elapsed = h24 * 60 + m - startMins
+    if (elapsed <= 0) elapsed += 1440
+    const workedMins = Math.max(0, elapsed - (unpaidBreaks ?? 0))
+    update({ endHour: Math.min(24, Math.max(4, Math.floor(workedMins / 60))), endMin: workedMins % 60 })
+  }
 
   function handleEndWarning(v) {
     update({ endWarning: v })
@@ -1672,33 +1686,18 @@ function EndOfShiftCard({ css, s, update, unpaidBreaks, isOvernight }) {
     navigator.vibrate?.(10)
   }
 
-  const clockOutTotal = (s.startHour * 60 + s.startMin + s.endHour * 60 + endMin + unpaidBreaks) % 1440
-  const clockOutH   = Math.floor(clockOutTotal / 60)
-  const clockOutM   = clockOutTotal % 60
-  const clockOutVal = `${pad2(clockOutH)}:${pad2(clockOutM)}`
-
-  function handleClockOutChange(e) {
-    const [h, m] = e.target.value.split(':').map(Number)
-    if (isNaN(h) || isNaN(m)) return
-    const startMins = s.startHour * 60 + s.startMin
-    let elapsed = h * 60 + m - startMins
-    if (elapsed <= 0) elapsed += 1440
-    const workedMins = Math.max(0, elapsed - unpaidBreaks)
-    update({ endHour: Math.min(24, Math.max(4, Math.floor(workedMins / 60))), endMin: workedMins % 60 })
-  }
-
   return (
     <>
-      {/* Duration display box — tap to open wheel */}
+      {/* Time display box — tap to open wheel */}
       <div
         onClick={() => setWheelOpen(o => !o)}
         style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--inp)', border: `1.5px solid ${wheelOpen ? '#e5342a' : 'var(--bdr)'}`, borderRadius: 10, padding: '13px 14px', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 22, fontWeight: 700, color: 'var(--fg)', transition: 'border-color .15s', userSelect: 'none' }}
       >
         <span>
-          {String(s.endHour).padStart(2, '0')}
-          <span style={{ color: '#e5342a', margin: '0 3px' }}>h</span>
-          {String(endMin).padStart(2, '0')}
-          <span style={{ color: '#e5342a', margin: '0 3px' }}>m</span>
+          {String(coH12).padStart(2, '0')}
+          <span style={{ color: '#e5342a', margin: '0 3px' }}>:</span>
+          {String(coM).padStart(2, '0')}
+          <span style={{ color: 'var(--lbl)', marginLeft: 8, fontSize: 15, fontWeight: 700 }}>{coAmpm}</span>
         </span>
         <span style={{ fontSize: 11, color: 'var(--hint)', fontWeight: 700, letterSpacing: '0.1em' }}>
           {wheelOpen ? 'DONE ▲' : 'EDIT ▼'}
@@ -1707,33 +1706,34 @@ function EndOfShiftCard({ css, s, update, unpaidBreaks, isOvernight }) {
 
       {/* Collapsible wheel */}
       <AnimatedReveal show={wheelOpen} style={{ marginTop: 8 }}>
-        <div style={{ background: 'var(--inp)', borderRadius: 14, padding: '6px 0', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ position: 'absolute', left: 12, right: 12, top: '50%', transform: 'translateY(-50%)', height: 44, borderRadius: 10, border: '1.5px solid #e5342a33', background: '#e5342a08', pointerEvents: 'none' }} />
-          <WheelCol items={SHIFT_HOURS} value={s.endHour} onChange={h => update({ endHour: h })} />
-          <div style={{ fontSize: 22, fontWeight: 800, color: '#e5342a', padding: '0 4px', lineHeight: 1, userSelect: 'none' }}>h</div>
-          <WheelCol items={SHIFT_MINS} value={endMin} onChange={m => update({ endMin: m })} fmt={v => String(v).padStart(2, '0')} />
-          <div style={{ fontSize: 22, fontWeight: 800, color: '#e5342a', padding: '0 4px', lineHeight: 1, userSelect: 'none' }}>m</div>
+        <div style={{ background: 'var(--inp)', borderRadius: 14, padding: '6px 0 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ position: 'absolute', left: 12, right: 12, top: '50%', transform: 'translateY(-50%)', height: 44, borderRadius: 10, border: '1.5px solid #e5342a33', background: '#e5342a08', pointerEvents: 'none' }} />
+            <WheelCol items={WHEEL_HOURS} value={coH12} onChange={h => recalcFromTime((h % 12) + (coAmpm === 'PM' ? 12 : 0), coM)} />
+            <div style={{ fontSize: 30, fontWeight: 800, color: '#e5342a', padding: '0 2px', lineHeight: 1, userSelect: 'none' }}>:</div>
+            <WheelCol items={WHEEL_MINS} value={coM} onChange={m => recalcFromTime(coH24, m)} fmt={v => String(v).padStart(2, '0')} />
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {['AM', 'PM'].map(ap => (
+              <button key={ap}
+                onClick={e => { e.stopPropagation(); ap !== coAmpm && recalcFromTime((coH12 % 12) + (ap === 'PM' ? 12 : 0), coM) }}
+                style={{ padding: '6px 20px', borderRadius: 8, border: 'none', cursor: ap === coAmpm ? 'default' : 'pointer', background: ap === coAmpm ? '#e5342a' : 'var(--muted)', color: ap === coAmpm ? '#fff' : 'var(--fg2)', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, fontWeight: 700, letterSpacing: '0.06em', transition: 'all .15s', outline: 'none' }}>
+                {ap}
+              </button>
+            ))}
+          </div>
         </div>
       </AnimatedReveal>
 
-      {/* Clock-out time input — always visible, stays in sync with wheel */}
-      <div style={{ marginTop: 12 }}>
-        <div style={{ fontSize: 11, color: 'var(--lbl)', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Clock-out time</div>
-        <div style={{ overflow: 'hidden' }}>
-          <input type="time" value={clockOutVal} onChange={handleClockOutChange} />
-        </div>
-        <div style={{ fontSize: 11, color: 'var(--hint)', marginTop: 6, lineHeight: 1.6 }}>
-          <span style={{ color: '#e5342a', fontWeight: 700 }}>{endLabel}</span> worked
-          {unpaidBreaks > 0 && (
-            <span> + <span style={{ color: '#8e8e93' }}>{unpaidBreaks}m unpaid break</span></span>
-          )}
-        </div>
-        {isOvernight && (
-          <div style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 10, background: '#1a1a2e', border: '1px solid #5a5aff', fontSize: 11, color: '#8888ff', fontWeight: 700, fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: '0.08em' }}>
-            🌙 Overnight — clock-out next day
-          </div>
-        )}
+      <div style={{ fontSize: 11, color: 'var(--hint)', marginTop: 8, lineHeight: 1.6 }}>
+        <span style={{ color: '#e5342a', fontWeight: 700 }}>{endLabel}</span> shift
+        {unpaidBreaks > 0 && <span> + <span style={{ color: '#8e8e93' }}>{unpaidBreaks}m unpaid</span></span>}
       </div>
+      {isOvernight && (
+        <div style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 10, background: '#1a1a2e', border: '1px solid #5a5aff', fontSize: 11, color: '#8888ff', fontWeight: 700, fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: '0.08em' }}>
+          🌙 Overnight — clock-out next day
+        </div>
+      )}
 
       <div style={css.divider} />
       <div style={{ ...css.lbl, alignItems: 'center' }}>
