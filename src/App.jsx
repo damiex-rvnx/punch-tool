@@ -435,7 +435,7 @@ export default function App() {
     inner:       { maxWidth: 920, margin: '0 auto', padding: '0 16px' },
     headerWrap:  { display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 28 },
     rule:        { width: 40, height: 2, background: '#e5342a', borderRadius: 2, marginTop: 20 },
-    tagline:     { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: '0.24em', textTransform: 'uppercase', color: '#636366', marginTop: 8 },
+    tagline:     { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: '0.24em', textTransform: 'uppercase', color: 'var(--lbl)', marginTop: 8 },
     card:        { background: 'var(--card)', border: '1px solid var(--bdr)', borderRadius: 16, padding: 20, overflow: 'hidden' },
     lbl:         { fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--lbl)', marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
     val:         { color: '#e5342a', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700, textTransform: 'none', letterSpacing: 0 },
@@ -479,12 +479,16 @@ export default function App() {
           const countdown = h > 0 ? `${h}h${m > 0 ? ` ${m}m` : ''}` : `${m}m`
           return (
             <>
+              {nextReminderOpen && <div onClick={() => setNextReminderOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 9988 }} />}
               <button
                 onClick={() => setNextReminderOpen(o => !o)}
-                style={{ position: 'fixed', top: 16, left: 16, zIndex: 9990, display: 'flex', alignItems: 'center', gap: 6, padding: '0 12px', height: 44, borderRadius: 10, border: `1.5px solid ${nextReminderOpen ? '#e5342a' : 'var(--bdr)'}`, background: 'var(--card)', cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,.4)', transition: 'border-color .15s' }}
+                style={{ position: 'fixed', top: 16, left: 16, zIndex: 9990, display: 'flex', alignItems: 'center', gap: 7, padding: '0 14px', height: 44, borderRadius: 10, border: `1.5px solid ${nextReminderOpen ? '#e5342a' : 'var(--bdr)'}`, background: 'var(--card)', cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,.4)', transition: 'border-color .15s' }}
               >
                 <span style={{ fontSize: 14 }}>{nextItem.emoji}</span>
-                <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 900, color: '#e5342a', letterSpacing: '0.04em' }}>{countdown}</span>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, fontWeight: 900, color: '#e5342a', letterSpacing: '0.04em', lineHeight: 1.1 }}>{countdown}</span>
+                  <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 10, fontWeight: 700, color: 'var(--hint)', letterSpacing: '0.06em', lineHeight: 1.1 }}>{fmtTime(nextItem.fireAt)}{nextTmrw ? ' tmrw' : ''}</span>
+                </div>
               </button>
               <AnimatedReveal show={nextReminderOpen} style={{ position: 'fixed', top: 68, left: 16, zIndex: 9989 }}>
                 <div style={{ background: 'var(--card)', border: '1px solid var(--bdr)', borderRadius: 14, padding: '14px 16px', minWidth: 230, maxWidth: 290, boxShadow: '0 8px 32px rgba(0,0,0,.6)' }}>
@@ -500,7 +504,7 @@ export default function App() {
                   <button onClick={() => setNextReminderOpen(false)} style={{ marginTop: 10, width: '100%', padding: '7px 0', background: 'transparent', border: '1px solid var(--bdr)', borderRadius: 8, color: 'var(--hint)', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Dismiss</button>
                 </div>
               </AnimatedReveal>
-</>
+            </>
           )
         })()}
 
@@ -643,6 +647,17 @@ export default function App() {
               </div>
             )
           })()}
+          {isSet && !isDirty && nextItem && (() => {
+            const eff = nextItem.fireAt < nowMins ? nextItem.fireAt + 1440 : nextItem.fireAt
+            const diff = eff - nowMins
+            const h = Math.floor(diff / 60), m = diff % 60
+            const countdown = h > 0 ? `${h}h${m > 0 ? ` ${m}m` : ''}` : `${m}m`
+            return (
+              <div style={{ marginTop: 5, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, color: 'var(--hint)', letterSpacing: '0.06em', textAlign: 'center' }}>
+                {nextItem.emoji} <span style={{ color: '#e5342a', fontWeight: 700 }}>{countdown}</span> · {nextItem.label}
+              </div>
+            )
+          })()}
         </div>
 
         <ResponsiveLayout
@@ -679,7 +694,8 @@ export default function App() {
         @keyframes pop       { 0%,100%{transform:scale(1);}50%{transform:scale(1.08);} }
         @keyframes fadeFlash { 0%{opacity:1;}70%{opacity:1;}100%{opacity:0;} }
         @keyframes dropDown { from{opacity:0;transform:translateY(-16px);}to{opacity:1;transform:translateY(0);} }
-        @keyframes dropUp   { from{opacity:1;transform:translateY(0);}to{opacity:0;transform:translateY(-16px);} }
+        @keyframes dropUp      { from{opacity:1;transform:translateY(0);}to{opacity:0;transform:translateY(-16px);} }
+        @keyframes dirtyPulse  { 0%,100%{box-shadow:0 0 0 0 rgba(217,119,6,0);}50%{box-shadow:0 0 0 6px rgba(217,119,6,0.35);} }
         @supports (backdrop-filter: blur(1px)) { .settings-backdrop { backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); } }
         @media (min-width: 800px) {
           .responsive-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 16px !important; }
@@ -1044,12 +1060,20 @@ function ShiftTimeline({ s, schedule, showLunch, showDinner, unpaidBreaks, updat
           {showLunch && (() => {
             const lo = pct(start + h2m(s.lunchHour))
             const li = pct(start + h2m(s.lunchHour) + s.lunchDuration)
-            return <div style={{ position: 'absolute', left: `${lo}%`, width: `${li - lo}%`, top: 0, bottom: 0, background: 'var(--bg)', borderLeft: '2px solid var(--bdr)', borderRight: '2px solid var(--bdr)' }} />
+            const midPct = (lo + li) / 2
+            return <>
+              <div style={{ position: 'absolute', left: `${lo}%`, width: `${li - lo}%`, top: 0, bottom: 0, background: 'var(--bg)', borderLeft: '2px solid var(--bdr)', borderRight: '2px solid var(--bdr)' }} />
+              <div style={{ position: 'absolute', left: `${midPct}%`, top: '50%', transform: 'translate(-50%, -50%)', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 9, fontWeight: 800, color: 'var(--hint)', letterSpacing: '0.06em', pointerEvents: 'none', whiteSpace: 'nowrap' }}>{s.lunchDuration}m</div>
+            </>
           })()}
           {showDinner && s.dinnerEnabled && (() => {
             const dout = pct(start + h2m(s.dinnerHour))
             const din  = pct(start + h2m(s.dinnerHour) + s.dinnerDuration)
-            return <div style={{ position: 'absolute', left: `${dout}%`, width: `${din - dout}%`, top: 0, bottom: 0, background: 'var(--bg)', borderLeft: '2px solid var(--bdr)', borderRight: '2px solid var(--bdr)' }} />
+            const midPct = (dout + din) / 2
+            return <>
+              <div style={{ position: 'absolute', left: `${dout}%`, width: `${din - dout}%`, top: 0, bottom: 0, background: 'var(--bg)', borderLeft: '2px solid var(--bdr)', borderRight: '2px solid var(--bdr)' }} />
+              <div style={{ position: 'absolute', left: `${midPct}%`, top: '50%', transform: 'translate(-50%, -50%)', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 9, fontWeight: 800, color: 'var(--hint)', letterSpacing: '0.06em', pointerEvents: 'none', whiteSpace: 'nowrap' }}>{s.dinnerDuration}m</div>
+            </>
           })()}
           {[...dots].sort((a, b) => a.id.endsWith('w') ? 1 : b.id.endsWith('w') ? -1 : 0).map(item => {
             const isWarn = item.id.endsWith('w')
@@ -1107,19 +1131,41 @@ function ShiftTimeline({ s, schedule, showLunch, showDinner, unpaidBreaks, updat
 function SchedulePreviewContent({ css, schedule, s, showLunch, showDinner, unpaidBreaks, update }) {
   const now = new Date()
   const nowMins = now.getHours() * 60 + now.getMinutes()
+  const [copied, setCopied] = React.useState(false)
   const sorted = [...schedule].sort((a, b) => {
     const ae = a.fireAt < nowMins ? a.fireAt + 1440 : a.fireAt
     const be = b.fireAt < nowMins ? b.fireAt + 1440 : b.fireAt
     return ae - be
   })
-  const todayItems = sorted.filter(item => item.fireAt >= nowMins)
-  const tmrwItems  = sorted.filter(item => item.fireAt < nowMins)
+  const upcomingItems = sorted.filter(item => item.fireAt >= nowMins)
+  const firedItems    = sorted.filter(item => item.fireAt < nowMins)
 
-  const sectionLabel = txt => (
-    <div style={{ fontSize: 10, color: 'var(--hint)', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>{txt}</div>
+  function copySchedule() {
+    const dayStr = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+    const lines = [`CLOCK-BOT — ${dayStr}`, '']
+    schedule.slice().sort((a, b) => {
+      const ae = a.fireAt < 0 ? a.fireAt + 1440 : a.fireAt
+      const be = b.fireAt < 0 ? b.fireAt + 1440 : b.fireAt
+      return ae - be
+    }).forEach(item => {
+      lines.push(`${item.emoji}  ${item.label.padEnd(32)} ${fmtTime(item.fireAt)}`)
+    })
+    const text = lines.join('\n')
+    if (navigator.share) {
+      navigator.share({ title: 'Clock-Bot Schedule', text }).catch(() => {})
+    } else {
+      navigator.clipboard?.writeText(text).then(() => {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      })
+    }
+  }
+
+  const sectionLabel = (txt, accent) => (
+    <div style={{ fontSize: 10, color: accent || 'var(--hint)', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>{txt}</div>
   )
-  const grid = (items, dim) => (
-    <div style={{ ...css.previewGrid, opacity: dim ? 0.5 : 1 }}>
+  const upcomingGrid = items => (
+    <div style={css.previewGrid}>
       {items.map(item => (
         <React.Fragment key={item.id}>
           <div style={css.previewLabel}>{item.emoji} {item.label}</div>
@@ -1128,12 +1174,35 @@ function SchedulePreviewContent({ css, schedule, s, showLunch, showDinner, unpai
       ))}
     </div>
   )
+  const firedGrid = items => (
+    <div style={{ ...css.previewGrid, opacity: 0.45 }}>
+      {items.map(item => (
+        <React.Fragment key={item.id}>
+          <div style={{ ...css.previewLabel, textDecoration: 'line-through' }}>✓ {item.label}</div>
+          <div style={{ ...css.previewTime, color: 'var(--hint)', textDecoration: 'line-through' }}>{fmtTime(item.fireAt)}</div>
+        </React.Fragment>
+      ))}
+    </div>
+  )
 
   return (
     <div>
       <ShiftTimeline s={s} schedule={schedule} showLunch={showLunch} showDinner={showDinner} unpaidBreaks={unpaidBreaks} update={update} />
-      {todayItems.length > 0 && <>{sectionLabel('Today')}{grid(todayItems, false)}</>}
-      {tmrwItems.length > 0 && <div style={{ marginTop: todayItems.length > 0 ? 16 : 0 }}>{sectionLabel('Tomorrow')}{grid(tmrwItems, true)}</div>}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+        <button
+          onClick={copySchedule}
+          style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', background: 'transparent', border: '1px solid var(--bdr)', borderRadius: 8, color: copied ? '#32d74b' : 'var(--hint)', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.08em', transition: 'color .2s' }}
+        >
+          {copied ? '✓ COPIED' : (navigator.share ? '↑ SHARE' : '📋 COPY')}
+        </button>
+      </div>
+      {firedItems.length > 0 && (
+        <div style={{ marginBottom: upcomingItems.length > 0 ? 16 : 0 }}>
+          {sectionLabel('✓ Already Fired')}
+          {firedGrid(firedItems)}
+        </div>
+      )}
+      {upcomingItems.length > 0 && <>{sectionLabel('Up Next')}{upcomingGrid(upcomingItems)}</>}
     </div>
   )
 }
@@ -1255,10 +1324,10 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
       render: () => <SchedulePreviewContent css={css} schedule={schedule} s={s} showLunch={showLunch} showDinner={showDinner} unpaidBreaks={unpaidBreaks} update={update} />,
     },
     shiftLength: {
-      title: '🏁 SHIFT LENGTH',
+      title: '🕔 CLOCK OUT',
       summary: `clock out ${fmtTime(start + s.endHour * 60 + endMin + unpaidBreaks)}  ·  ${endLabel} shift`,
       visible: true,
-      render: () => <EndOfShiftCard css={css} s={s} update={update} unpaidBreaks={unpaidBreaks} isOvernight={isOvernight} />,
+      render: () => <EndOfShiftCard css={css} s={s} update={update} unpaidBreaks={unpaidBreaks} isOvernight={isOvernight} showToast={showToast} />,
     },
     lunch: {
       title: '🍽️ LUNCH BREAK',
@@ -1313,7 +1382,7 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
       {/* Set Reminders — fixed at bottom */}
       <div className="card-full">
         <button
-          style={{ ...css.btnSet, ...(isDirty ? { background: '#d97706' } : {}) }}
+          style={{ ...css.btnSet, ...(isDirty ? { background: '#d97706', animation: 'dirtyPulse 2s ease-in-out infinite' } : {}) }}
           onClick={handleSet}
         >
           {isDirty ? '⚠ SETTINGS CHANGED — UPDATE' : isSet ? '✓ UPDATE REMINDERS' : 'SET REMINDERS'}
@@ -1373,7 +1442,7 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
 function CardOrderPanel({ s, update }) {
   const cardNames = {
     schedulePreview: '📋 Schedule Preview',
-    shiftLength:     '🏁 Shift Length',
+    shiftLength:     '🕔 Clock Out',
     lunch:           '🍽️ Lunch Break',
     dinner:          '🌙 Dinner Break',
   }
@@ -1647,8 +1716,8 @@ function Toggle({ on, onToggle, label }) {
       aria-label={label}
       style={{
         padding: '7px 14px', borderRadius: 8,
-        border: `2px solid ${on ? '#32d74b' : 'var(--fg)'}`,
-        background: on ? 'rgba(50,215,75,0.13)' : 'rgba(128,128,128,0.1)',
+        border: `2px solid ${on ? '#32d74b' : 'rgba(229,52,42,0.22)'}`,
+        background: on ? 'rgba(50,215,75,0.13)' : 'rgba(229,52,42,0.06)',
         color: on ? '#32d74b' : 'var(--hint)',
         fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 800,
         letterSpacing: '0.12em', textTransform: 'uppercase',
@@ -1661,7 +1730,7 @@ function Toggle({ on, onToggle, label }) {
   )
 }
 
-function EndOfShiftCard({ css, s, update, unpaidBreaks, isOvernight }) {
+function EndOfShiftCard({ css, s, update, unpaidBreaks, isOvernight, showToast }) {
   const [wheelOpen, setWheelOpen] = useState(false)
   const [warnFlash, setWarnFlash] = useState(null)
   const warnTimer = useRef(null)
@@ -1678,8 +1747,9 @@ function EndOfShiftCard({ css, s, update, unpaidBreaks, isOvernight }) {
     const startMins = s.startHour * 60 + s.startMin
     let elapsed = h24 * 60 + m - startMins
     if (elapsed <= 0) elapsed += 1440
-    const workedMins = Math.max(0, elapsed - (unpaidBreaks ?? 0))
-    update({ endHour: Math.min(24, Math.max(4, Math.floor(workedMins / 60))), endMin: workedMins % 60 })
+    const workedMins = elapsed - (unpaidBreaks ?? 0)
+    if (workedMins < 240) { showToast?.('Minimum shift is 4h', '#d97706'); return }
+    update({ endHour: Math.min(24, Math.floor(workedMins / 60)), endMin: workedMins % 60 })
   }
 
   function handleEndWarning(v) {
