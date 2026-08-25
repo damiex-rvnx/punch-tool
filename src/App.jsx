@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { SpeedInsights } from '@vercel/speed-insights/react'
 
 const WORKER_URL       = 'https://qr-clock-bot.lbrito1126.workers.dev'
 const VAPID_PUBLIC_KEY = 'BC_wlEOLqTvLMDJK0ZntTkZQtKGVMNXIDmofUr-MlcPPN25lrlhzrFDpDTUYoftr2kXngLqSSxdIsbcTtJfBIv4'
@@ -746,6 +747,7 @@ export default function App() {
           .card-full { grid-column: 1 / -1 !important; }
         }
       `}</style>
+      <SpeedInsights />
     </div>
   )
 }
