@@ -80,7 +80,7 @@ const DEFAULT = {
   endEnabled: true,
   endFollowupEnabled: true,
   endFollowupDelay: 30,
-  adpUrl: 'https://workforcenow.adp.com',
+  ukgUrl: 'https://www.ukg.com/login',
   lightMode: false,
   cardOrder: ['shiftLength', 'lunch', 'dinner', 'schedulePreview'],
   openCards: { schedulePreview: false, shiftLength: true, lunch: true, dinner: true, clockIn: true },
@@ -312,22 +312,19 @@ export default function App() {
   })[0]
   const nextTmrw = nextItem && nextItem.fireAt < nowMins
 
-  function openADP() {
+  function openUKG() {
     // Only allow http(s) — guards against javascript:/data: scheme injection
     // if the saved URL is ever set from an untrusted source.
-    let url = 'https://workforcenow.adp.com'
+    let url = 'https://www.ukg.com/login'
     try {
-      const parsed = new URL(s.adpUrl || url)
+      const parsed = new URL(s.ukgUrl || url)
       if (parsed.protocol === 'http:' || parsed.protocol === 'https:') url = parsed.href
     } catch { /* keep default */ }
-    const isStandalone = window.navigator.standalone === true ||
-      window.matchMedia('(display-mode: standalone)').matches
     if (isIOS) {
-      window.location.href = 'adpmobile://'
-      if (!isStandalone) {
-        // In browser only: fall back to web tab if app isn't installed
-        setTimeout(() => { window.location.href = url }, 1200)
-      }
+      // UKG Ready registers universal links, so navigating to the https URL
+      // opens the UKG Ready app when installed and falls back to the browser
+      // otherwise — no fragile custom URL scheme needed.
+      window.location.href = url
     } else {
       window.open(url, '_blank', 'noopener,noreferrer')
     }
@@ -552,12 +549,12 @@ export default function App() {
           )
         })()}
 
-        {/* Floating ADP button — always visible bottom right */}
+        {/* Floating UKG button — always visible bottom right */}
         <button
-          onClick={openADP}
+          onClick={openUKG}
           style={{ position: 'fixed', bottom: 24, right: 16, zIndex: 9980, display: 'flex', alignItems: 'center', gap: 7, padding: '11px 18px', background: '#e5342a', color: '#fff', border: 'none', borderRadius: 28, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, fontWeight: 900, letterSpacing: '0.06em', cursor: 'pointer', boxShadow: '0 4px 18px rgba(229,52,42,0.45)', userSelect: 'none' }}
         >
-          <span style={{ fontSize: 16 }}>📋</span> Open ADP ↗
+          <span style={{ fontSize: 16 }}>📋</span> Open UKG ↗
         </button>
 
         <div
@@ -618,16 +615,16 @@ export default function App() {
             {isIOS && <NtfySetupCard css={css} deviceId={getDeviceId()} />}
             <CardOrderPanel s={s} update={update} />
             <div style={{ borderTop: '1px solid var(--bdr)', paddingTop: 16, marginTop: 16 }}>
-              <div style={{ fontSize: 11, color: 'var(--hint)', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>ADP Link</div>
+              <div style={{ fontSize: 11, color: 'var(--hint)', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>UKG Link</div>
               <input
                 type="url"
-                value={s.adpUrl || ''}
-                placeholder="https://workforcenow.adp.com"
-                onChange={e => update({ adpUrl: e.target.value })}
+                value={s.ukgUrl || ''}
+                placeholder="https://yourcompany.ukg.net"
+                onChange={e => update({ ukgUrl: e.target.value })}
                 style={{ width: '100%', background: 'var(--inp)', border: '1.5px solid var(--bdr)', borderRadius: 10, padding: '10px 14px', color: 'var(--fg)', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
               />
               <div style={{ fontSize: 11, color: 'var(--hint)', marginTop: 6, lineHeight: 1.5 }}>
-                Custom URL for the "Open ADP" button in alerts.
+                Your company's UKG Ready login URL for the "Open UKG" button.
               </div>
             </div>
             <DebugPanel deviceId={getDeviceId()} lastSetError={lastSetError} schedule={schedule} nowMins={nowMins} />
@@ -657,12 +654,12 @@ export default function App() {
         <div style={{ position: 'fixed', inset: 0, background: '#1c1c1ef5', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 9998, padding: 24 }}>
           <div style={{ fontSize: 72, animation: 'pop 1s ease infinite', marginBottom: 20 }}>{alert.emoji}</div>
           <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 28, fontWeight: 700, textAlign: 'center', maxWidth: 380, marginBottom: 12 }}>{alert.label}</div>
-          <div style={{ color: '#e5342a', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 20, fontWeight: 700, marginBottom: 20 }}>Clock in/out in ADP now!</div>
+          <div style={{ color: '#e5342a', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 20, fontWeight: 700, marginBottom: 20 }}>Clock in/out in UKG now!</div>
           <button
-            onClick={() => { setAlert(null); openADP() }}
+            onClick={() => { setAlert(null); openUKG() }}
             style={{ display: 'inline-block', marginBottom: 20, padding: '13px 32px', background: '#e5342a', color: '#fff', border: 'none', borderRadius: 12, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, fontWeight: 700, letterSpacing: '0.06em', cursor: 'pointer' }}
           >
-            📋 Open ADP ↗
+            📋 Open UKG ↗
           </button>
           <button onClick={() => setAlert(null)} style={{ padding: '12px 32px', background: 'transparent', color: '#f2f2f7', border: '1.5px solid #3a3a3c', borderRadius: 12, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 17, fontWeight: 700, cursor: 'pointer' }}>Got it ✓</button>
         </div>
@@ -1299,8 +1296,8 @@ function LegalModal({ onClose }) {
               body: [
                 ['Free to use', 'Clock-Bot is provided free of charge with no subscription or in-app purchases.'],
                 ['No warranty', 'This app is provided "as is" without warranty of any kind. We do not guarantee that notifications will be delivered on time or at all — delivery depends on your device settings, browser permissions, network connectivity, and push service availability.'],
-                ['Your responsibility', 'You are solely responsible for clocking in and out in ADP or any other timekeeping system on time. Clock-Bot is a reminder tool only and does not interact with ADP or any payroll system.'],
-                ['Not affiliated with ADP', 'Clock-Bot is an independent tool and is not affiliated with, endorsed by, or connected to ADP or any of its products.'],
+                ['Your responsibility', 'You are solely responsible for clocking in and out in UKG or any other timekeeping system on time. Clock-Bot is a reminder tool only and does not interact with UKG or any payroll system.'],
+                ['Not affiliated with UKG', 'Clock-Bot is an independent tool and is not affiliated with, endorsed by, or connected to UKG, UKG Ready, or any of their products.'],
                 ['Changes', 'We may update these terms at any time. Continued use of the app after changes constitutes acceptance.'],
               ],
             },
