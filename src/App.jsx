@@ -204,7 +204,7 @@ export default function App() {
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return
     navigator.serviceWorker
-      .register('/qwik-crew-clock/OneSignalSDKWorker.js', { scope: '/qwik-crew-clock/' })
+      .register('/OneSignalSDKWorker.js', { scope: '/' })
       .then(reg => {
         swReg.current = reg
         return reg.pushManager.getSubscription()
@@ -2031,7 +2031,7 @@ function ClockInCard({ css, s, update, timeVal, handleTimeChange }) {
     if (!notifSupported) return
     if (notifPermission() === 'default') await Notification.requestPermission()
     if (notifPermission() === 'granted') {
-      new Notification('🧪 Clock-Bot Test', { body: 'Notifications are working!', icon: '/qwik-crew-clock/icon-192.png' })
+      new Notification('🧪 Clock-Bot Test', { body: 'Notifications are working!', icon: '/icon-192.png' })
     }
   }
 

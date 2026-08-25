@@ -9,8 +9,8 @@ self.addEventListener('push', evt => {
   evt.waitUntil(
     self.registration.showNotification(data.title || 'Clock-Bot', {
       body:              data.body  || '',
-      icon:              data.icon  || '/qwik-crew-clock/icon-192.png',
-      badge:             '/qwik-crew-clock/icon-192.png',
+      icon:              data.icon  || '/icon-192.png',
+      badge:             '/icon-192.png',
       tag:               data.tag   || 'qr-notif',
       renotify:          true,
       requireInteraction: false,
@@ -23,9 +23,9 @@ self.addEventListener('notificationclick', evt => {
   evt.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
       for (const c of list) {
-        if (c.url.includes('qwik-crew-clock') && 'focus' in c) return c.focus()
+        if ('focus' in c) return c.focus()
       }
-      return clients.openWindow('/qwik-crew-clock/')
+      return clients.openWindow('/')
     })
   )
 })
@@ -43,8 +43,8 @@ self.addEventListener('message', evt => {
       const t = setTimeout(() => {
         self.registration.showNotification('Clock-Bot', {
           body:    `${emoji}  ${label}`,
-          icon:    '/qwik-crew-clock/icon-192.png',
-          badge:   '/qwik-crew-clock/icon-192.png',
+          icon:    '/icon-192.png',
+          badge:   '/icon-192.png',
           tag:     id,
           renotify: true,
         })
