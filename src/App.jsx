@@ -126,6 +126,48 @@ function fmtTime(totalMins) {
 
 function pad2(n) { return String(n).padStart(2, '0') }
 
+// Shared AudioContext, created/unlocked on a user gesture (Set Reminders press).
+// Browsers block audio started from a timer unless a context was unlocked by a
+// gesture first, so we keep one alive rather than making a new one at fire time.
+let _audioCtx = null
+function unlockAudio() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext
+    if (!AC) return
+    if (!_audioCtx) _audioCtx = new AC()
+    if (_audioCtx.state === 'suspended') _audioCtx.resume?.().catch(() => {})
+  } catch {}
+}
+
+// Fire an attention-grabbing alarm when a reminder pops while the app is open:
+// strong vibration pattern (Android) + a rising Web Audio chime (all platforms).
+function fireAlarmEffect() {
+  try {
+    navigator.vibrate?.([0, 400, 150, 400, 150, 600])
+  } catch {}
+  try {
+    unlockAudio()
+    const ctx = _audioCtx
+    if (!ctx) return
+    ctx.resume?.().catch(() => {})
+    const now = ctx.currentTime
+    // Three short beeps, rising pitch, so it reads as an alert not a notification blip.
+    ;[880, 1046, 1318].forEach((freq, i) => {
+      const t = now + i * 0.28
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.type = 'square'
+      osc.frequency.value = freq
+      gain.gain.setValueAtTime(0.0001, t)
+      gain.gain.exponentialRampToValueAtTime(0.28, t + 0.02)
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.22)
+      osc.connect(gain).connect(ctx.destination)
+      osc.start(t)
+      osc.stop(t + 0.24)
+    })
+  } catch {}
+}
+
 const notifSupported  = typeof Notification !== 'undefined'
 const notifPermission = () => notifSupported ? Notification.permission : 'unsupported'
 
@@ -315,6 +357,7 @@ export default function App() {
   }
 
   async function handleSet() {
+    unlockAudio() // prime audio while we still have the user's tap gesture
     if (notifSupported && notifPermission() === 'default') {
       await Notification.requestPermission()
     }
@@ -345,7 +388,7 @@ export default function App() {
       let ms = (item.fireAt - nowMins) * 60000 - now.getSeconds() * 1000
       if (ms < 0) ms += 86400000
 
-      timerIds.current.push(setTimeout(() => setAlert({ emoji: item.emoji, label: item.label }), ms))
+      timerIds.current.push(setTimeout(() => { fireAlarmEffect(); setAlert({ emoji: item.emoji, label: item.label }) }, ms))
       swItems.push({ id: item.id, ms, label: item.label, emoji: item.emoji })
       workerItems.push({ id: item.id, fireAtISO: new Date(Date.now() + ms).toISOString(), label: item.label, emoji: item.emoji, urgency: 'high', requireInteraction: true })
     })
@@ -1535,6 +1578,16 @@ function NtfySetupCard({ css, deviceId }) {
         <br />
         <span style={{ color: 'var(--lbl)' }}>4 &nbsp;·&nbsp;</span>
         Come back here and press <span style={{ color: 'var(--fg2)', fontWeight: 700 }}>Set Reminders</span>
+      </div>
+
+      <div style={{ marginTop: 16, padding: '11px 13px', background: 'rgba(50,215,75,0.07)', border: '1px solid rgba(50,215,75,0.25)', borderRadius: 10 }}>
+        <div style={{ fontSize: 11, color: '#32d74b', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 5 }}>⏰ Make it ring like an alarm</div>
+        <div style={{ fontSize: 12.5, color: 'var(--hint)', lineHeight: 1.6 }}>
+          In the ntfy app, open your subscription &rarr; notification settings and set it to
+          <span style={{ color: 'var(--fg2)', fontWeight: 700 }}> Max priority</span>. On Android also pick a
+          loud sound and turn on <span style={{ color: 'var(--fg2)', fontWeight: 700 }}>Insistent</span> so it
+          vibrates and repeats until you look. Alerts already go out at max priority.
+        </div>
       </div>
     </div>
   )

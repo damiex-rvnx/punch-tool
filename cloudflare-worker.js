@@ -246,7 +246,7 @@ export default {
 async function sendNtfy(topic, item, token) {
   const headers = {
     'Title':    'Clock-Bot',
-    'Priority': 'high',
+    'Priority': 'max',
     'Tags':     'clock2',
     'Icon':     'https://lbrito1126.github.io/qwik-crew-clock/icon-192.png',
   }
