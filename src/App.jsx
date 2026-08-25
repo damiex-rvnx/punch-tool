@@ -80,7 +80,7 @@ const DEFAULT = {
   endEnabled: true,
   endFollowupEnabled: true,
   endFollowupDelay: 30,
-  ukgUrl: 'https://www.ukg.com/login',
+  ukgUrl: 'https://secure7.saashr.com/ta/6200194.login',
   lightMode: false,
   cardOrder: ['shiftLength', 'lunch', 'dinner', 'schedulePreview'],
   openCards: { schedulePreview: false, shiftLength: true, lunch: true, dinner: true, clockIn: true },
@@ -315,7 +315,7 @@ export default function App() {
   function openUKG() {
     // Only allow http(s) — guards against javascript:/data: scheme injection
     // if the saved URL is ever set from an untrusted source.
-    let url = 'https://www.ukg.com/login'
+    let url = 'https://secure7.saashr.com/ta/6200194.login'
     try {
       const parsed = new URL(s.ukgUrl || url)
       if (parsed.protocol === 'http:' || parsed.protocol === 'https:') url = parsed.href
@@ -619,7 +619,7 @@ export default function App() {
               <input
                 type="url"
                 value={s.ukgUrl || ''}
-                placeholder="https://yourcompany.ukg.net"
+                placeholder="https://secure7.saashr.com/ta/6200194.login"
                 onChange={e => update({ ukgUrl: e.target.value })}
                 style={{ width: '100%', background: 'var(--inp)', border: '1.5px solid var(--bdr)', borderRadius: 10, padding: '10px 14px', color: 'var(--fg)', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
               />
