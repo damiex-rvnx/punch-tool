@@ -102,8 +102,6 @@ const DINNER_OPTS = [
   { l: '10h 00m', v: 10.00 },
 ]
 
-const SHIFT_HOURS = Array.from({ length: 21 }, (_, i) => i + 4)
-const SHIFT_MINS  = Array.from({ length: 60 }, (_, i) => i)
 
 const DUR_OPTS = [
   { l: '30 min', v: 30 },
@@ -124,7 +122,10 @@ function fmtTime(totalMins) {
   return `${h12}:${String(min).padStart(2, '0')} ${ampm}`
 }
 
-function pad2(n) { return String(n).padStart(2, '0') }
+// Monotonic key for one-shot flash messages — changing the React key re-mounts
+// the element so its CSS animation replays. Pure, unlike Date.now().
+let _flashSeq = 0
+const nextKey = () => (_flashSeq = (_flashSeq + 1) % 1e9)
 
 // Shared AudioContext, created/unlocked on a user gesture (Set Reminders press).
 // Browsers block audio started from a timer unless a context was unlocked by a
@@ -312,7 +313,13 @@ export default function App() {
   const nextTmrw = nextItem && nextItem.fireAt < nowMins
 
   function openADP() {
-    const url = s.adpUrl || 'https://workforcenow.adp.com'
+    // Only allow http(s) — guards against javascript:/data: scheme injection
+    // if the saved URL is ever set from an untrusted source.
+    let url = 'https://workforcenow.adp.com'
+    try {
+      const parsed = new URL(s.adpUrl || url)
+      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') url = parsed.href
+    } catch { /* keep default */ }
     const isStandalone = window.navigator.standalone === true ||
       window.matchMedia('(display-mode: standalone)').matches
     if (isIOS) {
@@ -465,12 +472,6 @@ export default function App() {
       clearTimeout(cancelConfirmTimer.current)
       handleCancel()
     }
-  }
-
-  const timeVal = `${pad2(s.startHour)}:${pad2(s.startMin)}`
-  function handleTimeChange(e) {
-    const [h, m] = e.target.value.split(':').map(Number)
-    if (!isNaN(h) && !isNaN(m)) update({ startHour: h, startMin: m })
   }
 
   const css = {
@@ -705,9 +706,8 @@ export default function App() {
 
         <ResponsiveLayout
           css={css} s={s} update={update}
-          timeVal={timeVal} handleTimeChange={handleTimeChange}
           schedule={schedule} isSet={isSet}
-          handleSet={handleSet} handleCancel={handleCancel}
+          handleSet={handleSet}
           handleCancelClick={handleCancelClick} confirmCancel={confirmCancel}
           isDirty={isDirty} isOvernight={isOvernight}
           showLunch={showLunch} showDinner={showDinner} unpaidBreaks={unpaidBreaks}
@@ -775,9 +775,13 @@ function WheelCol({ items, value, onChange, fmt = String }) {
   const cbRef  = useRef(onChange)
   const itmRef = useRef(items)
   const fmtRef = useRef(fmt)
+  // Keep latest props in refs so the imperative pointer/RAF handlers never read
+  // stale closures. Written during render on purpose (read only after commit).
+  /* eslint-disable react-hooks/refs */
   cbRef.current  = onChange
   itmRef.current = items
   fmtRef.current = fmt
+  /* eslint-enable react-hooks/refs */
 
   const applyDOM = useCallback((animated) => {
     const s = st.current
@@ -887,6 +891,9 @@ function WheelCol({ items, value, onChange, fmt = String }) {
       el.removeEventListener('touchstart', onTouchStart)
       el.removeEventListener('touchmove',  onTouchMove)
       el.removeEventListener('touchend',   onTouchEnd)
+      // st is a stable ref object; read .raf at cleanup to cancel the pending
+      // frame. Copying it early (as the rule suggests) would capture a stale id.
+      /* eslint-disable-next-line react-hooks/exhaustive-deps */
       if (st.current.raf) cancelAnimationFrame(st.current.raf)
     }
   }, [N, step, applyDOM])
@@ -943,7 +950,10 @@ function ShiftTimeline({ s, schedule, showLunch, showDinner, unpaidBreaks, updat
   const dragSnapRef = useRef(null)
   const sRef        = useRef(s)
   const updRef      = useRef(update)
+  // Latest state/updater for the imperative drag handlers (read after commit).
+  /* eslint-disable-next-line react-hooks/refs */
   sRef.current      = s
+  /* eslint-disable-next-line react-hooks/refs */
   updRef.current    = update
 
   const [activeDot, setActiveDot] = useState(null)
@@ -1254,10 +1264,15 @@ function SchedulePreviewContent({ css, schedule, s, showLunch, showDinner, unpai
 function AnimatedReveal({ show, style = {}, children }) {
   const [rendered, setRendered] = useState(show)
   const [closing, setClosing]   = useState(false)
+  // Drive mount/enter/exit from the `show` prop. setState-in-effect is the
+  // intended pattern here; `rendered` is intentionally not a dep (we only react
+  // to `show` changing, and read `rendered` as a guard).
+  /* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
   useEffect(() => {
     if (show) { setRendered(true); setClosing(false) }
     else if (rendered) setClosing(true)
   }, [show])
+  /* eslint-enable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
   if (!rendered) return null
   return (
     <div
@@ -1344,7 +1359,7 @@ function CollapseCard({ css, title, summary, open, onToggle, className, children
   )
 }
 
-function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule, isSet, handleSet, handleCancel, handleCancelClick, confirmCancel, isDirty, isOvernight, showLunch, showDinner, unpaidBreaks, nowMins, nextItem, nextTmrw, showToast }) {
+function ResponsiveLayout({ css, s, update, schedule, isSet, handleSet, handleCancelClick, confirmCancel, isDirty, isOvernight, showLunch, showDinner, unpaidBreaks, nowMins, nextItem, nextTmrw, showToast }) {
   const openCards = s.openCards || DEFAULT.openCards
   const cardOrder = s.cardOrder || DEFAULT.cardOrder
 
@@ -1401,11 +1416,11 @@ function ResponsiveLayout({ css, s, update, timeVal, handleTimeChange, schedule,
         open={openCards.clockIn ?? true}
         onToggle={() => toggleCard('clockIn')}
       >
-        <ClockInCard css={css} s={s} update={update} timeVal={timeVal} handleTimeChange={handleTimeChange} />
+        <ClockInCard css={css} s={s} update={update} />
       </CollapseCard>
 
       {/* Collapsible + reorderable cards */}
-      {visibleOrder.map((id, visIdx) => {
+      {visibleOrder.map(id => {
         const def = cardDefs[id]
         return (
           <CollapseCard
@@ -1856,7 +1871,7 @@ function EndOfShiftCard({ css, s, update, unpaidBreaks, isOvernight, showToast }
     update({ endWarning: v })
     clearTimeout(warnTimer.current)
     const endOutMins = s.startHour * 60 + s.startMin + s.endHour * 60 + endMin + (unpaidBreaks ?? 0)
-    setWarnFlash({ text: `Notified at ${fmtTime(endOutMins - v)}`, k: Date.now() })
+    setWarnFlash({ text: `Notified at ${fmtTime(endOutMins - v)}`, k: nextKey() })
     warnTimer.current = setTimeout(() => setWarnFlash(null), 2500)
     navigator.vibrate?.(10)
   }
@@ -2011,7 +2026,7 @@ function DurDropdown({ value, onChange }) {
   )
 }
 
-function ClockInCard({ css, s, update, timeVal, handleTimeChange }) {
+function ClockInCard({ css, s, update }) {
   const [wheelOpen, setWheelOpen] = useState(false)
   const [warnFlash, setWarnFlash] = useState(null)
   const warnTimer  = useRef(null)
@@ -2022,7 +2037,7 @@ function ClockInCard({ css, s, update, timeVal, handleTimeChange }) {
   function handleStartWarning(v) {
     update({ startWarning: v })
     clearTimeout(warnTimer.current)
-    setWarnFlash({ text: `Notified at ${fmtTime(start - v)}`, k: Date.now() })
+    setWarnFlash({ text: `Notified at ${fmtTime(start - v)}`, k: nextKey() })
     warnTimer.current = setTimeout(() => setWarnFlash(null), 2500)
     navigator.vibrate?.(10)
   }
@@ -2109,7 +2124,6 @@ function ClockInCard({ css, s, update, timeVal, handleTimeChange }) {
 }
 
 function LunchCard({ css, s, update }) {
-  const lunchLabel = LUNCH_OPTS.find(o => o.v === s.lunchHour)?.l ?? `${s.lunchHour}h`
   const [lunchFlash, setLunchFlash] = useState(null)
   const lunchFlashTimer = useRef(null)
   const [warnFlash, setWarnFlash]   = useState(null)
@@ -2119,7 +2133,7 @@ function LunchCard({ css, s, update }) {
     update({ lunchWarning: v })
     clearTimeout(warnTimer.current)
     const lunchOutMins = s.startHour * 60 + s.startMin + h2m(s.lunchHour)
-    setWarnFlash({ text: `Notified at ${fmtTime(lunchOutMins - v)}`, k: Date.now() })
+    setWarnFlash({ text: `Notified at ${fmtTime(lunchOutMins - v)}`, k: nextKey() })
     warnTimer.current = setTimeout(() => setWarnFlash(null), 2500)
     navigator.vibrate?.(10)
   }
@@ -2128,7 +2142,7 @@ function LunchCard({ css, s, update }) {
     update({ lunchHour: v })
     const t = fmtTime(s.startHour * 60 + s.startMin + h2m(v))
     clearTimeout(lunchFlashTimer.current)
-    setLunchFlash({ text: `Clock out at ${t}`, k: Date.now() })
+    setLunchFlash({ text: `Clock out at ${t}`, k: nextKey() })
     lunchFlashTimer.current = setTimeout(() => setLunchFlash(null), 2500)
   }
 
@@ -2190,7 +2204,6 @@ function LunchCard({ css, s, update }) {
 }
 
 function DinnerCard({ css, s, update }) {
-  const dinnerLabel = DINNER_OPTS.find(o => o.v === s.dinnerHour)?.l ?? `${s.dinnerHour}h`
   const [dinnerFlash, setDinnerFlash] = useState(null)
   const dinnerFlashTimer = useRef(null)
   const [warnFlash, setWarnFlash]   = useState(null)
@@ -2200,7 +2213,7 @@ function DinnerCard({ css, s, update }) {
     update({ dinnerWarning: v })
     clearTimeout(warnTimer.current)
     const dinnerOutMins = s.startHour * 60 + s.startMin + h2m(s.dinnerHour)
-    setWarnFlash({ text: `Notified at ${fmtTime(dinnerOutMins - v)}`, k: Date.now() })
+    setWarnFlash({ text: `Notified at ${fmtTime(dinnerOutMins - v)}`, k: nextKey() })
     warnTimer.current = setTimeout(() => setWarnFlash(null), 2500)
     navigator.vibrate?.(10)
   }
@@ -2209,7 +2222,7 @@ function DinnerCard({ css, s, update }) {
     update({ dinnerHour: v })
     const t = fmtTime(s.startHour * 60 + s.startMin + h2m(v))
     clearTimeout(dinnerFlashTimer.current)
-    setDinnerFlash({ text: `Clock out at ${t}`, k: Date.now() })
+    setDinnerFlash({ text: `Clock out at ${t}`, k: nextKey() })
     dinnerFlashTimer.current = setTimeout(() => setDinnerFlash(null), 2500)
   }
 

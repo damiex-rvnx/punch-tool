@@ -17,5 +17,18 @@ export default defineConfig([
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
+    rules: {
+      // Empty catch blocks are intentional here — best-effort calls to
+      // vibrate/audio/clipboard that must never throw into the UI.
+      'no-empty': ['error', { allowEmptyCatch: true }],
+    },
+  },
+  {
+    // Service worker + Cloudflare Worker run in a worker global scope, not the
+    // browser window — give the linter the right globals (self, clients, caches…).
+    files: ['public/*.js', 'cloudflare-worker.js'],
+    languageOptions: {
+      globals: { ...globals.serviceworker, ...globals.worker },
+    },
   },
 ])
