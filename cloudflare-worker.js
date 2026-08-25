@@ -4,14 +4,32 @@
 // Secrets (Cloudflare dashboard):  VAPID_PRIVATE_KEY  - base64url PKCS8 EC private key
 // KV binding:                       KV                 - stores pending notification schedules
 
-const ALLOWED          = 'https://lbrito1126.github.io'
 const VAPID_SUBJECT    = 'mailto:qr-clock-bot@example.com'
 const VAPID_PUBLIC_KEY = 'BC_wlEOLqTvLMDJK0ZntTkZQtKGVMNXIDmofUr-MlcPPN25lrlhzrFDpDTUYoftr2kXngLqSSxdIsbcTtJfBIv4'
 
-const cors = {
-  'Access-Control-Allow-Origin':  ALLOWED,
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+// Origins allowed to call this Worker from browser JS. github.io kept for the
+// old GH Pages build; Vercel production + preview deploys (*.vercel.app) added
+// for the new host. Add a custom domain here if/when one is set up.
+function isAllowedOrigin(origin) {
+  if (!origin) return false
+  try {
+    const h = new URL(origin).hostname
+    return h === 'lbrito1126.github.io'
+        || h === 'vercel.app' || h.endsWith('.vercel.app')
+  } catch { return false }
+}
+
+// Reflect the caller's Origin when it's on the allowlist (needed because
+// each Vercel preview deploy has a distinct URL). Falls back to the GH Pages
+// origin for non-browser / unknown callers.
+function corsFor(request) {
+  const origin = request.headers.get('Origin')
+  return {
+    'Access-Control-Allow-Origin':  isAllowedOrigin(origin) ? origin : 'https://lbrito1126.github.io',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Vary':                         'Origin',
+  }
 }
 
 let _vapidPrivKey = null
@@ -28,6 +46,11 @@ async function getVapidPrivKey(env) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url)
+    const cors = corsFor(request)
+    const respond = (data, status = 200) => new Response(JSON.stringify(data), {
+      status,
+      headers: { ...cors, 'Content-Type': 'application/json' },
+    })
 
     if (request.method === 'OPTIONS') return new Response(null, { headers: cors })
 
@@ -374,9 +397,3 @@ function b64url_json(obj) {
   return btoa(JSON.stringify(obj)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
 }
 
-function respond(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ...cors, 'Content-Type': 'application/json' },
-  })
-}
