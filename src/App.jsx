@@ -1666,6 +1666,19 @@ function NtfySetupCard({ css, deviceId }) {
   )
 }
 
+// Debug-panel gate. Only a salted SHA-256 hash of the password lives in the
+// repo — the plaintext never appears in source or git history. The entered
+// password is hashed client-side and compared. (Still client-side, so it's a
+// speed-bump for a diagnostics panel, not a secret store; the strong random
+// password makes offline brute-forcing of the hash infeasible.)
+const DEBUG_SALT = '4e95c46053033dd951e1e22de1c40bf2'
+const DEBUG_HASH = 'ade231cf8b8ff20b40340f4badd19183562ab7b5014d26045c9a1021240e07de'
+
+async function sha256hex(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str))
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
 function DebugPanel({ deviceId, lastSetError, schedule, nowMins }) {
   const [pw, setPw]             = useState('')
   const [unlocked, setUnlocked] = useState(false)
@@ -1712,9 +1725,14 @@ function DebugPanel({ deviceId, lastSetError, schedule, nowMins }) {
     })()
   }, [unlocked])
 
-  function tryUnlock() {
-    if (pw === '25896211##') { setUnlocked(true); setPwError(false) }
-    else setPwError(true)
+  async function tryUnlock() {
+    try {
+      const hash = await sha256hex(DEBUG_SALT + pw)
+      if (hash === DEBUG_HASH) { setUnlocked(true); setPwError(false) }
+      else setPwError(true)
+    } catch {
+      setPwError(true)
+    }
   }
 
   async function hit(path, setter, key) {
