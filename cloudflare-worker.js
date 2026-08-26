@@ -124,9 +124,9 @@ export default {
         try {
           const ntfyHeaders = {
             'Title':    'Clock-Bot TEST',
-            'Priority': 'high',
+            'Priority': 'max',
             'Tags':     'bell',
-            'Icon':     'https://lbrito1126.github.io/qwik-crew-clock/icon-192.png',
+            'Icon':     'https://punchtool.vercel.app/icon-192.png',
           }
           if (env.NTFY_TOKEN) ntfyHeaders['Authorization'] = `Bearer ${env.NTFY_TOKEN}`
           const r = await fetch(`https://ntfy.sh/${topic}`, {
@@ -151,7 +151,7 @@ export default {
           await sendPush(rec.subscription, {
             title: 'Clock-Bot TEST',
             body:  'If you see this, push delivery works ✓',
-            icon:  '/qwik-crew-clock/icon-192.png',
+            icon:  '/icon-192.png',
             tag:   'test',
           }, env)
           return respond({ ok: true, sent_at: new Date().toISOString() })
@@ -215,29 +215,34 @@ export default {
 
         if (due) {
           changed = true
+          // Dual delivery: native Web Push (primary) + ntfy (fallback). Both are
+          // best-effort so one failing never blocks the other. Deliver-once —
+          // the item is dropped after the attempt (retry only for a transient
+          // web-push failure when there's no ntfy fallback to cover it).
+          let pushRetryable = false
+          if (subscription) {
+            try {
+              await sendPush(subscription, {
+                title: 'Clock-Bot',
+                body:  `${item.emoji}  ${item.label}`,
+                icon:  '/icon-192.png',
+                tag:   item.id,
+              }, env)
+              log.sent.push({ id: item.id + ':push', fireAtISO: item.fireAtISO })
+            } catch (e) {
+              log.errors.push({ id: item.id + ':push', err: e.message })
+              if (!e.message?.includes('GONE')) pushRetryable = true
+            }
+          }
           if (record.ntfyTopic) {
-            // iOS: ntfy handles background delivery — skip web push to avoid duplicates
             try {
               await sendNtfy(record.ntfyTopic, item, env.NTFY_TOKEN)
               log.sent.push({ id: item.id + ':ntfy' })
             } catch (e) {
               log.errors.push({ id: item.id + ':ntfy', err: e.message })
             }
-          } else {
-            // Android / non-ntfy: use web push
-            try {
-              await sendPush(subscription, {
-                title: 'Clock-Bot',
-                body:  `${item.emoji}  ${item.label}`,
-                icon:  '/qwik-crew-clock/icon-192.png',
-                tag:   item.id,
-              }, env)
-              log.sent.push({ id: item.id, fireAtISO: item.fireAtISO })
-            } catch (e) {
-              log.errors.push({ id: item.id, err: e.message })
-              if (!e.message?.includes('GONE')) remaining.push(item)
-            }
           }
+          if (pushRetryable && !record.ntfyTopic) remaining.push(item)
         } else if (future) {
           remaining.push(item)
           log.future++
@@ -271,7 +276,7 @@ async function sendNtfy(topic, item, token) {
     'Title':    'Clock-Bot',
     'Priority': 'max',
     'Tags':     'clock2',
-    'Icon':     'https://lbrito1126.github.io/qwik-crew-clock/icon-192.png',
+    'Icon':     'https://punchtool.vercel.app/icon-192.png',
   }
   if (token) headers['Authorization'] = `Bearer ${token}`
   await fetch(`https://ntfy.sh/${topic}`, {
