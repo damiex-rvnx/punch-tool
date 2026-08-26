@@ -1,9 +1,8 @@
 {
-  "name": "qwik-crew-clock",
+  "name": "punch-tool",
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://lbrito1126.github.io/qwik-crew-clock",
   "engines": {
     "node": ">=20.19"
   },
@@ -11,9 +10,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "preview": "vite preview"
   },
   "dependencies": {
     "react": "^19.2.6",
