@@ -1689,6 +1689,7 @@ function DebugPanel({ deviceId, lastSetError, schedule, nowMins }) {
   const [regRes, setRegRes]     = useState(null)
   const [cronLog, setCronLog]   = useState(null)
   const [schedRes, setSchedRes] = useState(null)
+  const [schemeTry, setSchemeTry] = useState('ukgready://')
   const [loading, setLoading]   = useState('')
   const [subInfo, setSubInfo]   = useState(null)
   const [swState, setSwState]   = useState(null)
@@ -1894,6 +1895,29 @@ function DebugPanel({ deviceId, lastSetError, schedule, nowMins }) {
           {loading === 'log' ? '⏳ Loading...' : '📋 Cron Log'}
         </button>
         {cronLog && <div style={box}><pre style={{ ...mono, color: '#aeaeb2' }}>{JSON.stringify(cronLog.slice(0, 5), null, 2)}</pre></div>}
+
+        {/* UKG app scheme finder — try candidates until one launches the app */}
+        <div style={{ ...box, marginTop: 8 }}>
+          <div style={{ fontSize: 10, color: 'var(--hint)', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>UKG App Scheme Finder</div>
+          <div style={{ fontSize: 11, color: 'var(--hint)', lineHeight: 1.5, marginBottom: 8 }}>
+            Type a scheme and tap Try. If the UKG Ready app opens, that's the one — tell me and I'll bake it in. Candidates: <span style={{ color: 'var(--fg2)' }}>ukgready://</span>, <span style={{ color: 'var(--fg2)' }}>workforceready://</span>, <span style={{ color: 'var(--fg2)' }}>kronos://</span>, <span style={{ color: 'var(--fg2)' }}>com.kronos.workforceready://</span>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input
+              value={schemeTry}
+              onChange={e => setSchemeTry(e.target.value)}
+              placeholder="ukgready://"
+              autoCapitalize="off" autoCorrect="off" spellCheck={false}
+              style={{ flex: 1, background: 'var(--inp)', border: '1.5px solid var(--bdr)', borderRadius: 8, padding: '9px 12px', color: 'var(--fg)', fontFamily: 'monospace', fontSize: 13, outline: 'none', minWidth: 0 }}
+            />
+            <button
+              onClick={() => { try { window.location.href = schemeTry } catch {} }}
+              style={{ background: '#8b5cf6', border: 'none', borderRadius: 8, padding: '9px 16px', color: '#fff', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}
+            >
+              Try ↗
+            </button>
+          </div>
+        </div>
 
         <button style={{ ...btn, borderColor: '#e5342a', color: clearDone ? '#32d74b' : '#e5342a' }} onClick={() => {
           if (!clearDone) {
