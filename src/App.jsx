@@ -1675,6 +1675,7 @@ function DebugPanel({ deviceId, lastSetError, schedule, nowMins }) {
   const [pushRes, setPushRes]   = useState(null)
   const [regRes, setRegRes]     = useState(null)
   const [cronLog, setCronLog]   = useState(null)
+  const [schedRes, setSchedRes] = useState(null)
   const [loading, setLoading]   = useState('')
   const [subInfo, setSubInfo]   = useState(null)
   const [swState, setSwState]   = useState(null)
@@ -1862,6 +1863,14 @@ function DebugPanel({ deviceId, lastSetError, schedule, nowMins }) {
           {loading === 'push' ? '⏳ Sending...' : '📲 Test Web Push'}
         </button>
         {pushRes && <div style={box}><pre style={{ ...mono, color: pushRes.ok ? '#32d74b' : '#e5342a' }}>{JSON.stringify(pushRes, null, 2)}</pre></div>}
+
+        <button style={{ ...btn, borderColor: '#8b5cf6', color: '#a78bfa' }} disabled={loading === 'sched'} onClick={() => hit(`/schedule-test?deviceId=${deviceId}&min=2`, setSchedRes, 'sched')}>
+          {loading === 'sched' ? '⏳ Scheduling...' : '⏱️ Test in 2 min — then CLOSE the app'}
+        </button>
+        {schedRes && <div style={box}>
+          <pre style={{ ...mono, color: schedRes.ok ? '#32d74b' : '#e5342a' }}>{JSON.stringify(schedRes, null, 2)}</pre>
+          {schedRes.ok && <div style={{ fontSize: 11, color: '#a78bfa', marginTop: 6, lineHeight: 1.5 }}>Now fully close the app (swipe it away). A push + ntfy should arrive in ~2 min while it's closed — that proves background delivery.</div>}
+        </div>}
 
         <button style={btn} disabled={loading === 'log'} onClick={() => hit('/cron-log', setCronLog, 'log')}>
           {loading === 'log' ? '⏳ Loading...' : '📋 Cron Log'}
