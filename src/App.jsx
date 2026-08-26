@@ -24,6 +24,27 @@ const isIOS     = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
 const isAndroid = /Android/.test(navigator.userAgent)
 const isMobile  = isIOS || isAndroid
 
+// UKG Ready native app targets. Android package is known and lets us deep-link
+// straight into the app via an Android intent. The iOS custom URL scheme is not
+// publicly documented — set UKG_IOS_SCHEME once confirmed (e.g. 'ukgready://')
+// to open the app directly; until then iOS breaks out to the system browser
+// (so the tap escapes the trapped in-PWA webview and universal links can hand
+// off to the app if the account has them configured).
+const UKG_ANDROID_PKG = 'com.kronos.workforceready'
+const UKG_IOS_SCHEME  = ''
+
+// Open a URL in the real system browser, escaping a standalone PWA's in-app
+// webview (window.location would stay trapped inside the installed app).
+function openExternal(url) {
+  const a = document.createElement('a')
+  a.href = url
+  a.target = '_blank'
+  a.rel = 'noopener noreferrer'
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+}
+
 function ClockIcon({ size = 96 }) {
   const ticks = Array.from({ length: 12 }, (_, i) => i * 30)
   return (
@@ -60,13 +81,13 @@ const DEFAULT = {
   startMin: 0,
   startWarning: 5,
   ciWarnOn: true,
-  lunchHour: 5.00,
+  lunchHour: 4.50,
   lunchWarning: 5,
   lwOn: true,
   liWarning: 5,
   liWarnOn: true,
   lunchDuration: 30,
-  dinnerHour: 10.00,
+  dinnerHour: 9.50,
   dinnerWarning: 5,
   dwOn: true,
   dinWarning: 5,
@@ -86,20 +107,26 @@ const DEFAULT = {
   openCards: { schedulePreview: false, shiftLength: true, lunch: true, dinner: true, clockIn: true },
 }
 
+// California meal-break compliance: the clock-out must land BEFORE the 5th /
+// 10th hour of work. We cap the latest option at 5 minutes before that mark
+// (4h55m / 9h55m) as a safety margin — never 5h00m / 10h00m.
+const LUNCH_MAX_H = 295 / 60   // 4h55m in decimal hours
+const DINNER_MAX_H = 595 / 60  // 9h55m in decimal hours
+
 const LUNCH_OPTS = [
   { l: '4h 00m', v: 4.00 },
   { l: '4h 15m', v: 4.25 },
   { l: '4h 30m', v: 4.50 },
   { l: '4h 45m', v: 4.75 },
-  { l: '5h 00m', v: 5.00 },
+  { l: '4h 55m', v: LUNCH_MAX_H },
 ]
 
 const DINNER_OPTS = [
-  { l: '9h 00m',  v: 9.00 },
-  { l: '9h 15m',  v: 9.25 },
-  { l: '9h 30m',  v: 9.50 },
-  { l: '9h 45m',  v: 9.75 },
-  { l: '10h 00m', v: 10.00 },
+  { l: '9h 00m', v: 9.00 },
+  { l: '9h 15m', v: 9.25 },
+  { l: '9h 30m', v: 9.50 },
+  { l: '9h 45m', v: 9.75 },
+  { l: '9h 55m', v: DINNER_MAX_H },
 ]
 
 
@@ -172,14 +199,22 @@ function fireAlarmEffect() {
 const notifSupported  = typeof Notification !== 'undefined'
 const notifPermission = () => notifSupported ? Notification.permission : 'unsupported'
 
+// Clamp any saved meal clock-out that predates the CA compliance cap so no one
+// keeps a schedule that clocks out at/after the 5th or 10th hour.
+function clampMealLaw(st) {
+  if (st.lunchHour > LUNCH_MAX_H)   st.lunchHour = LUNCH_MAX_H
+  if (st.dinnerHour > DINNER_MAX_H) st.dinnerHour = DINNER_MAX_H
+  return st
+}
+
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) return { ...DEFAULT, ...JSON.parse(raw) }
+    if (raw) return clampMealLaw({ ...DEFAULT, ...JSON.parse(raw) })
   } catch {}
   try {
     const userDef = localStorage.getItem(USER_DEFAULT_KEY)
-    if (userDef) return { ...DEFAULT, ...JSON.parse(userDef) }
+    if (userDef) return clampMealLaw({ ...DEFAULT, ...JSON.parse(userDef) })
   } catch {}
   return { ...DEFAULT }
 }
@@ -320,14 +355,38 @@ export default function App() {
       const parsed = new URL(s.ukgUrl || url)
       if (parsed.protocol === 'http:' || parsed.protocol === 'https:') url = parsed.href
     } catch { /* keep default */ }
-    if (isIOS) {
-      // UKG Ready registers universal links, so navigating to the https URL
-      // opens the UKG Ready app when installed and falls back to the browser
-      // otherwise — no fragile custom URL scheme needed.
-      window.location.href = url
-    } else {
-      window.open(url, '_blank', 'noopener,noreferrer')
+
+    if (isAndroid) {
+      // Deep-link into the UKG Ready Android app; fall back to the web URL in
+      // the browser if the app isn't installed.
+      const bare = url.replace(/^https?:\/\//, '')
+      window.location.href =
+        `intent://${bare}#Intent;scheme=https;package=${UKG_ANDROID_PKG};` +
+        `S.browser_fallback_url=${encodeURIComponent(url)};end`
+      return
     }
+
+    if (isIOS) {
+      if (UKG_IOS_SCHEME) {
+        // Try the app's custom scheme; if nothing takes over (page stays
+        // visible) fall back to the web login in the system browser.
+        let handedOff = false
+        const onHide = () => { handedOff = true }
+        document.addEventListener('visibilitychange', onHide, { once: true })
+        window.location.href = UKG_IOS_SCHEME
+        setTimeout(() => {
+          document.removeEventListener('visibilitychange', onHide)
+          if (!handedOff) openExternal(url)
+        }, 1400)
+      } else {
+        // No confirmed scheme yet: open in real Safari (not the trapped in-PWA
+        // webview) so universal links can hand off to the app if configured.
+        openExternal(url)
+      }
+      return
+    }
+
+    window.open(url, '_blank', 'noopener,noreferrer')
   }
 
   async function subscribePush() {
@@ -984,7 +1043,8 @@ function ShiftTimeline({ s, schedule, showLunch, showDinner, unpaidBreaks, updat
         return { text: fmtTime(t), pct: 0 }
       }
       case 'lo': {
-        const rel = Math.max(4 * 60, Math.min(5 * 60, Math.round((abs - curStart) / 15) * 15))
+        // Cap at 4h55m (5 min before the 5th hour) for CA meal-break compliance.
+        const rel = Math.max(4 * 60, Math.min(295, Math.round((abs - curStart) / 15) * 15))
         updRef.current({ lunchHour: rel / 60 })
         navigator.vibrate?.(5)
         return { text: fmtTime(curStart + rel), pct: p * 100 }
@@ -1004,7 +1064,8 @@ function ShiftTimeline({ s, schedule, showLunch, showDinner, unpaidBreaks, updat
         return { text: `${dur}m break`, pct: p * 100 }
       }
       case 'dout': {
-        const rel = Math.max(9 * 60, Math.min(10 * 60, Math.round((abs - curStart) / 15) * 15))
+        // Cap at 9h55m (5 min before the 10th hour) for CA meal-break compliance.
+        const rel = Math.max(9 * 60, Math.min(595, Math.round((abs - curStart) / 15) * 15))
         updRef.current({ dinnerHour: rel / 60 })
         navigator.vibrate?.(5)
         return { text: fmtTime(curStart + rel), pct: p * 100 }
