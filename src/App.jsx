@@ -32,6 +32,17 @@ const isMobile  = isIOS || isAndroid
 // off to the app if the account has them configured).
 const UKG_ANDROID_PKG = 'com.kronos.workforceready'
 const UKG_IOS_SCHEME  = ''
+const UKG_DEFAULT_URL = 'https://secure7.saashr.com/ta/6200194.login'
+
+// Validate a saved UKG URL to http(s) only (guards against javascript:/data:
+// injection) and fall back to the tenant login default.
+function safeUkgUrl(raw) {
+  try {
+    const u = new URL(raw || UKG_DEFAULT_URL)
+    if (u.protocol === 'http:' || u.protocol === 'https:') return u.href
+  } catch { /* fall through */ }
+  return UKG_DEFAULT_URL
+}
 
 // Open a URL in the real system browser, escaping a standalone PWA's in-app
 // webview (window.location would stay trapped inside the installed app).
@@ -199,22 +210,25 @@ function fireAlarmEffect() {
 const notifSupported  = typeof Notification !== 'undefined'
 const notifPermission = () => notifSupported ? Notification.permission : 'unsupported'
 
-// Clamp any saved meal clock-out that predates the CA compliance cap so no one
-// keeps a schedule that clocks out at/after the 5th or 10th hour.
-function clampMealLaw(st) {
+// Migrate stale saved settings forward on load.
+function migrateState(st) {
+  // CA compliance: never keep a meal clock-out at/after the 5th or 10th hour.
   if (st.lunchHour > LUNCH_MAX_H)   st.lunchHour = LUNCH_MAX_H
   if (st.dinnerHour > DINNER_MAX_H) st.dinnerHour = DINNER_MAX_H
+  // Replace the old placeholder UKG URL (ukg.com/login 404s) with the real
+  // SaaSHR tenant login so devices that saved the placeholder get fixed.
+  if (!st.ukgUrl || /(^$)|ukg\.com/i.test(st.ukgUrl)) st.ukgUrl = DEFAULT.ukgUrl
   return st
 }
 
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) return clampMealLaw({ ...DEFAULT, ...JSON.parse(raw) })
+    if (raw) return migrateState({ ...DEFAULT, ...JSON.parse(raw) })
   } catch {}
   try {
     const userDef = localStorage.getItem(USER_DEFAULT_KEY)
-    if (userDef) return clampMealLaw({ ...DEFAULT, ...JSON.parse(userDef) })
+    if (userDef) return migrateState({ ...DEFAULT, ...JSON.parse(userDef) })
   } catch {}
   return { ...DEFAULT }
 }
@@ -348,13 +362,7 @@ export default function App() {
   const nextTmrw = nextItem && nextItem.fireAt < nowMins
 
   function openUKG() {
-    // Only allow http(s) — guards against javascript:/data: scheme injection
-    // if the saved URL is ever set from an untrusted source.
-    let url = 'https://secure7.saashr.com/ta/6200194.login'
-    try {
-      const parsed = new URL(s.ukgUrl || url)
-      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') url = parsed.href
-    } catch { /* keep default */ }
+    const url = safeUkgUrl(s.ukgUrl)
 
     if (isAndroid) {
       // Deep-link into the UKG Ready Android app; fall back to the web URL in
@@ -608,13 +616,18 @@ export default function App() {
           )
         })()}
 
-        {/* Floating UKG button — always visible bottom right */}
-        <button
-          onClick={openUKG}
-          style={{ position: 'fixed', bottom: 24, right: 16, zIndex: 9980, display: 'flex', alignItems: 'center', gap: 7, padding: '11px 18px', background: '#e5342a', color: '#fff', border: 'none', borderRadius: 28, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, fontWeight: 900, letterSpacing: '0.06em', cursor: 'pointer', boxShadow: '0 4px 18px rgba(229,52,42,0.45)', userSelect: 'none' }}
+        {/* Floating UKG button — a real anchor so a genuine tap on iOS can hand
+            off to the UKG Ready app via universal links (a programmatic click
+            wouldn't). Android/custom-scheme cases intercept and use openUKG. */}
+        <a
+          href={safeUkgUrl(s.ukgUrl)}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={e => { if (isAndroid || (isIOS && UKG_IOS_SCHEME)) { e.preventDefault(); openUKG() } }}
+          style={{ position: 'fixed', bottom: 24, right: 16, zIndex: 9980, display: 'flex', alignItems: 'center', gap: 7, padding: '11px 18px', background: '#e5342a', color: '#fff', border: 'none', borderRadius: 28, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, fontWeight: 900, letterSpacing: '0.06em', cursor: 'pointer', boxShadow: '0 4px 18px rgba(229,52,42,0.45)', userSelect: 'none', textDecoration: 'none' }}
         >
           <span style={{ fontSize: 16 }}>📋</span> Open UKG ↗
-        </button>
+        </a>
 
         <div
           onClick={() => setSettingsOpen(false)}
@@ -714,12 +727,15 @@ export default function App() {
           <div style={{ fontSize: 72, animation: 'pop 1s ease infinite', marginBottom: 20 }}>{alert.emoji}</div>
           <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 28, fontWeight: 700, textAlign: 'center', maxWidth: 380, marginBottom: 12 }}>{alert.label}</div>
           <div style={{ color: '#e5342a', fontFamily: "'Barlow Condensed', sans-serif", fontSize: 20, fontWeight: 700, marginBottom: 20 }}>Clock in/out in UKG now!</div>
-          <button
-            onClick={() => { setAlert(null); openUKG() }}
-            style={{ display: 'inline-block', marginBottom: 20, padding: '13px 32px', background: '#e5342a', color: '#fff', border: 'none', borderRadius: 12, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, fontWeight: 700, letterSpacing: '0.06em', cursor: 'pointer' }}
+          <a
+            href={safeUkgUrl(s.ukgUrl)}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={e => { if (isAndroid || (isIOS && UKG_IOS_SCHEME)) { e.preventDefault(); openUKG() } setAlert(null) }}
+            style={{ display: 'inline-block', marginBottom: 20, padding: '13px 32px', background: '#e5342a', color: '#fff', border: 'none', borderRadius: 12, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, fontWeight: 700, letterSpacing: '0.06em', cursor: 'pointer', textDecoration: 'none' }}
           >
             📋 Open UKG ↗
-          </button>
+          </a>
           <button onClick={() => setAlert(null)} style={{ padding: '12px 32px', background: 'transparent', color: '#f2f2f7', border: '1.5px solid #3a3a3c', borderRadius: 12, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 17, fontWeight: 700, cursor: 'pointer' }}>Got it ✓</button>
         </div>
       )}
